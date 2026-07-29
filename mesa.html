@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#18120e">
+  <title>Validando mesa — FS Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-body">
+  <main style="min-height:100vh;display:grid;place-items:center;padding:24px">
+    <section class="panel" style="width:min(480px,100%);text-align:center">
+      <div class="brand" style="justify-content:center;margin-bottom:18px"><span class="brand-mark">FS</span><span>Delivery</span></div>
+      <h1 style="font-size:24px;margin:0 0 8px">Validando sua mesa</h1>
+      <p id="mesa-status" style="color:var(--muted);margin:0">Aguarde um instante...</p>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/mesa.js"></script>
+</body>
+</html>
