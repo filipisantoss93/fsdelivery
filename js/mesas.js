@@ -1,0 +1,118 @@
+const db=window.supabaseClient;
+let store=null;
+let tables=[];
+
+const bellSvg=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h14M7 16c0-5 2-8 5-8s5 3 5 8M10 7h4M12 4v3M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const escapeHtml=value=>String(value??'').replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+const publicTableUrl=table=>`${location.origin}/mesa.html?loja=${encodeURIComponent(store.slug)}&mesa=${table.numero}&token=${encodeURIComponent(table.codigo_qr)}`;
+
+async function init(){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session){location.replace('auth.html');return}
+  const {data:est,error}=await db.from('estabelecimentos').select('*').eq('usuario_id',session.user.id).single();
+  if(error||!est){alert('Não foi possível carregar o estabelecimento.');return}
+  store=est;
+  bindActions();
+  await loadTables();
+}
+
+async function loadTables(){
+  const {data,error}=await db.from('mesas').select('*').eq('estabelecimento_id',store.id).order('numero');
+  if(error){document.getElementById('tables-grid').innerHTML=`<div class="empty-state qr-empty">${escapeHtml(error.message)}</div>`;return}
+  tables=data||[];
+  render();
+}
+
+function render(){
+  const grid=document.getElementById('tables-grid');
+  if(!tables.length){grid.innerHTML='<div class="empty-state qr-empty">Nenhuma mesa cadastrada.</div>';return}
+  grid.innerHTML=tables.map(table=>`
+    <article class="panel table-admin-card" data-table-card="${table.id}">
+      <div class="table-admin-head">
+        <div><h2>${escapeHtml(table.nome||`Mesa ${table.numero}`)}</h2><small>Mesa ${String(table.numero).padStart(2,'0')}</small></div>
+        <label class="switch" title="Ativar ou desativar mesa"><input type="checkbox" data-toggle="${table.id}" ${table.ativo?'checked':''}><span></span></label>
+      </div>
+      <div class="qr-plate" id="plate-${table.id}">
+        <div class="qr-table-title">MESA <span style="color:var(--primary)">${String(table.numero).padStart(2,'0')}</span></div>
+        <div class="qr-instruction">ESCANEIE PARA PEDIR</div>
+        <div class="qr-box"><canvas id="qr-${table.id}"></canvas><div class="qr-bell">${bellSvg}</div></div>
+        <div class="qr-brand"><span>FS</span> DELIVERY</div>
+        <div class="qr-tagline">RÁPIDO, FÁCIL E PRÁTICO</div>
+        <div class="qr-wave"></div>
+      </div>
+      <div class="table-actions">
+        <button class="btn btn-secondary" type="button" data-png="${table.id}">Baixar PNG</button>
+        <button class="btn btn-secondary" type="button" data-svg="${table.id}">Baixar SVG</button>
+        <button class="btn btn-secondary" type="button" data-print="${table.id}">Imprimir</button>
+        <button class="btn btn-secondary" type="button" data-regenerate="${table.id}">Novo QR</button>
+        <button class="btn btn-danger" type="button" data-delete="${table.id}">Excluir</button>
+      </div>
+    </article>`).join('');
+
+  tables.forEach(table=>QRCode.toCanvas(document.getElementById(`qr-${table.id}`),publicTableUrl(table),{errorCorrectionLevel:'H',margin:2,width:720,color:{dark:'#111111',light:'#ffffff'}},error=>{if(error)console.error(error)}));
+  bindCardActions();
+}
+
+function bindActions(){
+  document.getElementById('table-form').onsubmit=async event=>{
+    event.preventDefault();
+    const number=Number(document.getElementById('table-number').value);
+    const name=document.getElementById('table-name').value.trim()||`Mesa ${number}`;
+    const {error}=await db.from('mesas').insert({estabelecimento_id:store.id,numero:number,nome:name,codigo_qr:crypto.randomUUID().replaceAll('-',''),ativo:true});
+    if(error)return alert(error.message);
+    event.currentTarget.reset();
+    await loadTables();
+  };
+  document.getElementById('new-table-focus').onclick=()=>document.getElementById('table-number').focus();
+  document.getElementById('print-all').onclick=()=>window.print();
+}
+
+function bindCardActions(){
+  document.querySelectorAll('[data-toggle]').forEach(input=>input.onchange=async()=>{
+    const {error}=await db.from('mesas').update({ativo:input.checked}).eq('id',input.dataset.toggle);
+    if(error){input.checked=!input.checked;alert(error.message)}
+  });
+  document.querySelectorAll('[data-delete]').forEach(button=>button.onclick=async()=>{
+    const table=tables.find(item=>item.id===button.dataset.delete);
+    if(!confirm(`Excluir ${table.nome||`Mesa ${table.numero}`}?`))return;
+    const {error}=await db.from('mesas').delete().eq('id',table.id);
+    if(error)return alert(error.message);
+    await loadTables();
+  });
+  document.querySelectorAll('[data-regenerate]').forEach(button=>button.onclick=async()=>{
+    if(!confirm('O QR Code anterior deixará de funcionar. Continuar?'))return;
+    const {error}=await db.from('mesas').update({codigo_qr:crypto.randomUUID().replaceAll('-','')}).eq('id',button.dataset.regenerate);
+    if(error)return alert(error.message);
+    await loadTables();
+  });
+  document.querySelectorAll('[data-png]').forEach(button=>button.onclick=()=>downloadPng(button.dataset.png));
+  document.querySelectorAll('[data-svg]').forEach(button=>button.onclick=()=>downloadSvg(button.dataset.svg));
+  document.querySelectorAll('[data-print]').forEach(button=>button.onclick=()=>printOne(button.dataset.print));
+}
+
+function downloadPng(id){
+  const table=tables.find(item=>item.id===id);
+  const source=document.getElementById(`qr-${id}`);
+  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='#ff7a1a';ctx.lineWidth=12;ctx.strokeRect(30,30,1020,1290);
+  ctx.fillStyle='#17110d';ctx.textAlign='center';ctx.font='900 88px Inter, sans-serif';ctx.fillText(`MESA ${String(table.numero).padStart(2,'0')}`,540,135);
+  ctx.font='900 40px Inter, sans-serif';ctx.fillText('ESCANEIE PARA PEDIR',540,220);
+  ctx.drawImage(source,135,270,810,810);
+  ctx.fillStyle='#ff7a1a';ctx.font='900 italic 68px Inter, sans-serif';ctx.fillText('FS',405,1170);
+  ctx.fillStyle='#17110d';ctx.fillText(' DELIVERY',650,1170);
+  ctx.font='500 24px Inter, sans-serif';ctx.fillText('RÁPIDO, FÁCIL E PRÁTICO',540,1225);
+  ctx.fillStyle='#ff7a1a';ctx.fillRect(30,1270,1020,50);
+  const link=document.createElement('a');link.download=`fs-delivery-mesa-${String(table.numero).padStart(2,'0')}.png`;link.href=canvas.toDataURL('image/png');link.click();
+}
+
+async function downloadSvg(id){
+  const table=tables.find(item=>item.id===id);
+  const qr=await QRCode.toString(publicTableUrl(table),{type:'svg',errorCorrectionLevel:'H',margin:2,color:{dark:'#111111',light:'#ffffff'}});
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350"><rect width="1080" height="1350" fill="#fff"/><rect x="30" y="30" width="1020" height="1290" fill="none" stroke="#ff7a1a" stroke-width="12"/><text x="540" y="140" text-anchor="middle" font-family="Inter,Arial" font-size="88" font-weight="900" fill="#17110d">MESA <tspan fill="#ff7a1a">${String(table.numero).padStart(2,'0')}</tspan></text><text x="540" y="225" text-anchor="middle" font-family="Inter,Arial" font-size="40" font-weight="900" fill="#17110d">ESCANEIE PARA PEDIR</text><g transform="translate(135 270) scale(.81)">${qr.replace(/^<svg[^>]*>|<\/svg>$/g,'')}</g><text x="540" y="1170" text-anchor="middle" font-family="Inter,Arial" font-size="68" font-weight="900" font-style="italic"><tspan fill="#ff7a1a">FS</tspan><tspan fill="#17110d"> DELIVERY</tspan></text><text x="540" y="1225" text-anchor="middle" font-family="Inter,Arial" font-size="24" fill="#4d4036">RÁPIDO, FÁCIL E PRÁTICO</text><rect x="30" y="1270" width="1020" height="50" fill="#ff7a1a"/></svg>`;
+  const blob=new Blob([svg],{type:'image/svg+xml'});const link=document.createElement('a');link.download=`fs-delivery-mesa-${String(table.numero).padStart(2,'0')}.svg`;link.href=URL.createObjectURL(blob);link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+}
+
+function printOne(id){document.querySelectorAll('[data-table-card]').forEach(card=>card.classList.toggle('print-hidden',card.dataset.tableCard!==id));window.print();document.querySelectorAll('.print-hidden').forEach(card=>card.classList.remove('print-hidden'))}
+
+init();
