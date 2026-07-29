@@ -1,0 +1,17 @@
+{
+  "name": "FS Delivery",
+  "short_name": "FS Delivery",
+  "description": "Cardápio digital, pedidos e gestão para delivery.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#140f0b",
+  "theme_color": "#18120e",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
