@@ -15,20 +15,43 @@
     return error?.message||'Não foi possível concluir a operação.';
   };
 
+  const params=new URLSearchParams(location.search);
+  const isRecovery=()=>params.get('reset')==='1'||location.hash.includes('type=recovery');
+  let redirecting=false;
+  const goToApp=()=>{
+    if(redirecting||isRecovery())return;
+    redirecting=true;
+    location.replace('app.html');
+  };
+
   document.querySelectorAll('[data-auth-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.authView)));
 
-  const params=new URLSearchParams(location.search);
-  if(params.get('reset')==='1'||location.hash.includes('type=recovery'))setView('reset');
+  if(isRecovery())setView('reset');
 
-  db.auth.getSession().then(({data})=>{if(data.session&&!location.hash.includes('type=recovery')&&params.get('reset')!=='1')location.replace('app.html')});
+  db.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_IN'&&session)goToApp();
+  });
+
+  db.auth.getSession()
+    .then(({data})=>{if(data.session)goToApp()})
+    .catch(()=>{});
 
   $('#login-form').onsubmit=async e=>{
-    e.preventDefault();loading(e.currentTarget,true);
-    const f=new FormData(e.currentTarget);
-    const {error}=await db.auth.signInWithPassword({email:String(f.get('email')).trim(),password:String(f.get('password'))});
-    loading(e.currentTarget,false);
-    if(error)return show(authMessage(error),'error');
-    location.replace('app.html');
+    e.preventDefault();
+    const form=e.currentTarget;
+    loading(form,true);
+    const f=new FormData(form);
+    try{
+      const {data,error}=await db.auth.signInWithPassword({
+        email:String(f.get('email')).trim(),
+        password:String(f.get('password'))
+      });
+      if(error){loading(form,false);return show(authMessage(error),'error')}
+      if(data.session)goToApp();
+    }catch(error){
+      loading(form,false);
+      show(authMessage(error),'error');
+    }
   };
 
   $('#register-form').onsubmit=async e=>{
@@ -45,7 +68,7 @@
     loading(form,false);
     if(error)return show(authMessage(error),'error');
     form.reset();
-    if(data.session){location.replace('app.html');return;}
+    if(data.session){goToApp();return;}
     show('Conta criada. Confirme o cadastro pelo e-mail enviado.');
     setTimeout(()=>setView('login'),1200);
   };
