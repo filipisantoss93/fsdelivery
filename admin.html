@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#18120e">
+  <title>Administração — FS Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-body">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
+    <nav class="nav">
+      <button class="active" data-admin-page="visao-geral">Visão geral</button>
+      <button data-admin-page="estabelecimentos">Estabelecimentos</button>
+      <button data-admin-page="financeiro">Financeiro</button>
+    </nav>
+    <div class="sidebar-footer">
+      <small style="color:var(--muted)">Acesso administrativo</small>
+      <a class="btn btn-secondary" style="width:100%;margin-top:12px" href="app.html">Voltar ao painel</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><b id="admin-page-title">Visão geral</b></div>
+      <div class="topbar-actions"><span class="status pronto">ADMIN</span><button class="btn btn-secondary" id="admin-logout">Sair</button></div>
+    </header>
+
+    <div class="content">
+      <div id="admin-feedback"></div>
+
+      <section id="visao-geral" class="page active">
+        <div class="page-head"><div><h1>Painel administrativo</h1><p>Visão consolidada da operação do FS Delivery.</p></div><button class="btn btn-secondary" id="admin-refresh">Atualizar dados</button></div>
+        <div class="metrics">
+          <div class="metric"><small>Estabelecimentos</small><strong id="admin-stores">—</strong></div>
+          <div class="metric"><small>Assinaturas ativas</small><strong id="admin-subscriptions">—</strong></div>
+          <div class="metric"><small>Pedidos</small><strong id="admin-orders">—</strong></div>
+          <div class="metric"><small>Faturamento total</small><strong id="admin-revenue">R$ 0,00</strong></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="panel-head"><div><h2>Estabelecimentos recentes</h2><p style="color:var(--muted);margin:5px 0 0">Últimos cadastros da plataforma.</p></div></div><div id="admin-recent-stores" class="order-list"></div></div>
+          <div class="panel"><div class="panel-head"><h2>Resumo operacional</h2></div><div class="row-card"><span>Lojas abertas</span><b id="admin-open-stores">0</b></div><div class="row-card"><span>Produtos ativos</span><b id="admin-active-products">0</b></div><div class="row-card"><span>Clientes cadastrados</span><b id="admin-customers">0</b></div><div class="row-card"><span>Ticket médio</span><b id="admin-ticket">R$ 0,00</b></div></div>
+        </div>
+      </section>
+
+      <section id="estabelecimentos" class="page">
+        <div class="page-head"><div><h1>Estabelecimentos</h1><p>Consulte contas, planos e atividade da plataforma.</p></div></div>
+        <div class="toolbar"><input class="search" id="admin-store-search" placeholder="Buscar por nome, slug, categoria ou telefone"><select class="search" id="admin-store-filter"><option value="">Todos</option><option value="aberta">Lojas abertas</option><option value="fechada">Lojas fechadas</option><option value="ativa">Assinatura ativa</option></select></div>
+        <div class="panel"><div style="overflow:auto"><table class="table"><thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Plano</th><th>Status</th><th>Cadastro</th></tr></thead><tbody id="admin-store-table"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div></div>
+      </section>
+
+      <section id="financeiro" class="page">
+        <div class="page-head"><div><h1>Financeiro</h1><p>Receita dos pedidos e situação das assinaturas.</p></div><button class="btn btn-secondary" id="admin-export">Exportar CSV</button></div>
+        <div class="metrics">
+          <div class="metric"><small>Receita em pedidos</small><strong id="admin-finance-revenue">R$ 0,00</strong></div>
+          <div class="metric"><small>Receita entregue</small><strong id="admin-finance-received">R$ 0,00</strong></div>
+          <div class="metric"><small>Em aberto</small><strong id="admin-finance-pending">R$ 0,00</strong></div>
+          <div class="metric"><small>MRR contratado</small><strong id="admin-mrr">R$ 0,00</strong></div>
+        </div>
+        <div class="panel"><div class="panel-head"><h2>Assinaturas</h2></div><div style="overflow:auto"><table class="table"><thead><tr><th>Estabelecimento</th><th>Status</th><th>Valor</th><th>Próxima cobrança</th></tr></thead><tbody id="admin-subscription-table"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="mobile-nav"><button class="active" data-admin-page="visao-geral">Visão geral</button><button data-admin-page="estabelecimentos">Lojas</button><button data-admin-page="financeiro">Financeiro</button></nav>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
