@@ -1,0 +1,49 @@
+/* Refinamentos exclusivos do painel administrativo */
+.app-body .panel,
+.app-body .metric,
+.app-body .kanban-col,
+.app-body .modal-card{
+  border-radius:12px;
+}
+
+.app-body .row-card,
+.app-body .order-card{
+  border-radius:10px;
+}
+
+.notification-wrap{position:relative}
+.notification-button{position:relative;background:transparent}
+.notification-button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.notification-badge{position:absolute;top:-5px;right:-5px;display:none;min-width:18px;height:18px;padding:0 5px;border:2px solid #120d09;border-radius:999px;background:var(--primary);color:#211006;font-size:10px;font-weight:800;line-height:14px;text-align:center}
+.notification-badge.show{display:block}
+.notification-panel{position:absolute;top:50px;right:0;width:min(360px,calc(100vw - 28px));max-height:430px;overflow:auto;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);z-index:80;opacity:0;visibility:hidden;transform:translateY(-6px);transition:.16s ease}
+.notification-panel.open{opacity:1;visibility:visible;transform:none}
+.notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 8px 12px;border-bottom:1px solid var(--line)}
+.notification-head strong{font-size:15px}
+.notification-head button{border:0;background:none;color:var(--primary-2);font-size:12px;font-weight:700;cursor:pointer}
+.notification-list{display:grid;gap:6px;padding-top:8px}
+.notification-item{display:flex;gap:11px;padding:11px;border:0;border-radius:9px;background:transparent;color:var(--text);text-align:left;cursor:pointer}
+.notification-item:hover{background:var(--surface-2)}
+.notification-item.unread{background:rgba(255,122,26,.08)}
+.notification-dot{flex:0 0 8px;width:8px;height:8px;margin-top:7px;border-radius:50%;background:var(--primary)}
+.notification-item:not(.unread) .notification-dot{background:var(--line-strong)}
+.notification-copy b,.notification-copy small{display:block}
+.notification-copy b{font-size:13px}
+.notification-copy small{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.4}
+.notification-empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:13px}
+
+@media(max-width:760px){
+  .app-body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  .topbar{padding:0 18px}
+  .topbar-actions{gap:8px}
+  .topbar-actions>.btn{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .content{padding:22px 20px}
+  .metrics{grid-template-columns:1fr;gap:12px}
+  .metric{padding:20px}
+  .mobile-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:repeat(5,1fr);min-height:72px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:rgba(18,13,9,.97);backdrop-filter:blur(18px)}
+  .mobile-nav button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;padding:7px 3px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
+  .mobile-nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .mobile-nav button.active{background:rgba(255,122,26,.1);color:var(--primary-2)}
+  .mobile-nav button.active::before{content:"";position:absolute;top:2px;width:28px;height:3px;border-radius:999px;background:var(--primary)}
+  .notification-panel{position:fixed;top:70px;right:14px;left:14px;width:auto;max-height:calc(100vh - 160px)}
+}
