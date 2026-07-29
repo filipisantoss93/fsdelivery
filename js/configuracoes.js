@@ -34,9 +34,28 @@ function fillStore(){
   byId('printer-name').value=operational.impressora_nome||'';byId('auto-print').checked=Boolean(operational.impressao_automatica);byId('sound-orders').checked=operational.som_novo_pedido!==false;byId('browser-notifications').checked=operational.notificacao_navegador!==false;byId('service-fee').value=String(operational.taxa_servico_percentual||0).replace('.',',');byId('coupons-active').checked=Boolean(operational.cupons_ativos);byId('manual-discount').checked=Boolean(operational.permite_desconto_manual);byId('require-cash-open').checked=Boolean(operational.exige_abertura_caixa);byId('waiter-cancel').checked=Boolean(operational.permite_garcom_cancelar);byId('waiter-discount').checked=Boolean(operational.permite_garcom_desconto);byId('delivery-see-values').checked=Boolean(operational.permite_entregador_ver_valores);
 }
 
+function openConfigModal(id){
+  const modal=byId(id);
+  if(!modal||modal.tagName!=='DIALOG')return;
+  document.querySelectorAll('.config-modal[open]').forEach(item=>{if(item!==modal)item.close()});
+  if(!modal.open)modal.showModal();
+  document.body.classList.add('config-modal-open');
+  history.replaceState(null,'',`#${id}`);
+}
+function closeConfigModal(modal){
+  if(!modal)return;
+  modal.close();
+  document.body.classList.remove('config-modal-open');
+  history.replaceState(null,'',location.pathname+location.search);
+}
+
 function bindActions(){
-  document.querySelectorAll('[data-target]').forEach(button=>button.onclick=()=>byId(button.dataset.target)?.scrollIntoView({behavior:'smooth',block:'start'}));
-  document.querySelectorAll('[data-link]').forEach(button=>button.onclick=()=>location.href=button.dataset.link);
+  document.querySelectorAll('[data-target]').forEach(button=>button.onclick=()=>openConfigModal(button.dataset.target));
+  document.querySelectorAll('.config-modal-close').forEach(button=>button.onclick=()=>closeConfigModal(button.closest('dialog')));
+  document.querySelectorAll('.config-modal').forEach(modal=>{
+    modal.addEventListener('click',event=>{if(event.target===modal)closeConfigModal(modal)});
+    modal.addEventListener('close',()=>{if(!document.querySelector('.config-modal[open]'))document.body.classList.remove('config-modal-open')});
+  });
   byId('restaurant-open').onchange=e=>byId('restaurant-status-title').textContent=e.target.checked?'Loja aberta':'Loja fechada';
   byId('save-delivery').onclick=saveDelivery;byId('save-restaurant').onclick=saveRestaurant;byId('save-hours').onclick=saveHours;byId('save-payments').onclick=savePayments;byId('save-print').onclick=()=>saveOperational({impressora_nome:byId('printer-name').value.trim(),impressao_automatica:byId('auto-print').checked},'Configurações de impressão salvas.');byId('save-notifications').onclick=saveNotifications;byId('save-cash').onclick=saveCashRules;
   byId('region-form').onsubmit=saveRegion;document.querySelectorAll('.team-form').forEach(form=>form.onsubmit=saveTeamMember);
@@ -91,5 +110,5 @@ async function saveTeamMember(event){event.preventDefault();const section=event.
 function renderTeam(){document.querySelectorAll('[data-team-role]').forEach(section=>{const role=section.dataset.teamRole,items=team.filter(member=>member.funcao===role);section.querySelector('.team-list').innerHTML=items.length?items.map(member=>`<div class="row-card team-member"><div><b>${member.nome}</b><small>${member.telefone} • PIN ${member.pin}</small></div><div class="inline-actions"><button class="btn btn-secondary" data-toggle-team="${member.id}">${member.ativo?'Desativar':'Ativar'}</button><button class="btn btn-danger" data-delete-team="${member.id}">Excluir</button></div></div>`).join(''):'<div class="empty-state">Nenhum cadastro nesta função.</div>'});document.querySelectorAll('[data-toggle-team]').forEach(button=>button.onclick=async()=>{const member=team.find(item=>item.id===button.dataset.toggleTeam);const {error}=await db.from('equipe_operacional').update({ativo:!member.ativo,updated_at:new Date().toISOString()}).eq('id',member.id);if(error)return alert(error.message);member.ativo=!member.ativo;renderTeam()});document.querySelectorAll('[data-delete-team]').forEach(button=>button.onclick=async()=>{const member=team.find(item=>item.id===button.dataset.deleteTeam);if(!confirm(`Excluir ${member.nome}?`))return;const {error}=await db.from('equipe_operacional').delete().eq('id',member.id);if(error)return alert(error.message);team=team.filter(item=>item.id!==member.id);renderTeam()})}
 
 function renderReports(){const valid=orders.filter(order=>order.status!=='cancelado'),revenue=valid.reduce((sum,order)=>sum+Number(order.total||0),0),done=valid.filter(order=>order.status==='entregue'),received=done.reduce((sum,order)=>sum+Number(order.total||0),0);byId('report-revenue').textContent=money(revenue);byId('report-ticket').textContent=money(revenue/(valid.length||1));byId('report-received').textContent=money(received);byId('report-pending').textContent=money(revenue-received);byId('report-orders').textContent=valid.length;byId('report-new').textContent=valid.filter(order=>order.status==='novo').length;byId('report-preparing').textContent=valid.filter(order=>order.status==='preparo').length;byId('report-done').textContent=done.length}
-function openRequestedSection(){const id=location.hash.slice(1);if(id)requestAnimationFrame(()=>byId(id)?.scrollIntoView({block:'start'}))}
+function openRequestedSection(){const id=location.hash.slice(1);if(id)requestAnimationFrame(()=>openConfigModal(id))}
 init();
