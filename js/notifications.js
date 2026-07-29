@@ -89,6 +89,17 @@
     actionGroup.appendChild(waiterShortcut);
   }
 
+  const sidebarNav = document.querySelector('.sidebar .nav');
+  const settingsButton = sidebarNav?.querySelector('[data-page="configuracoes"]');
+  if (sidebarNav && settingsButton && !document.getElementById('tables-nav-button')) {
+    const tablesButton = document.createElement('button');
+    tablesButton.id = 'tables-nav-button';
+    tablesButton.type = 'button';
+    tablesButton.textContent = 'Mesas e QR Codes';
+    tablesButton.addEventListener('click', () => location.href = 'mesas.html');
+    sidebarNav.insertBefore(tablesButton, settingsButton);
+  }
+
   renderNotifications();
   setInterval(renderNotifications, 15000);
 })();
