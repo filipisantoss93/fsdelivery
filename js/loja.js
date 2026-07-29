@@ -43,7 +43,10 @@ async function init(){
   document.getElementById('public-store-name').textContent=settings.nome;
   document.getElementById('public-store-logo').textContent=settings.nome.split(/\s+/).slice(0,2).map(word=>word[0]).join('').toUpperCase()||'FS';
   document.getElementById('public-store-meta').textContent=settings.descricao||settings.categoria||'Delivery';
-  document.getElementById('public-store-status').textContent=settings.aberto?'Aberto agora':'Fechado agora';
+  const statusElement=document.getElementById('public-store-status');
+  statusElement.textContent=settings.aberto?'Aberto agora':'Fechado agora';
+  statusElement.classList.toggle('is-open',Boolean(settings.aberto));
+  statusElement.classList.toggle('is-closed',!settings.aberto);
   document.getElementById('store-delivery-time').textContent=`${settings.tempo_entrega_min||30}–${settings.tempo_entrega_max||45} min`;
   document.getElementById('store-minimum-order').textContent=money(settings.pedido_minimo);
   document.getElementById('store-delivery-fee').textContent=Number(settings.taxa_entrega)>0?money(settings.taxa_entrega):'Grátis';
