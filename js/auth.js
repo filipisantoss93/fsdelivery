@@ -1,1 +1,74 @@
-(()=>{const $=s=>document.querySelector(s);const feedback=$('#auth-feedback');const show=(message,type='success')=>{feedback.hidden=false;feedback.className=`feedback ${type}`;feedback.textContent=message};const setView=view=>{document.querySelectorAll('.auth-form').forEach(f=>f.classList.toggle('active',f.id===`${view}-form`));document.querySelectorAll('[data-auth-view]').forEach(b=>b.classList.toggle('active',b.dataset.authView===view));feedback.hidden=true};document.querySelectorAll('[data-auth-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.authView)));if(new URLSearchParams(location.search).get('reset')==='1')setView('reset');$('#login-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);const user=FSData.getUsers().find(u=>u.email.toLowerCase()===String(f.get('email')).toLowerCase()&&u.password===f.get('password'));if(!user)return show('E-mail ou senha inválidos.','error');FSData.setSession({userId:user.id,email:user.email,ownerName:user.ownerName,storeName:user.storeName,createdAt:new Date().toISOString()});location.href='app.html'};$('#register-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(f.get('password')!==f.get('confirmPassword'))return show('As senhas não coincidem.','error');const users=FSData.getUsers();if(users.some(u=>u.email.toLowerCase()===String(f.get('email')).toLowerCase()))return show('Já existe uma conta com este e-mail.','error');const user={id:crypto.randomUUID?.()||String(Date.now()),ownerName:f.get('ownerName'),storeName:f.get('storeName'),phone:f.get('phone'),category:f.get('category'),email:f.get('email'),password:f.get('password'),createdAt:new Date().toISOString()};users.push(user);FSData.saveUsers(users);FSData.saveSettings({...FSData.getSettings(),storeName:user.storeName,phone:user.phone,category:user.category,slug:user.storeName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')});FSData.setSession({userId:user.id,email:user.email,ownerName:user.ownerName,storeName:user.storeName,createdAt:new Date().toISOString()});location.href='app.html'};$('#forgot-form').onsubmit=e=>{e.preventDefault();const email=new FormData(e.currentTarget).get('email');localStorage.setItem('fsd_reset_email',email);show('Instruções simuladas enviadas. No Supabase, este fluxo usará resetPasswordForEmail.');setTimeout(()=>location.href='auth.html?reset=1',900)};$('#reset-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(f.get('password')!==f.get('confirmPassword'))return show('As senhas não coincidem.','error');const email=localStorage.getItem('fsd_reset_email');const users=FSData.getUsers();const user=users.find(u=>u.email===email);if(!user)return show('Solicitação de recuperação inválida ou expirada.','error');user.password=f.get('password');FSData.saveUsers(users);localStorage.removeItem('fsd_reset_email');show('Senha alterada com sucesso.');setTimeout(()=>setView('login'),700)}})();
+(()=>{
+  const $=s=>document.querySelector(s);
+  const db=window.supabaseClient;
+  const feedback=$('#auth-feedback');
+  const show=(message,type='success')=>{feedback.hidden=false;feedback.className=`feedback ${type}`;feedback.textContent=message};
+  const loading=(form,on)=>{const button=form.querySelector('button[type="submit"],button:not([type])');if(!button)return;button.disabled=on;button.dataset.label??=button.textContent;button.textContent=on?'Aguarde...':button.dataset.label};
+  const setView=view=>{document.querySelectorAll('.auth-form').forEach(f=>f.classList.toggle('active',f.id===`${view}-form`));document.querySelectorAll('[data-auth-view]').forEach(b=>b.classList.toggle('active',b.dataset.authView===view));feedback.hidden=true};
+  const authMessage=error=>{
+    const message=(error?.message||'').toLowerCase();
+    if(message.includes('invalid login'))return 'E-mail ou senha inválidos.';
+    if(message.includes('email not confirmed'))return 'Confirme seu e-mail antes de entrar.';
+    if(message.includes('already registered')||message.includes('already been registered'))return 'Já existe uma conta com este e-mail.';
+    if(message.includes('password'))return 'A senha deve ter pelo menos 6 caracteres.';
+    if(message.includes('rate limit'))return 'Muitas tentativas. Aguarde alguns minutos.';
+    return error?.message||'Não foi possível concluir a operação.';
+  };
+
+  document.querySelectorAll('[data-auth-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.authView)));
+
+  const params=new URLSearchParams(location.search);
+  if(params.get('reset')==='1'||location.hash.includes('type=recovery'))setView('reset');
+
+  db.auth.getSession().then(({data})=>{if(data.session&&!location.hash.includes('type=recovery')&&params.get('reset')!=='1')location.replace('app.html')});
+
+  $('#login-form').onsubmit=async e=>{
+    e.preventDefault();loading(e.currentTarget,true);
+    const f=new FormData(e.currentTarget);
+    const {error}=await db.auth.signInWithPassword({email:String(f.get('email')).trim(),password:String(f.get('password'))});
+    loading(e.currentTarget,false);
+    if(error)return show(authMessage(error),'error');
+    location.replace('app.html');
+  };
+
+  $('#register-form').onsubmit=async e=>{
+    e.preventDefault();
+    const form=e.currentTarget,f=new FormData(form);
+    if(f.get('password')!==f.get('confirmPassword'))return show('As senhas não coincidem.','error');
+    loading(form,true);
+    const redirectTo=new URL('auth.html',location.href).href;
+    const {data,error}=await db.auth.signUp({
+      email:String(f.get('email')).trim(),
+      password:String(f.get('password')),
+      options:{emailRedirectTo:redirectTo,data:{owner_name:String(f.get('ownerName')).trim(),store_name:String(f.get('storeName')).trim(),phone:String(f.get('phone')).trim(),category:String(f.get('category')).trim()}}
+    });
+    loading(form,false);
+    if(error)return show(authMessage(error),'error');
+    form.reset();
+    if(data.session){location.replace('app.html');return;}
+    show('Conta criada. Confirme o cadastro pelo e-mail enviado.');
+    setTimeout(()=>setView('login'),1200);
+  };
+
+  $('#forgot-form').onsubmit=async e=>{
+    e.preventDefault();const form=e.currentTarget,f=new FormData(form);loading(form,true);
+    const redirectTo=new URL('auth.html?reset=1',location.href).href;
+    const {error}=await db.auth.resetPasswordForEmail(String(f.get('email')).trim(),{redirectTo});
+    loading(form,false);
+    if(error)return show(authMessage(error),'error');
+    show('Enviamos as instruções de redefinição para o e-mail informado.');
+  };
+
+  $('#reset-form').onsubmit=async e=>{
+    e.preventDefault();const form=e.currentTarget,f=new FormData(form);
+    if(f.get('password')!==f.get('confirmPassword'))return show('As senhas não coincidem.','error');
+    loading(form,true);
+    const {error}=await db.auth.updateUser({password:String(f.get('password'))});
+    loading(form,false);
+    if(error)return show(authMessage(error),'error');
+    await db.auth.signOut();
+    show('Senha alterada com sucesso. Entre novamente.');
+    history.replaceState({},'',location.pathname);
+    setTimeout(()=>setView('login'),900);
+  };
+})();
