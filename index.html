@@ -92,5 +92,17 @@
 </main>
 
 <footer class="container">© 2026 FS Delivery — FS Soluções</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="js/supabase.js"></script>
+<script>
+  (async()=>{
+    try{
+      const {data:{session}}=await window.supabaseClient.auth.getSession();
+      if(session)location.replace('app.html');
+    }catch(error){
+      console.error('Falha ao verificar sessão ativa na landing page',error);
+    }
+  })();
+</script>
 </body>
 </html>
