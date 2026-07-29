@@ -72,6 +72,23 @@
     renderNotifications();
   });
 
+  const homeHead = document.querySelector('#inicio .page-head');
+  const ordersButton = homeHead?.querySelector('[data-go="pedidos"]');
+  if (homeHead && ordersButton && !document.getElementById('waiter-shortcut')) {
+    const actionGroup = document.createElement('div');
+    actionGroup.className = 'actions';
+    ordersButton.replaceWith(actionGroup);
+    actionGroup.appendChild(ordersButton);
+
+    const waiterShortcut = document.createElement('button');
+    waiterShortcut.id = 'waiter-shortcut';
+    waiterShortcut.type = 'button';
+    waiterShortcut.className = 'btn btn-secondary';
+    waiterShortcut.textContent = 'Abrir garçom';
+    waiterShortcut.addEventListener('click', () => location.href = 'garcom.html');
+    actionGroup.appendChild(waiterShortcut);
+  }
+
   renderNotifications();
   setInterval(renderNotifications, 15000);
 })();
