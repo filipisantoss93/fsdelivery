@@ -18,3 +18,13 @@ window.supabaseClient=window.supabase.createClient(
     }
   }
 );
+
+// Recurso global compartilhado por todas as páginas da plataforma que usam
+// Supabase. Evita duplicar marcação, CSS e listeners em cada tela.
+if(!document.querySelector('script[data-fs-pull-refresh]')){
+  const pullToRefreshScript=document.createElement('script');
+  pullToRefreshScript.src='js/pull-to-refresh.js';
+  pullToRefreshScript.defer=true;
+  pullToRefreshScript.dataset.fsPullRefresh='true';
+  document.head.appendChild(pullToRefreshScript);
+}
