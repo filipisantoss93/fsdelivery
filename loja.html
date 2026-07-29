@@ -11,110 +11,17 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="store-body">
-  <header class="store-header">
-    <div class="container store-top">
-      <div class="store-brand">
-        <div class="store-logo" id="public-store-logo">FS</div>
-        <div class="store-info">
-          <h1 id="public-store-name">FS Delivery</h1>
-          <p id="public-store-meta">Carregando cardápio...</p>
-          <p id="table-context" hidden></p>
-        </div>
-      </div>
-      <div class="inline-actions">
-        <a class="btn btn-secondary" id="customer-orders-link" href="cliente.html">Meus pedidos</a>
-        <button class="btn btn-secondary" id="share-store" type="button">Compartilhar</button>
-        <span class="store-status" id="public-store-status">Carregando</span>
-      </div>
-    </div>
-  </header>
-
+  <header class="store-header"><div class="container store-top"><div class="store-brand"><div class="store-logo" id="public-store-logo">FS</div><div class="store-info"><h1 id="public-store-name">FS Delivery</h1><p id="public-store-meta">Carregando cardápio...</p><p id="table-context" hidden></p></div></div><div class="inline-actions"><a class="btn btn-secondary" id="customer-orders-link" href="cliente.html">Meus pedidos</a><button class="btn btn-secondary" id="share-store" type="button">Compartilhar</button><span class="store-status" id="public-store-status">Carregando</span></div></div></header>
   <main class="store-main container">
-    <section class="panel light-panel" id="store-summary">
-      <div class="grid-2">
-        <div>
-          <div class="row-card"><span>Prazo estimado</span><b id="store-delivery-time">—</b></div>
-          <div class="row-card"><span>Pedido mínimo</span><b id="store-minimum-order">—</b></div>
-        </div>
-        <div>
-          <div class="row-card"><span>Taxa de entrega</span><b id="store-delivery-fee">—</b></div>
-          <div class="row-card"><span>Atendimento</span><b id="store-contact">—</b></div>
-        </div>
-      </div>
-      <div class="feedback error" id="closed-notice" hidden>A loja está fechada. Você pode consultar o cardápio, mas novos pedidos estão temporariamente bloqueados.</div>
-    </section>
-
-    <div class="store-layout">
-      <section>
-        <div class="toolbar">
-          <input class="search" id="menu-search" type="search" placeholder="Buscar no cardápio..." autocomplete="off">
-        </div>
-        <div class="category-tabs" id="category-tabs"></div>
-        <div id="menu-content"></div>
-      </section>
-
-      <aside class="cart">
-        <small id="order-context-label">Pedido on-line</small>
-        <h2>Seu pedido</h2>
-        <div id="cart-items"></div>
-        <div class="row-card"><span>Subtotal</span><b id="cart-subtotal">R$ 0,00</b></div>
-        <div class="row-card"><span>Taxa de entrega</span><b id="cart-delivery-fee">R$ 0,00</b></div>
-        <div class="cart-total"><span>Total</span><span id="cart-total">R$ 0,00</span></div>
-        <small id="minimum-order-hint"></small>
-        <button class="btn btn-primary" id="checkout-btn">Continuar pedido</button>
-      </aside>
-    </div>
+    <section class="panel light-panel" id="store-summary"><div class="grid-2"><div><div class="row-card"><span>Prazo estimado</span><b id="store-delivery-time">—</b></div><div class="row-card"><span>Pedido mínimo</span><b id="store-minimum-order">—</b></div></div><div><div class="row-card"><span>Taxa de entrega</span><b id="store-delivery-fee">—</b></div><div class="row-card"><span>Atendimento</span><b id="store-contact">—</b></div></div></div><div class="feedback error" id="closed-notice" hidden>A loja está fechada. Você pode consultar o cardápio, mas novos pedidos estão temporariamente bloqueados.</div></section>
+    <div class="store-layout"><section><div class="toolbar"><input class="search" id="menu-search" type="search" placeholder="Buscar no cardápio..." autocomplete="off"></div><div class="category-tabs" id="category-tabs"></div><div id="menu-content"></div></section><aside class="cart"><small id="order-context-label">Pedido on-line</small><h2>Seu pedido</h2><div id="cart-items"></div><div class="row-card"><span>Subtotal</span><b id="cart-subtotal">R$ 0,00</b></div><div class="row-card"><span>Taxa de entrega</span><b id="cart-delivery-fee">R$ 0,00</b></div><div class="cart-total"><span>Total</span><span id="cart-total">R$ 0,00</span></div><small id="minimum-order-hint"></small><button class="btn btn-primary" id="checkout-btn">Continuar pedido</button></aside></div>
   </main>
-
   <button class="btn btn-primary mobile-cart" id="mobile-cart"><span id="mobile-cart-label">Ver pedido</span><span id="mobile-total">R$ 0,00</span></button>
-
-  <div class="modal store-modal" id="product-store-modal">
-    <div class="modal-card">
-      <div class="modal-head"><h2 id="store-product-title">Produto</h2><button class="icon-btn" data-close>×</button></div>
-      <p id="store-product-description"></p>
-      <div id="store-options"></div>
-      <div class="field"><label for="item-note">Observação</label><textarea id="item-note" rows="3" placeholder="Ex.: sem cebola"></textarea></div>
-      <div class="actions actions-split">
-        <div class="qty"><button id="qty-minus" type="button">−</button><b id="qty-value">1</b><button id="qty-plus" type="button">+</button></div>
-        <button class="btn btn-primary" id="add-cart-btn" type="button">Adicionar • R$ 0,00</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal store-modal" id="checkout-modal">
-    <div class="modal-card">
-      <div class="modal-head"><h2>Finalizar pedido</h2><button class="icon-btn" data-close>×</button></div>
-      <div class="feedback">O pedido será enviado ao restaurante e ficará aguardando confirmação.</div>
-      <form id="checkout-form">
-        <div class="form-grid">
-          <div class="field full"><label>Nome</label><input name="name" required autocomplete="name"></div>
-          <div class="field full"><label>WhatsApp</label><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
-          <div class="field full"><label>Tipo do pedido</label><select name="type" id="delivery-type"></select></div>
-          <div class="field full" id="address-field"><label>Endereço completo</label><textarea name="address" rows="3" placeholder="Rua, número, bairro, complemento e referência"></textarea></div>
-          <div class="field full"><label>Pagamento</label><select name="payment" id="payment-method"><option>PIX</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>Dinheiro</option></select></div>
-          <div class="field full" id="change-field" hidden><label>Troco para</label><input name="change" inputmode="decimal" placeholder="Ex.: 100,00"></div>
-          <div class="field full"><label>Observações do pedido</label><textarea name="notes" rows="2" placeholder="Informações gerais para o restaurante"></textarea></div>
-        </div>
-        <div class="row-card"><span>Subtotal</span><b id="checkout-subtotal">R$ 0,00</b></div>
-        <div class="row-card"><span>Taxa de entrega</span><b id="checkout-delivery-fee">R$ 0,00</b></div>
-        <div class="cart-total"><span id="checkout-total-label">Total</span><span id="checkout-total"></span></div>
-        <button class="btn btn-primary btn-block">Enviar pedido</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal store-modal" id="success-modal">
-    <div class="modal-card success-card">
-      <div class="success-icon">✓</div>
-      <h2>Pedido enviado</h2>
-      <p id="success-message"></p>
-      <div class="feedback">Aguarde a confirmação do restaurante antes de considerar o pedido aceito.</div>
-      <div class="actions actions-center"><a class="btn btn-secondary" id="track-order-link" href="cliente.html">Acompanhar pedido</a><button class="btn btn-primary" onclick="location.reload()">Fazer novo pedido</button></div>
-    </div>
-  </div>
-
+  <div class="modal store-modal" id="product-store-modal"><div class="modal-card"><div class="modal-head"><h2 id="store-product-title">Produto</h2><button class="icon-btn" data-close>×</button></div><p id="store-product-description"></p><div id="store-options"></div><div class="field"><label for="item-note">Observação</label><textarea id="item-note" rows="3" placeholder="Ex.: sem cebola"></textarea></div><div class="actions" style="justify-content:space-between"><div class="qty"><button id="qty-minus" type="button">−</button><b id="qty-value">1</b><button id="qty-plus" type="button">+</button></div><button class="btn btn-primary" id="add-cart-btn" type="button">Adicionar • R$ 0,00</button></div></div></div>
+  <div class="modal store-modal" id="checkout-modal"><div class="modal-card"><div class="modal-head"><h2>Finalizar pedido</h2><button class="icon-btn" data-close>×</button></div><div class="feedback">O pedido será enviado ao restaurante e ficará aguardando confirmação.</div><form id="checkout-form"><div class="form-grid"><div class="field full"><label>Nome</label><input name="name" required autocomplete="name"></div><div class="field full"><label>WhatsApp</label><input name="phone" required inputmode="tel" autocomplete="tel"></div><div class="field full"><label>Tipo do pedido</label><select name="type" id="delivery-type"></select></div><div class="field full" id="address-field"><label>Endereço completo</label><textarea name="address" rows="3"></textarea></div><div class="field full"><label>Pagamento</label><select name="payment" id="payment-method"></select></div><div class="field full" id="change-field" hidden><label>Troco para</label><input name="change" inputmode="decimal"></div><div class="field full"><label>Observações</label><textarea name="notes" rows="2"></textarea></div></div><div class="row-card"><span>Subtotal</span><b id="checkout-subtotal">R$ 0,00</b></div><div class="row-card"><span>Taxa de entrega</span><b id="checkout-delivery-fee">R$ 0,00</b></div><div class="cart-total"><span id="checkout-total-label">Total</span><span id="checkout-total"></span></div><button class="btn btn-primary btn-block">Enviar pedido</button></form></div></div>
+  <div class="modal store-modal" id="success-modal"><div class="modal-card" style="text-align:center"><div style="font-size:54px">✓</div><h2>Pedido enviado</h2><p id="success-message"></p><div class="feedback">Aguarde a confirmação do restaurante.</div><div class="actions" style="justify-content:center"><a class="btn btn-secondary" id="track-order-link" href="cliente.html">Acompanhar pedido</a><button class="btn btn-primary" onclick="location.reload()">Fazer novo pedido</button></div></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/supabase.js"></script>
-  <script src="js/loja.js"></script>
+  <script src="js/loja-operacional.js"></script>
 </body>
 </html>
