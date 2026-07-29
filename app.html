@@ -31,7 +31,7 @@
     <header class="topbar">
       <div><b id="page-title">Início</b></div>
       <div class="topbar-actions">
-        <span class="status pronto">Loja aberta</span>
+        <button class="status store-status-control" id="store-status-button" type="button" aria-label="Alterar status da loja"></button>
         <div class="notification-wrap">
           <button class="icon-btn notification-button" id="notification-button" type="button" title="Notificações" aria-label="Abrir notificações" aria-expanded="false">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
@@ -42,7 +42,7 @@
             <div class="notification-list" id="notification-list"></div>
           </div>
         </div>
-        <button class="btn btn-secondary">Estabelecimento</button>
+        <button class="btn btn-secondary store-settings-button" id="store-settings-button" type="button">Estabelecimento</button>
       </div>
     </header>
 
@@ -61,7 +61,46 @@
 
       <section id="financeiro" class="page"><div class="page-head"><div><h1>Financeiro</h1><p>Visão consolidada das vendas e recebimentos.</p></div><button class="btn btn-secondary">Exportar relatório</button></div><div class="metrics"><div class="metric"><small>Receita do mês</small><strong>R$ 0,00</strong></div><div class="metric"><small>Recebido</small><strong class="positive">R$ 0,00</strong></div><div class="metric"><small>Pendente</small><strong>R$ 0,00</strong></div><div class="metric"><small>Taxas de entrega</small><strong>R$ 0,00</strong></div></div><div class="grid-2"><div class="panel"><div class="panel-head"><h2>Movimentações</h2></div><div class="empty-state">As movimentações aparecerão após os primeiros pedidos.</div></div><div class="panel"><div class="panel-head"><h2>Formas de pagamento</h2></div><div class="empty-state">Sem dados suficientes.</div></div></div></section>
 
-      <section id="configuracoes" class="page"><div class="page-head"><div><h1>Configurações</h1><p>Dados do estabelecimento, entrega e página pública.</p></div><button class="btn btn-primary" id="save-settings">Salvar alterações</button></div><div class="grid-2"><div class="panel"><div class="panel-head"><h2>Estabelecimento</h2></div><div class="form-grid"><div class="field full"><label>Nome do estabelecimento</label><input></div><div class="field"><label>WhatsApp</label><input></div><div class="field"><label>Categoria</label><select><option>Hamburgueria</option><option>Pizzaria</option><option>Restaurante</option><option>Lanchonete</option><option>Outro</option></select></div><div class="field full"><label>Descrição</label><textarea rows="4"></textarea></div></div></div><div class="panel"><div class="panel-head"><h2>Entrega e funcionamento</h2></div><div class="form-grid"><div class="field"><label>Taxa padrão</label><input></div><div class="field"><label>Pedido mínimo</label><input></div><div class="field full"><label>Link público</label><input readonly></div><div class="field full"><label><input type="checkbox"> Aceitar pedidos agora</label></div></div></div></div></section>
+      <section id="configuracoes" class="page">
+        <div class="page-head"><div><h1>Estabelecimento</h1><p>Configure a identidade, operação e disponibilidade da sua loja.</p></div><button class="btn btn-primary" id="save-settings">Salvar alterações</button></div>
+        <div class="settings-grid">
+          <div class="panel settings-panel">
+            <div class="panel-head"><div><h2>Dados da loja</h2><p>Informações exibidas no painel e no cardápio público.</p></div></div>
+            <div class="form-grid">
+              <div class="field full"><label for="store-name">Nome do estabelecimento</label><input id="store-name" autocomplete="organization"></div>
+              <div class="field"><label for="store-whatsapp">WhatsApp</label><input id="store-whatsapp" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
+              <div class="field"><label for="store-category">Categoria</label><select id="store-category"><option>Hamburgueria</option><option>Pizzaria</option><option>Restaurante</option><option>Lanchonete</option><option>Outro</option></select></div>
+              <div class="field full"><label for="store-description">Descrição</label><textarea id="store-description" rows="4" placeholder="Conte ao cliente o que sua loja oferece."></textarea></div>
+            </div>
+          </div>
+
+          <div class="panel settings-panel">
+            <div class="panel-head"><div><h2>Funcionamento</h2><p>Controle imediatamente se a loja pode receber pedidos.</p></div></div>
+            <div class="store-operation-card">
+              <div><strong id="store-operation-title">Loja fechada</strong><small id="store-operation-description">O cardápio permanece visível, mas novos pedidos ficam bloqueados.</small></div>
+              <label class="switch"><input id="store-open" type="checkbox"><span></span></label>
+            </div>
+            <div class="form-grid">
+              <div class="field"><label for="delivery-time-min">Prazo mínimo</label><div class="input-suffix"><input id="delivery-time-min" type="number" min="0" inputmode="numeric"><span>min</span></div></div>
+              <div class="field"><label for="delivery-time-max">Prazo máximo</label><div class="input-suffix"><input id="delivery-time-max" type="number" min="0" inputmode="numeric"><span>min</span></div></div>
+            </div>
+          </div>
+
+          <div class="panel settings-panel">
+            <div class="panel-head"><div><h2>Pedidos e entrega</h2><p>Valores aplicados automaticamente no fechamento do pedido.</p></div></div>
+            <div class="form-grid">
+              <div class="field"><label for="delivery-fee">Taxa padrão</label><div class="input-prefix"><span>R$</span><input id="delivery-fee" inputmode="decimal" placeholder="0,00"></div></div>
+              <div class="field"><label for="minimum-order">Pedido mínimo</label><div class="input-prefix"><span>R$</span><input id="minimum-order" inputmode="decimal" placeholder="0,00"></div></div>
+            </div>
+          </div>
+
+          <div class="panel settings-panel">
+            <div class="panel-head"><div><h2>Página pública</h2><p>Link exclusivo para compartilhar seu cardápio.</p></div></div>
+            <div class="field full"><label for="public-store-link">Link público</label><div class="copy-field"><input id="public-store-link" readonly><button class="btn btn-secondary" id="copy-store-link" type="button">Copiar</button></div></div>
+            <div class="inline-actions settings-actions"><a class="btn btn-secondary" id="open-public-store" href="loja.html" target="_blank" rel="noopener">Abrir página pública</a></div>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
