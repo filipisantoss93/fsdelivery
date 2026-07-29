@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#18120e">
+  <title>Mesas e QR Codes — FS Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/app-polish.css">
+  <style>
+    .tables-shell{margin-left:var(--sidebar);min-height:100vh}.tables-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.table-admin-card{padding:16px}.table-admin-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.table-admin-head h2{margin:0;font-size:18px}.table-admin-head small{color:var(--muted)}.qr-plate{width:100%;max-width:360px;margin:auto;padding:12px;border:2px solid var(--primary);border-radius:20px;background:#fff;color:#17110d;box-shadow:0 12px 30px rgba(0,0,0,.22)}.qr-table-title{width:max-content;max-width:90%;margin:-13px auto 10px;padding:9px 22px;border:2px solid var(--primary);border-radius:14px;background:#fff;font-size:24px;font-weight:900}.qr-instruction{text-align:center;font-size:14px;font-weight:900;letter-spacing:.03em;margin:8px 0 10px}.qr-box{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:1;border:3px solid #17110d;border-radius:14px;overflow:hidden;background:#fff}.qr-box canvas,.qr-box img{width:100%!important;height:100%!important}.qr-bell{position:absolute;display:grid;place-items:center;width:23%;aspect-ratio:1;border:4px solid var(--primary);border-radius:50%;background:#fff;color:var(--primary)}.qr-bell svg{width:68%;height:68%;stroke:#17110d;fill:var(--primary);stroke-width:1.8}.qr-brand{text-align:center;margin-top:10px;font-size:20px;font-weight:900;font-style:italic}.qr-brand span{color:var(--primary)}.qr-tagline{text-align:center;color:#4d4036;font-size:10px;letter-spacing:.08em}.qr-wave{height:12px;margin:10px -12px -12px;border-radius:0 0 17px 17px;background:linear-gradient(135deg,var(--primary),var(--primary-2))}.table-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.table-actions .btn{flex:1;min-width:95px}.table-form{display:grid;grid-template-columns:100px 1fr auto;gap:10px;align-items:end}.table-form .field{min-width:0}.qr-empty{grid-column:1/-1}.print-only{display:none}@media(max-width:1050px){.tables-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.tables-shell{margin-left:0}.sidebar{display:none}.tables-grid{grid-template-columns:1fr}.table-form{grid-template-columns:1fr}.content{padding:20px}}@media print{body{background:#fff}.sidebar,.topbar,.page-head,.table-actions,.table-form{display:none!important}.tables-shell{margin:0}.content{padding:0}.tables-grid{grid-template-columns:repeat(2,1fr);gap:12mm}.table-admin-card{border:0;background:#fff;padding:0;break-inside:avoid}.table-admin-head{display:none}.qr-plate{box-shadow:none;max-width:none}.print-hidden{display:none!important}}
+  </style>
+</head>
+<body class="app-body">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
+    <nav class="nav">
+      <button type="button" onclick="location.href='app.html'">Início</button>
+      <button type="button" onclick="location.href='app.html#pedidos'">Pedidos</button>
+      <button type="button" onclick="location.href='app.html#cardapio'">Cardápio</button>
+      <button class="active" type="button">Mesas e QR Codes</button>
+      <button type="button" onclick="location.href='app.html#configuracoes'">Configurações</button>
+    </nav>
+    <div class="sidebar-footer"><a class="btn btn-secondary btn-block" href="app.html">Voltar ao painel</a></div>
+  </aside>
+  <main class="tables-shell">
+    <header class="topbar"><b>Mesas e QR Codes</b><div class="topbar-actions"><button class="btn btn-secondary" id="print-all" type="button">Imprimir todos</button><button class="btn btn-primary" id="new-table-focus" type="button">Adicionar mesa</button></div></header>
+    <div class="content">
+      <div class="page-head"><div><h1>QR Codes das mesas</h1><p>Gere, visualize, baixe e imprima placas no padrão visual do FS Delivery.</p></div></div>
+      <section class="panel" style="margin-bottom:18px">
+        <form id="table-form" class="table-form">
+          <div class="field"><label for="table-number">Número</label><input id="table-number" type="number" min="1" required></div>
+          <div class="field"><label for="table-name">Nome personalizado</label><input id="table-name" placeholder="Ex.: Varanda 1"></div>
+          <button class="btn btn-primary" type="submit">Criar mesa</button>
+        </form>
+      </section>
+      <section class="tables-grid" id="tables-grid"><div class="empty-state qr-empty">Carregando mesas...</div></section>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/mesas.js"></script>
+</body>
+</html>
