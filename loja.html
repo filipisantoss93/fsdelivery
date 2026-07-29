@@ -74,7 +74,7 @@
       <p id="store-product-description"></p>
       <div id="store-options"></div>
       <div class="field"><label for="item-note">Observação</label><textarea id="item-note" rows="3" placeholder="Ex.: sem cebola"></textarea></div>
-      <div class="actions" style="justify-content:space-between">
+      <div class="actions actions-split">
         <div class="qty"><button id="qty-minus" type="button">−</button><b id="qty-value">1</b><button id="qty-plus" type="button">+</button></div>
         <button class="btn btn-primary" id="add-cart-btn" type="button">Adicionar • R$ 0,00</button>
       </div>
@@ -104,12 +104,12 @@
   </div>
 
   <div class="modal store-modal" id="success-modal">
-    <div class="modal-card" style="text-align:center">
-      <div style="font-size:54px">✓</div>
+    <div class="modal-card success-card">
+      <div class="success-icon">✓</div>
       <h2>Pedido enviado</h2>
       <p id="success-message"></p>
       <div class="feedback">Aguarde a confirmação do restaurante antes de considerar o pedido aceito.</div>
-      <div class="actions" style="justify-content:center"><a class="btn btn-secondary" id="track-order-link" href="cliente.html">Acompanhar pedido</a><button class="btn btn-primary" onclick="location.reload()">Fazer novo pedido</button></div>
+      <div class="actions actions-center"><a class="btn btn-secondary" id="track-order-link" href="cliente.html">Acompanhar pedido</a><button class="btn btn-primary" onclick="location.reload()">Fazer novo pedido</button></div>
     </div>
   </div>
 
