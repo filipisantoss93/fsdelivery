@@ -1,31 +1,5 @@
 (() => {
   const byId = id => document.getElementById(id);
-  const isTableOrder = () => typeof table !== 'undefined' && Boolean(table);
-
-  function setRowVisibility(valueId, visible) {
-    const row = byId(valueId)?.closest('.row-card');
-    if (row) row.hidden = !visible;
-  }
-
-  function configureLocalCheckout() {
-    const local = isTableOrder();
-    const fieldIds = ['delivery-type', 'address-field', 'region-field', 'payment-method', 'change-field', 'order-notes'];
-
-    fieldIds.forEach(id => {
-      const element = byId(id);
-      if (!element) return;
-      const field = element.classList.contains('field') ? element : element.closest('.field');
-      if (field) field.hidden = local;
-    });
-
-    setRowVisibility('checkout-delivery-fee', !local);
-    if (local) {
-      const title = byId('checkout-title');
-      if (title) title.textContent = 'Identifique seu pedido';
-      const notice = byId('checkout-modal')?.querySelector('.feedback');
-      if (notice) notice.textContent = 'Informe somente seu nome e WhatsApp para enviar o pedido à mesa.';
-    }
-  }
 
   function ensureCartModal() {
     if (byId('cart-summary-modal')) return;
@@ -47,7 +21,7 @@
         </div>
         <div id="cart-summary-items"></div>
         <div class="row-card"><span>Subtotal</span><b id="cart-summary-subtotal">R$ 0,00</b></div>
-        <div class="row-card"><span>Taxa de entrega</span><b id="cart-summary-fee">R$ 0,00</b></div>
+        <div class="row-card" id="cart-summary-fee-row"><span>Taxa de entrega</span><b id="cart-summary-fee">R$ 0,00</b></div>
         <div class="cart-total"><span>Total</span><span id="cart-summary-total">R$ 0,00</span></div>
         <small id="cart-summary-minimum"></small>
         <button class="btn btn-primary btn-block" id="cart-summary-checkout" type="button">Continuar pedido</button>
@@ -59,7 +33,6 @@
     });
     byId('cart-summary-checkout').onclick = () => {
       closeCartModal();
-      configureLocalCheckout();
       checkout();
     };
   }
@@ -67,6 +40,48 @@
   function closeCartModal() {
     byId('cart-summary-modal')?.classList.remove('open');
     document.body.style.overflow = '';
+  }
+
+  function currentType() {
+    if (new URLSearchParams(location.search).get('mesa')) return 'mesa';
+    return byId('delivery-type')?.value || 'delivery';
+  }
+
+  function setFieldVisible(element, visible, display = 'grid') {
+    if (!element) return;
+    element.style.display = visible ? display : 'none';
+  }
+
+  function applyCheckoutContext() {
+    const orderType = currentType();
+    const isTable = orderType === 'mesa';
+    const isDelivery = orderType === 'delivery';
+    const isPickup = orderType === 'pickup';
+
+    const deliveryField = byId('delivery-type')?.closest('.field');
+    const paymentField = byId('payment-method')?.closest('.field');
+    const notesField = byId('order-notes')?.closest('.field');
+    const paymentMethod = byId('payment-method');
+
+    setFieldVisible(deliveryField, !isTable);
+    setFieldVisible(byId('address-field'), isDelivery);
+    setFieldVisible(byId('region-field'), isDelivery);
+    setFieldVisible(paymentField, !isTable);
+    setFieldVisible(notesField, !isTable);
+    setFieldVisible(byId('change-field'), !isTable && paymentMethod?.value === 'Dinheiro');
+
+    [
+      byId('cart-delivery-fee')?.closest('.row-card'),
+      byId('checkout-delivery-fee')?.closest('.row-card'),
+      byId('cart-summary-fee-row')
+    ].forEach(row => setFieldVisible(row, isDelivery, 'flex'));
+
+    const feedback = byId('checkout-modal')?.querySelector('.feedback');
+    if (feedback && isPickup) {
+      feedback.textContent = 'Informe seus dados e escolha a forma de pagamento. O pedido ficará disponível para retirada no estabelecimento.';
+    } else if (feedback && isTable) {
+      feedback.textContent = 'Informe apenas seu nome e WhatsApp para identificarmos o pedido desta mesa.';
+    }
   }
 
   function bindModalCartActions() {
@@ -106,7 +121,7 @@
     byId('cart-summary-minimum').textContent = byId('minimum-order-hint')?.textContent || '';
     byId('cart-summary-minimum').style.color = byId('minimum-order-hint')?.style.color || '';
     byId('cart-summary-checkout').disabled = !cart.length;
-    setRowVisibility('cart-summary-fee', !isTableOrder());
+    applyCheckoutContext();
     bindModalCartActions();
   }
 
@@ -121,6 +136,7 @@
   window.renderCart = function (...args) {
     const result = originalRenderCart.apply(this, args);
     renderCartModal();
+    applyCheckoutContext();
     return result;
   };
 
@@ -135,8 +151,11 @@
       openCartModal();
     }, true);
 
-    byId('checkout-btn')?.addEventListener('click', configureLocalCheckout, true);
-    byId('checkout-modal')?.addEventListener('transitionstart', configureLocalCheckout);
+    byId('delivery-type')?.addEventListener('change', () => requestAnimationFrame(applyCheckoutContext));
+    byId('payment-method')?.addEventListener('change', () => requestAnimationFrame(applyCheckoutContext));
+    byId('checkout-btn')?.addEventListener('click', () => requestAnimationFrame(applyCheckoutContext));
+    byId('cart-summary-checkout')?.addEventListener('click', () => requestAnimationFrame(applyCheckoutContext));
+    applyCheckoutContext();
   }
 
   if (document.readyState === 'loading') {
