@@ -1,1 +1,50 @@
-(()=>{const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);const labels={novo:'Recebido',preparo:'Em preparo',pronto:'Pronto',entregue:'Entregue',cancelado:'Cancelado'};const normalize=v=>String(v||'').replace(/\D/g,'');const container=document.getElementById('customer-orders');const form=document.getElementById('customer-lookup-form');const modal=document.getElementById('customer-order-modal');function render(phone){const orders=FSData.getOrders().filter(o=>normalize(o.phone)===normalize(phone));localStorage.setItem('fsd_customer_phone',phone);container.innerHTML=orders.length?`<div class="page-head"><div><h2>Seus pedidos</h2><p>${orders.length} pedido(s) encontrado(s).</p></div></div><div class="customer-order-grid">${orders.map(o=>`<article class="customer-order-card" data-id="${o.id}"><div><small>Pedido #${o.id} • ${o.date||'Hoje'}, ${o.time||''}</small><h3>${labels[o.status]||o.status}</h3><p>${o.items.map(i=>`${i.qty}x ${i.name}`).join(' • ')}</p></div><strong>${money(o.total)}</strong></article>`).join('')}</div>`:'<div class="empty-state"><h3>Nenhum pedido encontrado</h3><p>Confira o WhatsApp informado ou faça seu primeiro pedido.</p><a class="btn btn-primary" href="loja.html">Abrir cardápio</a></div>';document.querySelectorAll('[data-id]').forEach(el=>el.onclick=()=>openOrder(+el.dataset.id))}function openOrder(id){const o=FSData.getOrders().find(x=>x.id===id);if(!o)return;document.getElementById('customer-order-title').textContent=`Pedido #${o.id}`;document.getElementById('customer-order-detail').innerHTML=`<div class="order-progress">${['novo','preparo','pronto','entregue'].map((s,i,a)=>`<div class="${a.indexOf(o.status)>=i?'done':''}"><span></span><small>${labels[s]}</small></div>`).join('')}</div><div class="receipt"><p><b>Entrega:</b> ${o.address}</p><p><b>Pagamento:</b> ${o.payment}</p>${o.items.map(i=>`<div class="receipt-line"><span>${i.qty}x ${i.name}${i.extras?.length?`<small>${i.extras.join(', ')}</small>`:''}</span><b>${money(i.qty*i.price)}</b></div>`).join('')}<div class="receipt-total"><span>Total</span><b>${money(o.total)}</b></div></div>`;modal.classList.add('open');document.body.style.overflow='hidden'}form.onsubmit=e=>{e.preventDefault();render(document.getElementById('lookup-phone').value)};document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{modal.classList.remove('open');document.body.style.overflow=''});const saved=localStorage.getItem('fsd_customer_phone');if(saved){document.getElementById('lookup-phone').value=saved;render(saved)}})();
+(()=>{
+const db=window.supabaseClient;
+const params=new URLSearchParams(location.search);
+const slug=params.get('loja');
+const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
+const labels={novo:'Recebido',confirmado:'Confirmado',preparo:'Em preparo',pronto:'Pronto',saiu_entrega:'Saiu para entrega',entregue:'Entregue',cancelado:'Cancelado'};
+const normalize=value=>String(value||'').replace(/\D/g,'');
+const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+const container=document.getElementById('customer-orders');
+const form=document.getElementById('customer-lookup-form');
+const modal=document.getElementById('customer-order-modal');
+let orders=[];
+
+function addressLabel(order){
+ const address=order.endereco_entrega;
+ if(!address)return order.tipo==='retirada'?'Retirada no estabelecimento':order.tipo==='local'?'Consumo no local':'Não informado';
+ if(typeof address==='string')return address;
+ return [address.endereco,address.numero,address.complemento,address.bairro,address.cidade,address.referencia].filter(Boolean).join(', ')||'Não informado';
+}
+
+function render(){
+ container.innerHTML=orders.length?`<div class="page-head"><div><h2>Seus pedidos</h2><p>${orders.length} pedido(s) encontrado(s) nos últimos 90 dias.</p></div></div><div class="customer-order-grid">${orders.map(order=>`<article class="customer-order-card" data-id="${escapeHtml(order.id)}"><div><small>Pedido #${escapeHtml(order.codigo||order.id)} • ${new Date(order.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</small><h3>${escapeHtml(labels[order.status]||order.status)}</h3><p>${(order.itens||[]).map(item=>`${item.quantidade}x ${escapeHtml(item.nome)}`).join(' • ')}</p></div><strong>${money(order.total)}</strong></article>`).join('')}</div>`:'<div class="empty-state"><h3>Nenhum pedido encontrado</h3><p>Confira o WhatsApp informado ou faça seu primeiro pedido.</p><a class="btn btn-primary" href="loja.html?loja='+encodeURIComponent(slug||'')+'">Abrir cardápio</a></div>';
+ container.querySelectorAll('[data-id]').forEach(element=>element.onclick=()=>openOrder(element.dataset.id));
+}
+
+function openOrder(id){
+ const order=orders.find(item=>String(item.id)===String(id));
+ if(!order)return;
+ document.getElementById('customer-order-title').textContent=`Pedido #${order.codigo||order.id}`;
+ const progress=['novo','confirmado','preparo','pronto',...(order.tipo==='entrega'?['saiu_entrega']:[]),'entregue'];
+ const current=progress.indexOf(order.status);
+ document.getElementById('customer-order-detail').innerHTML=`<div class="order-progress">${progress.map((status,index)=>`<div class="${current>=index?'done':''}"><span></span><small>${escapeHtml(labels[status])}</small></div>`).join('')}</div><div class="receipt"><p><b>Destino:</b> ${escapeHtml(addressLabel(order))}</p><p><b>Pagamento:</b> ${escapeHtml(order.forma_pagamento||'Não informado')}</p>${(order.itens||[]).map(item=>`<div class="receipt-line"><span>${item.quantidade}x ${escapeHtml(item.nome)}${item.observacoes?`<small>${escapeHtml(item.observacoes)}</small>`:''}</span><b>${money(item.total)}</b></div>`).join('')}<div class="receipt-total"><span>Total</span><b>${money(order.total)}</b></div></div>`;
+ modal.classList.add('open');document.body.style.overflow='hidden';
+}
+
+async function lookup(phone){
+ if(!slug){container.innerHTML='<div class="empty-state"><h3>Loja não informada</h3><p>Abra esta página pelo link do cardápio.</p></div>';return;}
+ const normalized=normalize(phone);
+ if(normalized.length<10){container.innerHTML='<div class="empty-state">Informe um WhatsApp válido.</div>';return;}
+ localStorage.setItem(`fsdelivery_customer_phone_${slug}`,phone);
+ container.innerHTML='<div class="empty-state">Consultando pedidos...</div>';
+ const {data,error}=await db.rpc('consultar_pedidos_cliente',{p_slug:slug,p_telefone:normalized});
+ if(error){console.error(error);container.innerHTML='<div class="empty-state">Não foi possível consultar os pedidos. Tente novamente.</div>';return;}
+ orders=data||[];render();
+}
+
+form.onsubmit=event=>{event.preventDefault();lookup(document.getElementById('lookup-phone').value)};
+document.querySelectorAll('[data-close]').forEach(button=>button.onclick=()=>{modal.classList.remove('open');document.body.style.overflow=''});
+if(slug){document.querySelectorAll('a[href="loja.html"]').forEach(link=>link.href=`loja.html?loja=${encodeURIComponent(slug)}`);const saved=localStorage.getItem(`fsdelivery_customer_phone_${slug}`);if(saved){document.getElementById('lookup-phone').value=saved;lookup(saved)}}
+})();
