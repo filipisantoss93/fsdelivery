@@ -1,0 +1,20 @@
+@media(max-width:760px){
+  .fs-admin-mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;min-height:64px!important;padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;border-radius:18px 18px 0 0!important}
+  .fs-admin-mobile-nav button{min-height:52px!important;padding:5px 2px!important;gap:3px!important;font-size:10px!important}
+  .fs-admin-mobile-nav button svg{width:20px!important;height:20px!important}
+  .fs-admin-mobile-nav button.active{border-radius:12px!important}
+  .fs-mobile-top-duplicate{display:none!important}
+  .fs-more-backdrop{position:fixed;inset:0;z-index:119;border:0;background:rgba(24,18,14,.48);backdrop-filter:blur(2px)}
+  .fs-more-backdrop[hidden],.fs-more-sheet[hidden]{display:none!important}
+  .fs-more-sheet{position:fixed;right:0;bottom:0;left:0;z-index:120;padding:8px 16px calc(18px + env(safe-area-inset-bottom));border:1px solid var(--line,var(--border));border-radius:20px 20px 0 0;background:var(--surface);box-shadow:0 -20px 50px rgba(0,0,0,.24)}
+  .fs-more-handle{width:42px;height:4px;margin:0 auto 14px;border-radius:999px;background:var(--line-strong,var(--border))}
+  .fs-more-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+  .fs-more-head strong,.fs-more-head small{display:block}.fs-more-head strong{font-size:19px}.fs-more-head small{margin-top:3px;color:var(--muted);font-size:12px}
+  .fs-more-close{display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--line,var(--border));border-radius:10px;background:var(--surface-2);color:inherit;font-size:24px}
+  .fs-more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .fs-more-grid a{display:block;min-width:0;padding:14px;border:1px solid var(--line,var(--border));border-radius:11px;background:var(--surface-2);color:inherit;text-decoration:none}
+  .fs-more-grid b,.fs-more-grid small{display:block}.fs-more-grid b{font-size:14px}.fs-more-grid small{margin-top:4px;color:var(--muted);font-size:11px;line-height:1.35}
+  .fs-more-open{overflow:hidden}
+  .mobile-more-menu{display:none!important}
+}
+@media(min-width:761px){.fs-more-backdrop,.fs-more-sheet{display:none!important}}

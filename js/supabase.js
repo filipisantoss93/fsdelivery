@@ -19,12 +19,23 @@ window.supabaseClient=window.supabase.createClient(
   }
 );
 
-// Recurso global compartilhado por todas as páginas da plataforma que usam
-// Supabase. Evita duplicar marcação, CSS e listeners em cada tela.
-if(!document.querySelector('script[data-fs-pull-refresh]')){
-  const pullToRefreshScript=document.createElement('script');
-  pullToRefreshScript.src='js/pull-to-refresh.js';
-  pullToRefreshScript.defer=true;
-  pullToRefreshScript.dataset.fsPullRefresh='true';
-  document.head.appendChild(pullToRefreshScript);
+// Recursos globais compartilhados pelas páginas da plataforma.
+[
+  ['script','js/pull-to-refresh.js','fsPullRefresh'],
+  ['script','js/admin-mobile-nav.js','fsAdminMobileNav']
+].forEach(([tag,src,key])=>{
+  if(document.querySelector(`${tag}[data-${key.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`)}]`))return;
+  const element=document.createElement(tag);
+  element.src=src;
+  element.defer=true;
+  element.dataset[key]='true';
+  document.head.appendChild(element);
+});
+
+if(!document.querySelector('link[data-fs-admin-mobile-nav]')){
+  const navStyle=document.createElement('link');
+  navStyle.rel='stylesheet';
+  navStyle.href='css/admin-mobile-nav.css';
+  navStyle.dataset.fsAdminMobileNav='true';
+  document.head.appendChild(navStyle);
 }
