@@ -19,12 +19,15 @@ window.supabaseClient=window.supabase.createClient(
   }
 );
 
-// Recurso global compartilhado por todas as páginas da plataforma que usam
-// Supabase. Evita duplicar marcação, CSS e listeners em cada tela.
-if(!document.querySelector('script[data-fs-pull-refresh]')){
-  const pullToRefreshScript=document.createElement('script');
-  pullToRefreshScript.src='js/pull-to-refresh.js';
-  pullToRefreshScript.defer=true;
-  pullToRefreshScript.dataset.fsPullRefresh='true';
-  document.head.appendChild(pullToRefreshScript);
-}
+// Recursos globais compartilhados pelas páginas da plataforma.
+const loadGlobalScript=(src,datasetKey)=>{
+  if(document.querySelector(`script[data-${datasetKey}]`))return;
+  const script=document.createElement('script');
+  script.src=src;
+  script.defer=true;
+  script.dataset[datasetKey.replace(/-([a-z])/g,(_,letter)=>letter.toUpperCase())]='true';
+  document.head.appendChild(script);
+};
+
+loadGlobalScript('js/pull-to-refresh.js','fs-pull-refresh');
+loadGlobalScript('js/navigation.js','fs-navigation');
