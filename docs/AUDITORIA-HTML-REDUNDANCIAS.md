@@ -18,107 +18,96 @@ A branch anterior não deve ser mesclada porque ficou divergente em relação ao
 - [x] Carregar a navegação compartilhada pelo arquivo global `js/supabase.js`.
 - [x] Remover visualmente o acesso duplicado de configurações no cabeçalho.
 - [x] Corrigir o nome do acesso para `garcom.html` de **Cardápio** para **Novo pedido**.
+- [x] Consolidar `app.html` para manter somente Início, Pedidos e o modal de pedido.
+- [x] Simplificar `js/app.js` para o fluxo operacional do painel.
+- [x] Corrigir métricas para considerar somente pedidos válidos do dia atual.
+- [x] Remover o módulo temporário de correções após consolidar a implementação.
 
 ## Página inicial
 
-### Problemas identificados
+### Estado atual
 
-1. As métricas da página inicial ainda são calculadas em `js/app.js` usando todo o histórico de pedidos, embora os rótulos indiquem período diário.
-2. O JavaScript ainda depende de elementos ocultos ou seções antigas para executar sem erros.
-3. As áreas de Cardápio, Clientes, Financeiro e Configurações permanecem incorporadas em `app.html`, mesmo com páginas dedicadas para parte dessas funções.
-4. `setupAccount()` ainda inicializa a antiga seção interna de configurações.
-5. `render()` ainda executa `renderProducts()`, `renderCustomers()` e `renderFinance()` em toda atualização da página inicial.
-6. O botão **Novo pedido** gerado na página de pedidos direciona para `cardapio.html`, enquanto o fluxo interno atual utiliza `garcom.html`.
-7. O status da loja depende de um observador inline em `app.html`, além da função `setupLabels()` existente em `app.js`.
-8. A navegação antiga ainda permanece escrita no HTML e é substituída em tempo de execução por `navigation.js`.
+A página inicial foi simplificada e agora mantém apenas os elementos operacionais necessários:
 
-## Correções recomendadas
+- quatro indicadores diários;
+- lista de pedidos recentes do dia;
+- ação para abrir a página de pedidos;
+- estado textual da loja;
+- notificações;
+- navegação compartilhada.
 
-### 1. Tornar `app.js` tolerante a componentes opcionais
+As áreas de Cardápio, Clientes, Financeiro e Configurações foram removidas do painel principal e permanecem em páginas dedicadas.
 
-Antes de remover seções antigas do HTML, todas as funções devem verificar se seus elementos existem.
+## Regras implementadas
 
-Funções prioritárias:
+### Métricas diárias
 
-- `renderProducts()`;
-- `renderCustomers()`;
-- `renderFinance()`;
-- `setupAccount()`;
-- `saveSettings()`;
-- `bindActions()`;
-- `setupLabels()`.
-
-Nenhuma função deve interromper a inicialização da página por ausência de um componente que não pertence mais ao painel principal.
-
-### 2. Corrigir as métricas diárias
-
-Manter quatro indicadores:
+Indicadores mantidos:
 
 - **Pedidos hoje**;
 - **Em preparo**;
 - **Vendas hoje**;
 - **Ticket médio hoje**.
 
-Regras:
+Regras aplicadas:
 
 - considerar somente pedidos criados no dia local atual;
 - excluir pedidos cancelados;
 - calcular o ticket médio sobre os pedidos válidos do dia;
 - manter **Em preparo** como quantidade operacional do dia.
 
-### 3. Remover seções órfãs de `app.html`
+### Navegação
 
-Após o endurecimento do JavaScript, remover do painel principal:
+- `js/navigation.js` é a fonte compartilhada da navegação principal;
+- a navegação mobile duplicada foi removida de `app.html`;
+- o acesso operacional **Novo pedido** aponta para `garcom.html`;
+- configurações permanecem em `configuracoes.html`.
+
+### Status da loja
+
+A lógica foi consolidada em `js/app.js`, responsável por atualizar:
+
+- texto **Loja aberta** ou **Loja fechada**;
+- classe visual do status;
+- `aria-label`;
+- confirmação antes da alteração.
+
+O observador inline anteriormente presente em `app.html` foi removido.
+
+### Estrutura removida do painel principal
+
+Foram removidos:
 
 - seção interna de Cardápio;
 - seção interna de Clientes;
 - seção interna de Financeiro;
 - seção interna de Configurações;
-- modal de produto, quando não houver mais uso no painel;
-- elementos ocultos usados apenas como compatibilidade.
+- modal de produto;
+- navegação mobile duplicada;
+- elementos ocultos de compatibilidade sem uso operacional.
 
-As páginas dedicadas devem permanecer como fonte única para essas operações.
+## Páginas responsáveis por cada operação
 
-### 4. Consolidar o status da loja
+- `app.html`: visão inicial e acompanhamento dos pedidos;
+- `garcom.html`: criação de pedido;
+- `caixa.html`: aprovação e operação do caixa;
+- `mesas-operacao.html`: operação das mesas;
+- `configuracoes.html`: dados e funcionamento do estabelecimento.
 
-A função `setupLabels()` deve atualizar diretamente:
+## Validação antes do merge
 
-- texto **Loja aberta** ou **Loja fechada**;
-- classe visual do status;
-- `aria-label`;
-- controle de abertura e fechamento, quando existente.
-
-Depois disso, remover o `MutationObserver` inline de `app.html`.
-
-### 5. Consolidar a navegação no HTML
-
-O HTML não deve manter um menu completo que será descartado e recriado pelo JavaScript.
-
-A solução final deve utilizar uma destas estratégias:
-
-1. marcação mínima com `data-fs-navigation`, preenchida por `navigation.js`; ou
-2. navegação HTML definitiva, com `navigation.js` responsável apenas pelo estado ativo.
-
-A primeira opção reduz duplicidade entre páginas e é a recomendada para o padrão atual.
-
-### 6. Corrigir o fluxo de novo pedido
-
-Todos os acessos internos para criação de pedidos devem apontar para:
-
-`garcom.html`
-
-O arquivo `cardapio.html` não deve ser usado como destino interno sem que sua finalidade esteja definida e validada.
-
-## Ordem segura de execução
-
-1. Endurecer `app.js` para elementos opcionais.
-2. Corrigir métricas e estado vazio da página inicial.
-3. Corrigir o destino do botão **Novo pedido**.
-4. Consolidar o status da loja em `setupLabels()`.
-5. Remover seções órfãs e marcações antigas de `app.html`.
-6. Validar Início, Pedidos, Novo pedido, Caixa, Mesas e Configurações.
-7. Comparar a branch com a `main` antes do merge.
-8. Fazer um único merge final para reduzir deploys de produção.
+1. Abrir o preview atualizado da branch.
+2. Validar login e carregamento de `app.html`.
+3. Validar métricas do dia atual.
+4. Alternar entre Início e Pedidos.
+5. Abrir `garcom.html` pelo botão **Novo pedido**.
+6. Abrir detalhes de um pedido.
+7. Avançar, cancelar e excluir pedidos de teste.
+8. Alternar o status da loja.
+9. Validar sino e painel de notificações.
+10. Validar navegação em desktop e mobile.
+11. Confirmar ausência de erros no console.
+12. Comparar novamente a branch com a `main`.
 
 ## Critérios de aceite
 
@@ -126,14 +115,16 @@ O arquivo `cardapio.html` não deve ser usado como destino interno sem que sua f
 - [x] Existe uma fonte compartilhada para a navegação principal.
 - [x] O acesso duplicado de configurações no cabeçalho fica oculto.
 - [x] O acesso a `garcom.html` possui nome operacional correto.
-- [ ] As métricas financeiras usam claramente o período diário.
-- [ ] Pedidos cancelados não entram nos indicadores.
-- [ ] O estado vazio de pedidos recentes apresenta mensagem e ação útil.
-- [ ] `app.js` funciona sem seções internas de Cardápio, Clientes, Financeiro e Configurações.
-- [ ] O status textual da loja é controlado por uma única implementação.
-- [ ] A navegação antiga não permanece duplicada no HTML.
-- [ ] O botão **Novo pedido** direciona para `garcom.html`.
-- [ ] A página inicial fica mais curta e focada na operação diária.
-- [ ] O padrão visual consolidado do FS Delivery é preservado.
-- [ ] Nenhum arquivo CSS adicional ou regra de override é criado.
-- [ ] As alterações reutilizam componentes, fontes de dados e estilos existentes.
+- [x] As métricas financeiras usam claramente o período diário.
+- [x] Pedidos cancelados não entram nos indicadores.
+- [x] O estado vazio de pedidos recentes apresenta mensagem e ação útil.
+- [x] `app.js` funciona sem seções internas de Cardápio, Clientes, Financeiro e Configurações.
+- [x] O status textual da loja é controlado por uma única implementação.
+- [x] A navegação antiga não permanece duplicada no HTML.
+- [x] O botão **Novo pedido** direciona para `garcom.html`.
+- [x] A página inicial fica mais curta e focada na operação diária.
+- [x] O padrão visual consolidado do FS Delivery é preservado.
+- [x] Nenhum arquivo CSS adicional ou regra de override é criado.
+- [x] As alterações reutilizam componentes, fontes de dados e estilos existentes.
+- [ ] Preview final validado sem regressões.
+- [ ] Branch aprovada para merge na `main`.
