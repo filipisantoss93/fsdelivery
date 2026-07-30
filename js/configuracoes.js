@@ -2,6 +2,7 @@ const db=window.supabaseClient;
 const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
 const decimal=value=>Number(String(value||'').replace(/\./g,'').replace(',','.'))||0;
 const byId=id=>document.getElementById(id);
+const normalizePhone=value=>String(value||'').replace(/\D/g,'');
 const days=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 const paymentCatalog=['PIX','Cartão de crédito','Cartão de débito','Dinheiro','Vale-refeição'];
 let session,user,store,orders=[],team=[],operational={},hours=[],regions=[];
@@ -137,7 +138,38 @@ async function savePermissions(){await saveOperational({permite_garcom_cancelar:
 async function saveRegion(event){event.preventDefault();const form=new FormData(event.currentTarget);const payload={estabelecimento_id:store.id,nome:String(form.get('name')).trim(),taxa:decimal(form.get('fee')),prazo_adicional:Math.max(0,Number(form.get('extra'))||0),ativo:true};const {data,error}=await db.from('taxas_entrega_regioes').insert(payload).select().single();if(error)return alert(error.message);regions.push(data);event.currentTarget.reset();renderRegions()}
 function renderRegions(){byId('region-list').innerHTML=regions.length?regions.map(item=>`<div class="row-card"><div><b>${item.nome}</b><small>${money(item.taxa)} • +${item.prazo_adicional||0} min</small></div><div class="inline-actions"><button class="btn btn-secondary" data-toggle-region="${item.id}">${item.ativo?'Desativar':'Ativar'}</button><button class="btn btn-danger" data-delete-region="${item.id}">Excluir</button></div></div>`).join(''):'<div class="empty-state">Nenhuma região específica cadastrada.</div>';document.querySelectorAll('[data-toggle-region]').forEach(button=>button.onclick=async()=>{const item=regions.find(r=>r.id===button.dataset.toggleRegion);const {error}=await db.from('taxas_entrega_regioes').update({ativo:!item.ativo}).eq('id',item.id);if(error)return alert(error.message);item.ativo=!item.ativo;renderRegions()});document.querySelectorAll('[data-delete-region]').forEach(button=>button.onclick=async()=>{if(!confirm('Excluir esta região?'))return;const {error}=await db.from('taxas_entrega_regioes').delete().eq('id',button.dataset.deleteRegion);if(error)return alert(error.message);regions=regions.filter(r=>r.id!==button.dataset.deleteRegion);renderRegions()})}
 
-async function saveTeamMember(event){event.preventDefault();const section=event.currentTarget.closest('[data-team-role]'),role=section.dataset.teamRole,form=new FormData(event.currentTarget),pin=String(form.get('pin')||'').replace(/\D/g,'');if(pin.length<4||pin.length>6)return alert('O PIN deve ter entre 4 e 6 números.');const payload={estabelecimento_id:store.id,nome:String(form.get('name')).trim(),telefone:String(form.get('phone')).trim(),pin,funcao:role,ativo:true};const {data,error}=await db.from('equipe_operacional').insert(payload).select().single();if(error)return alert(error.message);team.unshift(data);event.currentTarget.reset();renderTeam()}
+async function saveTeamMember(event){
+  event.preventDefault();
+  const formElement=event.currentTarget;
+  const section=formElement.closest('[data-team-role]');
+  const role=section.dataset.teamRole;
+  const form=new FormData(formElement);
+  const phoneInput=formElement.querySelector('[name="phone"]');
+  const name=String(form.get('name')||'').trim();
+  const phone=normalizePhone(form.get('phone'));
+  const pin=String(form.get('pin')||'').replace(/\D/g,'');
+
+  phoneInput.setCustomValidity('');
+  if(phone.length<10||phone.length>13){phoneInput.setCustomValidity('Informe um telefone válido com DDD.');phoneInput.reportValidity();phoneInput.focus();return}
+  if(pin.length<4||pin.length>6)return alert('O PIN deve ter entre 4 e 6 números.');
+
+  const duplicated=team.some(member=>member.funcao===role&&normalizePhone(member.telefone)===phone);
+  if(duplicated){phoneInput.setCustomValidity('Este telefone já está cadastrado nesta função.');phoneInput.reportValidity();phoneInput.focus();return}
+
+  const payload={estabelecimento_id:store.id,nome:name,telefone:phone,pin,funcao:role,ativo:true};
+  const {data,error}=await db.from('equipe_operacional').insert(payload).select().single();
+  if(error){
+    if(error.code==='23505'||String(error.message||'').includes('equipe_operacional_estabelecimento_id_telefone_funcao_key')){
+      phoneInput.setCustomValidity('Este telefone já está cadastrado nesta função.');
+      phoneInput.reportValidity();
+      phoneInput.focus();
+      return;
+    }
+    alert('Não foi possível cadastrar este integrante. Tente novamente.');
+    return;
+  }
+  team.unshift(data);formElement.reset();phoneInput.setCustomValidity('');renderTeam();
+}
 function renderTeam(){document.querySelectorAll('[data-team-role]').forEach(section=>{const role=section.dataset.teamRole,items=team.filter(member=>member.funcao===role);section.querySelector('.team-list').innerHTML=items.length?items.map(member=>`<div class="row-card team-member"><div><b>${member.nome}</b><small>${member.telefone} • PIN ${member.pin}</small></div><div class="inline-actions"><button class="btn btn-secondary" data-toggle-team="${member.id}">${member.ativo?'Desativar':'Ativar'}</button><button class="btn btn-danger" data-delete-team="${member.id}">Excluir</button></div></div>`).join(''):'<div class="empty-state">Nenhum cadastro nesta função.</div>'});document.querySelectorAll('[data-toggle-team]').forEach(button=>button.onclick=async()=>{const member=team.find(item=>item.id===button.dataset.toggleTeam);const {error}=await db.from('equipe_operacional').update({ativo:!member.ativo,updated_at:new Date().toISOString()}).eq('id',member.id);if(error)return alert(error.message);member.ativo=!member.ativo;renderTeam()});document.querySelectorAll('[data-delete-team]').forEach(button=>button.onclick=async()=>{const member=team.find(item=>item.id===button.dataset.deleteTeam);if(!confirm(`Excluir ${member.nome}?`))return;const {error}=await db.from('equipe_operacional').delete().eq('id',member.id);if(error)return alert(error.message);team=team.filter(item=>item.id!==member.id);renderTeam()})}
 
 function renderReports(){const valid=orders.filter(order=>order.status!=='cancelado'),revenue=valid.reduce((sum,order)=>sum+Number(order.total||0),0),done=valid.filter(order=>order.status==='entregue'),received=done.reduce((sum,order)=>sum+Number(order.total||0),0);byId('report-revenue').textContent=money(revenue);byId('report-ticket').textContent=money(revenue/(valid.length||1));byId('report-received').textContent=money(received);byId('report-pending').textContent=money(revenue-received);byId('report-orders').textContent=valid.length;byId('report-new').textContent=valid.filter(order=>order.status==='novo').length;byId('report-preparing').textContent=valid.filter(order=>order.status==='preparo').length;byId('report-done').textContent=done.length}
