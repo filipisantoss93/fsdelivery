@@ -21,7 +21,7 @@ async function init(){
     db.from('taxas_entrega_regioes').select('*').eq('estabelecimento_id',store.id).order('nome')
   ]);
   orders=ordersResult.data||[];team=teamResult.data||[];operational=opResult.data||{estabelecimento_id:store.id};hours=hoursResult.data||[];regions=regionsResult.data||[];
-  fillStore();renderTeam();renderReports();renderHours();renderPayments();renderRegions();bindActions();openRequestedSection();
+  fillStore();renderTeam();renderReports();renderHours();renderPayments();renderRegions();renderOperationalLinks();bindActions();openRequestedSection();
 }
 
 function fillStore(){
@@ -32,6 +32,37 @@ function fillStore(){
   byId('restaurant-name').value=store.nome||'';byId('restaurant-phone').value=store.telefone||'';byId('restaurant-category').value=store.categoria||'Restaurante';byId('restaurant-description').value=store.descricao||'';byId('restaurant-logo').value=store.logo_url||'';byId('restaurant-banner').value=store.banner_url||'';byId('restaurant-open').checked=Boolean(store.aberto);byId('restaurant-status-title').textContent=store.aberto?'Loja aberta':'Loja fechada';
   byId('profile-email').textContent=user.email||'—';byId('plan-name').textContent=store.plano||'Teste';byId('plan-status').textContent=store.assinatura_status||'Trial';
   byId('printer-name').value=operational.impressora_nome||'';byId('auto-print').checked=Boolean(operational.impressao_automatica);byId('sound-orders').checked=operational.som_novo_pedido!==false;byId('browser-notifications').checked=operational.notificacao_navegador!==false;byId('service-fee').value=String(operational.taxa_servico_percentual||0).replace('.',',');byId('coupons-active').checked=Boolean(operational.cupons_ativos);byId('manual-discount').checked=Boolean(operational.permite_desconto_manual);byId('require-cash-open').checked=Boolean(operational.exige_abertura_caixa);byId('waiter-cancel').checked=Boolean(operational.permite_garcom_cancelar);byId('waiter-discount').checked=Boolean(operational.permite_garcom_desconto);byId('delivery-see-values').checked=Boolean(operational.permite_entregador_ver_valores);
+}
+
+function renderOperationalLinks(){
+  const shortcuts=document.querySelector('.config-shortcuts');
+  if(!shortcuts||byId('operational-links'))return;
+  const links=[
+    {label:'Cozinha',path:'cozinha.html'},
+    {label:'Garçom',path:'garcom.html'},
+    {label:'Entrega',path:'entregador.html'}
+  ];
+  const section=document.createElement('section');
+  section.id='operational-links';
+  section.className='panel';
+  section.setAttribute('aria-labelledby','operational-links-title');
+  section.innerHTML=`<div class="panel-head"><div><h2 id="operational-links-title">Links de acesso</h2><p>Compartilhe o acesso correto com cada área da operação.</p></div></div><div class="form-grid">${links.map((item,index)=>{const url=new URL(item.path,location.href).href;return `<div class="field full"><label for="operational-link-${index}">${item.label}</label><div class="inline-actions"><input id="operational-link-${index}" value="${url}" readonly aria-label="Link de acesso da área ${item.label}"><button class="btn btn-secondary" type="button" data-copy-operational-link="operational-link-${index}">Copiar</button></div></div>`}).join('')}</div>`;
+  shortcuts.insertAdjacentElement('afterend',section);
+  section.querySelectorAll('[data-copy-operational-link]').forEach(button=>button.onclick=()=>copyOperationalLink(button));
+}
+
+async function copyOperationalLink(button){
+  const input=byId(button.dataset.copyOperationalLink);
+  if(!input)return;
+  try{
+    if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(input.value);
+    else{input.focus();input.select();document.execCommand('copy');input.setSelectionRange(0,0)}
+    const original=button.textContent;button.textContent='Copiado';button.disabled=true;
+    setTimeout(()=>{button.textContent=original;button.disabled=false},1600);
+  }catch(error){
+    input.focus();input.select();
+    alert('Não foi possível copiar automaticamente. O link foi selecionado para cópia manual.');
+  }
 }
 
 function openConfigModal(id){
