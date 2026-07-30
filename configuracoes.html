@@ -4,12 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#18120e">
-  <title>Config — FS Delivery</title>
+  <title>Configurações — FS Delivery</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
+  <style>
+    .config-groups{display:grid;gap:18px}
+    .config-group{padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--surface)}
+    .config-group-head{margin-bottom:12px}.config-group-head h2{margin:0 0 4px;font-size:17px}.config-group-head p{margin:0;color:var(--muted);font-size:13px}
+    .config-group .config-shortcuts{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+    .config-group .config-shortcut{min-height:auto;padding:14px;border-radius:10px;background:transparent}
+    .config-group .config-shortcut:hover{background:var(--surface-2)}
+    .config-body .mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+    @media(max-width:760px){.config-group{padding:14px}.config-group .config-shortcuts{grid-template-columns:1fr}}
+  </style>
 </head>
 <body class="app-body config-body">
   <aside class="sidebar">
@@ -18,66 +28,77 @@
       <button type="button" onclick="location.href='app.html'">Início</button>
       <button type="button" onclick="location.href='app.html#pedidos'">Pedidos</button>
       <button type="button" onclick="location.href='caixa.html'">Caixa</button>
-      <button type="button" onclick="location.href='garcom.html'">Cardápio</button>
       <button type="button" onclick="location.href='mesas-operacao.html'">Mesas</button>
-      <button class="active" type="button">Config</button>
+      <button type="button" onclick="location.href='app.html#cardapio'">Cardápio</button>
+      <button class="active" type="button">Configurações</button>
     </nav>
   </aside>
 
   <main class="main">
-    <header class="topbar"><div><b>Config</b></div><a class="btn btn-secondary" href="app.html">Voltar ao painel</a></header>
+    <header class="topbar"><div><b>Configurações</b></div><a class="btn btn-secondary" href="app.html">Voltar ao painel</a></header>
     <div class="content">
-      <div class="page-head"><div><h1>Central de configurações</h1><p>Selecione uma área para configurar o FS Delivery.</p></div></div>
-
-      <section class="config-shortcuts" aria-label="Atalhos de configuração">
-        <button class="config-shortcut" data-target="cardapio-config"><span>Cardápio</span><small>Produtos, categorias e adicionais</small></button>
-        <button class="config-shortcut" data-target="entrega-config"><span>Entrega</span><small>Taxas, regiões e prazos</small></button>
-        <button class="config-shortcut" data-target="mesas-config"><span>Mesas</span><small>Cadastro e QR Codes</small></button>
-        <button class="config-shortcut" data-target="clientes-config"><span>Clientes</span><small>Base e histórico</small></button>
-        <button class="config-shortcut" data-target="entregador-config"><span>Entregador</span><small>Telefone, PIN e permissões</small></button>
-        <button class="config-shortcut" data-target="garcom-config"><span>Garçom</span><small>Telefone, PIN e permissões</small></button>
-        <button class="config-shortcut" data-target="restaurante-config"><span>Restaurante</span><small>Identidade e funcionamento</small></button>
-        <button class="config-shortcut" data-target="perfil-config"><span>Perfil</span><small>Conta e segurança</small></button>
-        <button class="config-shortcut" data-target="horarios-config"><span>Horários</span><small>Funcionamento por dia</small></button>
-        <button class="config-shortcut" data-target="pagamentos-config"><span>Pagamentos</span><small>Formas aceitas</small></button>
-        <button class="config-shortcut" data-target="impressao-config"><span>Impressão</span><small>Impressora e automação</small></button>
-        <button class="config-shortcut" data-target="notificacoes-config"><span>Notificações</span><small>Som e navegador</small></button>
-        <button class="config-shortcut" data-target="caixa-config"><span>Caixa</span><small>Abertura e descontos</small></button>
-        <button class="config-shortcut" data-target="financeiro-config"><span>Relatório Financeiro</span><small>Receita e ticket</small></button>
-        <button class="config-shortcut" data-target="pedidos-config"><span>Relatório Pedidos</span><small>Volume e status</small></button>
-        <button class="config-shortcut" data-target="plano-config"><span>Plano</span><small>Assinatura da plataforma</small></button>
+      <div class="page-head"><div><h1>Central de configurações</h1><p>Ajuste a operação por grupos, sem misturar relatórios e áreas de gestão.</p></div></div>
+      <section class="config-groups" aria-label="Áreas de configuração">
+        <div class="config-group">
+          <div class="config-group-head"><h2>Estabelecimento</h2><p>Identidade pública, funcionamento e disponibilidade da loja.</p></div>
+          <div class="config-shortcuts">
+            <button class="config-shortcut" data-target="restaurante-config"><span>Dados do estabelecimento</span><small>Identidade, contato e status da loja</small></button>
+            <button class="config-shortcut" data-target="horarios-config"><span>Horários</span><small>Funcionamento por dia da semana</small></button>
+            <button class="config-shortcut" data-target="entrega-config"><span>Entrega</span><small>Taxas, regiões e prazos</small></button>
+          </div>
+        </div>
+        <div class="config-group">
+          <div class="config-group-head"><h2>Operação</h2><p>Regras usadas durante pedidos, recebimentos e atendimento.</p></div>
+          <div class="config-shortcuts">
+            <button class="config-shortcut" data-target="pagamentos-config"><span>Pagamentos</span><small>Formas aceitas no checkout</small></button>
+            <button class="config-shortcut" data-target="caixa-config"><span>Caixa e descontos</span><small>Abertura, serviço e permissões</small></button>
+            <button class="config-shortcut" data-target="impressao-config"><span>Impressão</span><small>Impressora e automação</small></button>
+            <button class="config-shortcut" data-target="notificacoes-config"><span>Notificações</span><small>Som e alertas do navegador</small></button>
+          </div>
+        </div>
+        <div class="config-group">
+          <div class="config-group-head"><h2>Equipe e acessos</h2><p>Cadastros, PINs e permissões operacionais.</p></div>
+          <div class="config-shortcuts">
+            <button class="config-shortcut" data-target="garcom-config"><span>Garçons</span><small>Telefone, PIN e permissões</small></button>
+            <button class="config-shortcut" data-target="entregador-config"><span>Entregadores</span><small>Telefone, PIN e permissões</small></button>
+          </div>
+        </div>
+        <div class="config-group">
+          <div class="config-group-head"><h2>Mesas</h2><p>Cadastro, identificação e acesso por QR Code.</p></div>
+          <div class="config-shortcuts">
+            <button class="config-shortcut" data-target="mesas-config"><span>Mesas e QR Codes</span><small>Cadastre e gere os acessos das mesas</small></button>
+          </div>
+        </div>
+        <div class="config-group">
+          <div class="config-group-head"><h2>Conta</h2><p>Segurança, perfil administrativo e assinatura.</p></div>
+          <div class="config-shortcuts">
+            <button class="config-shortcut" data-target="perfil-config"><span>Perfil e segurança</span><small>Conta administrativa e acesso</small></button>
+            <button class="config-shortcut" data-target="plano-config"><span>Plano e assinatura</span><small>Status da plataforma</small></button>
+          </div>
+        </div>
       </section>
     </div>
   </main>
 
-  <dialog class="config-modal" id="cardapio-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Cardápio</h2><p>Produtos, categorias, adicionais, preços e disponibilidade.</p></div><a class="btn btn-primary" href="app.html#cardapio">Gerenciar cardápio</a></div></section></dialog>
   <dialog class="config-modal" id="mesas-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Mesas</h2><p>Cadastre mesas, personalize identificações e gere QR Codes.</p></div><a class="btn btn-primary" href="mesas.html">Gerenciar mesas</a></div></section></dialog>
-  <dialog class="config-modal" id="clientes-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Clientes</h2><p>Cadastro, frequência e histórico de compras.</p></div><a class="btn btn-primary" href="app.html#clientes">Abrir clientes</a></div></section></dialog>
-
   <dialog class="config-modal config-modal-wide" id="entrega-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Entrega</h2><p>Defina valores, prazos e regiões atendidas.</p></div><button class="btn btn-primary" id="save-delivery">Salvar entrega</button></div><div class="form-grid"><div class="field"><label for="delivery-fee-config">Taxa padrão</label><div class="input-prefix"><span>R$</span><input id="delivery-fee-config" inputmode="decimal"></div></div><div class="field"><label for="minimum-order-config">Pedido mínimo</label><div class="input-prefix"><span>R$</span><input id="minimum-order-config" inputmode="decimal"></div></div><div class="field"><label for="delivery-min-config">Prazo mínimo</label><div class="input-suffix"><input id="delivery-min-config" type="number" min="0"><span>min</span></div></div><div class="field"><label for="delivery-max-config">Prazo máximo</label><div class="input-suffix"><input id="delivery-max-config" type="number" min="0"><span>min</span></div></div></div><div class="subsection-head"><div><h3>Taxas por região</h3><p>Use a taxa padrão quando nenhuma região específica for encontrada.</p></div></div><form id="region-form" class="form-grid compact-form"><div class="field"><label>Região ou bairro</label><input name="name" required></div><div class="field"><label>Taxa</label><input name="fee" inputmode="decimal" required></div><div class="field"><label>Prazo adicional</label><input name="extra" type="number" min="0" value="0"></div><div class="field team-submit"><button class="btn btn-secondary" type="submit">Adicionar região</button></div></form><div id="region-list" class="stack-list"></div></section></dialog>
-
   <dialog class="config-modal config-modal-wide" id="horarios-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Horários de funcionamento</h2><p>Configure abertura e fechamento para cada dia da semana.</p></div><button class="btn btn-primary" id="save-hours">Salvar horários</button></div><div id="hours-list" class="hours-list"></div></section></dialog>
   <dialog class="config-modal" id="pagamentos-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Formas de pagamento</h2><p>Escolha o que será exibido no checkout.</p></div><button class="btn btn-primary" id="save-payments">Salvar pagamentos</button></div><div class="option-grid" id="payment-options"></div></section></dialog>
   <dialog class="config-modal" id="impressao-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Impressão</h2><p>Prepare a operação para impressão manual ou automática.</p></div><button class="btn btn-primary" id="save-print">Salvar impressão</button></div><div class="form-grid"><div class="field full"><label for="printer-name">Nome da impressora</label><input id="printer-name" placeholder="Ex.: Cozinha térmica 80 mm"></div><label class="check-row full"><input id="auto-print" type="checkbox"> Imprimir automaticamente novos pedidos neste dispositivo</label></div></section></dialog>
   <dialog class="config-modal" id="notificacoes-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Notificações</h2><p>Controle alertas operacionais de novos pedidos.</p></div><button class="btn btn-primary" id="save-notifications">Salvar notificações</button></div><div class="option-grid"><label class="option-card"><input id="sound-orders" type="checkbox"><span><b>Som de novo pedido</b><small>Tocar alerta sonoro no painel</small></span></label><label class="option-card"><input id="browser-notifications" type="checkbox"><span><b>Notificação do navegador</b><small>Exibir alerta mesmo com outra aba aberta</small></span></label></div></section></dialog>
   <dialog class="config-modal" id="caixa-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Caixa, descontos e serviço</h2><p>Regras financeiras aplicadas à operação.</p></div><button class="btn btn-primary" id="save-cash">Salvar regras</button></div><div class="form-grid"><div class="field"><label for="service-fee">Taxa de serviço</label><div class="input-suffix"><input id="service-fee" inputmode="decimal"><span>%</span></div></div><div></div><label class="check-row"><input id="require-cash-open" type="checkbox"> Exigir abertura de caixa antes de vender</label><label class="check-row"><input id="manual-discount" type="checkbox"> Permitir desconto manual</label><label class="check-row"><input id="coupons-active" type="checkbox"> Ativar cupons e promoções</label></div></section></dialog>
-
   <dialog class="config-modal config-modal-wide" id="entregador-config"><section class="config-panel panel" data-team-role="entregador"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Entregadores</h2><p>Cadastre por nome, telefone e PIN.</p></div></div><form class="team-form form-grid"><div class="field"><label>Nome</label><input name="name" required></div><div class="field"><label>Telefone</label><input name="phone" inputmode="tel" required></div><div class="field"><label>PIN</label><input name="pin" inputmode="numeric" minlength="4" maxlength="6" required></div><div class="field team-submit"><button class="btn btn-primary" type="submit">Cadastrar entregador</button></div></form><div class="team-list"></div><label class="check-row"><input id="delivery-see-values" type="checkbox"> Entregador pode visualizar valores dos pedidos</label></section></dialog>
   <dialog class="config-modal config-modal-wide" id="garcom-config"><section class="config-panel panel" data-team-role="garcom"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Garçons</h2><p>Acesso simplificado por telefone e PIN.</p></div></div><form class="team-form form-grid"><div class="field"><label>Nome</label><input name="name" required></div><div class="field"><label>Telefone</label><input name="phone" inputmode="tel" required></div><div class="field"><label>PIN</label><input name="pin" inputmode="numeric" minlength="4" maxlength="6" required></div><div class="field team-submit"><button class="btn btn-primary" type="submit">Cadastrar garçom</button></div></form><div class="team-list"></div><div class="option-grid"><label class="check-row"><input id="waiter-cancel" type="checkbox"> Garçom pode cancelar pedidos</label><label class="check-row"><input id="waiter-discount" type="checkbox"> Garçom pode aplicar desconto</label></div></section></dialog>
-
-  <dialog class="config-modal config-modal-wide" id="restaurante-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Restaurante e identidade visual</h2><p>Dados públicos, logo, banner e disponibilidade.</p></div><button class="btn btn-primary" id="save-restaurant">Salvar restaurante</button></div><div class="form-grid"><div class="field full"><label for="restaurant-name">Nome do estabelecimento</label><input id="restaurant-name"></div><div class="field"><label for="restaurant-phone">WhatsApp</label><input id="restaurant-phone" inputmode="tel"></div><div class="field"><label for="restaurant-category">Categoria</label><select id="restaurant-category"><option>Hamburgueria</option><option>Pizzaria</option><option>Restaurante</option><option>Lanchonete</option><option>Outro</option></select></div><div class="field full"><label for="restaurant-description">Descrição</label><textarea id="restaurant-description" rows="4"></textarea></div><div class="field"><label for="restaurant-logo">URL do logo</label><input id="restaurant-logo" type="url"></div><div class="field"><label for="restaurant-banner">URL do banner</label><input id="restaurant-banner" type="url"></div><div class="store-operation-card full"><div><strong id="restaurant-status-title">Loja fechada</strong><small>Controle se novos pedidos podem ser recebidos.</small></div><label class="switch"><input id="restaurant-open" type="checkbox"><span></span></label></div></div></section></dialog>
+  <dialog class="config-modal config-modal-wide" id="restaurante-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Estabelecimento e identidade visual</h2><p>Dados públicos, logo, banner e disponibilidade.</p></div><button class="btn btn-primary" id="save-restaurant">Salvar estabelecimento</button></div><div class="form-grid"><div class="field full"><label for="restaurant-name">Nome do estabelecimento</label><input id="restaurant-name"></div><div class="field"><label for="restaurant-phone">WhatsApp</label><input id="restaurant-phone" inputmode="tel"></div><div class="field"><label for="restaurant-category">Categoria</label><select id="restaurant-category"><option>Hamburgueria</option><option>Pizzaria</option><option>Restaurante</option><option>Lanchonete</option><option>Outro</option></select></div><div class="field full"><label for="restaurant-description">Descrição</label><textarea id="restaurant-description" rows="4"></textarea></div><div class="field"><label for="restaurant-logo">URL do logo</label><input id="restaurant-logo" type="url"></div><div class="field"><label for="restaurant-banner">URL do banner</label><input id="restaurant-banner" type="url"></div><div class="store-operation-card full"><div><strong id="restaurant-status-title">Loja fechada</strong><small>Controle se novos pedidos podem ser recebidos.</small></div><label class="switch"><input id="restaurant-open" type="checkbox"><span></span></label></div></div></section></dialog>
   <dialog class="config-modal" id="perfil-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Perfil</h2><p>Conta administrativa e segurança.</p></div></div><div class="row-card"><span>E-mail</span><b id="profile-email">—</b></div><div class="inline-actions settings-actions"><button class="btn btn-secondary" id="logout-config">Sair da conta</button><button class="btn btn-danger" id="delete-account-config">Excluir conta</button></div></section></dialog>
-  <dialog class="config-modal" id="financeiro-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Relatório Financeiro</h2><p>Métricas consolidadas dos pedidos.</p></div></div><div class="metrics report-metrics"><div class="metric"><small>Receita total</small><strong id="report-revenue">R$ 0,00</strong></div><div class="metric"><small>Ticket médio</small><strong id="report-ticket">R$ 0,00</strong></div><div class="metric"><small>Recebido</small><strong id="report-received">R$ 0,00</strong></div><div class="metric"><small>Pendente</small><strong id="report-pending">R$ 0,00</strong></div></div></section></dialog>
-  <dialog class="config-modal" id="pedidos-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Relatório de Pedidos</h2><p>Distribuição por status e volume operacional.</p></div></div><div class="metrics report-metrics"><div class="metric"><small>Total</small><strong id="report-orders">0</strong></div><div class="metric"><small>Novos</small><strong id="report-new">0</strong></div><div class="metric"><small>Em preparo</small><strong id="report-preparing">0</strong></div><div class="metric"><small>Concluídos</small><strong id="report-done">0</strong></div></div></section></dialog>
   <dialog class="config-modal" id="plano-config"><section class="config-panel panel"><button class="config-modal-close" type="button" aria-label="Fechar">×</button><div class="panel-head"><div><h2>Plano e assinatura</h2><p>Status atual da assinatura do FS Delivery.</p></div></div><div class="form-grid"><div class="row-card"><span>Plano</span><b id="plan-name">—</b></div><div class="row-card"><span>Status</span><b id="plan-status">—</b></div></div></section></dialog>
 
   <nav class="mobile-nav config-mobile-nav" aria-label="Navegação principal">
     <button type="button" onclick="location.href='app.html'"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Início</span></button>
     <button type="button" onclick="location.href='app.html#pedidos'"><svg viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6"/></svg><span>Pedidos</span></button>
     <button type="button" onclick="location.href='caixa.html'"><svg viewBox="0 0 24 24"><path d="M3 7h18v12H3z"/><path d="M7 7V4h10v3M7 13h4"/></svg><span>Caixa</span></button>
-    <button type="button" onclick="location.href='garcom.html'"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8"/></svg><span>Cardápio</span></button>
     <button type="button" onclick="location.href='mesas-operacao.html'"><svg viewBox="0 0 24 24"><path d="M4 10h16M6 10v9M18 10v9M8 5h8v5H8z"/></svg><span>Mesas</span></button>
-    <button class="active" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1V21h-4v-.09a1.7 1.7 0 0 0-.4-1 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1-.4H3v-4h.09a1.7 1.7 0 0 0 1-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1V3h4v.09a1.7 1.7 0 0 0 .4 1 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.2.37.54.72 1 .9.3.12.64.18 1 .18H21v4h-.09a1.7 1.7 0 0 0-1 .4c-.22.14-.4.32-.51.52z"/></svg><span>Config</span></button>
+    <button class="active" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-5L9 6.1a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L5 11a7 7 0 0 0 0 2l-2.1 1.5 2 3.4 2.4-1a8 8 0 0 0 1.7 1l.5 3.1h5l.5-3.1a8 8 0 0 0 1.7-1l2.4 1 2-3.4L19 13a7 7 0 0 0 .1-1z"/></svg><span>Config</span></button>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>

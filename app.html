@@ -14,21 +14,37 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
+  <style>
+    .nav-section-label{display:block;padding:16px 14px 6px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .nav-section-label:first-child{padding-top:4px}
+    .app-body .mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+    .app-body .mobile-nav button{min-width:0}
+    .app-body .mobile-nav span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mobile-more-menu{position:fixed;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:120;display:grid;min-width:210px;padding:8px;border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:0 18px 48px rgba(0,0,0,.22)}
+    .mobile-more-menu[hidden]{display:none}
+    .mobile-more-menu button,.mobile-more-menu a{display:flex;align-items:center;width:100%;padding:12px;border:0;border-radius:10px;background:transparent;color:inherit;font:inherit;text-decoration:none;text-align:left}
+    .mobile-more-menu button:hover,.mobile-more-menu a:hover{background:var(--surface-2)}
+    #configuracoes{display:none!important}
+    @media(min-width:761px){.mobile-more-menu{display:none!important}}
+  </style>
 </head>
 <body class="app-body">
   <aside class="sidebar">
     <a class="brand" href="index.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
-    <nav class="nav">
+    <nav class="nav" aria-label="Navegação principal">
+      <span class="nav-section-label">Operação</span>
       <button class="active" data-page="inicio">Início</button>
       <button data-page="pedidos">Pedidos</button>
-      <button type="button" onclick="location.href='garcom.html'">Garçom</button>
       <button type="button" onclick="location.href='caixa.html'">Caixa</button>
+      <button type="button" onclick="location.href='mesas-operacao.html'">Mesas</button>
+      <span class="nav-section-label">Gestão</span>
       <button data-page="cardapio">Cardápio</button>
       <button data-page="clientes">Clientes</button>
-      <button data-page="financeiro">Financeiro</button>
-      <button data-page="configuracoes">Configurações</button>
+      <button data-page="financeiro">Relatórios</button>
+      <span class="nav-section-label">Administração</span>
+      <button type="button" onclick="location.href='configuracoes.html'">Configurações</button>
     </nav>
-    <div class="sidebar-footer"><small>Plano Pro • 7 dias grátis</small><a class="btn btn-secondary btn-block" href="loja.html" target="_blank">Abrir loja pública</a></div>
+    <div class="sidebar-footer"><a class="btn btn-secondary btn-block" href="loja.html" target="_blank" rel="noopener">Abrir loja pública</a></div>
   </aside>
 
   <main class="main">
@@ -47,13 +63,13 @@
             <div class="notification-list" id="notification-list"></div>
           </div>
         </div>
-        <button class="btn btn-secondary store-settings-button" id="store-settings-button" type="button" hidden aria-hidden="true" tabindex="-1">Estabelecimento</button>
+        <button class="btn btn-secondary store-settings-button" id="store-settings-button" type="button" onclick="location.href='configuracoes.html'">Estabelecimento</button>
       </div>
     </header>
 
     <div class="content">
       <section id="inicio" class="page active">
-        <div class="page-head"><div><h1>Olá</h1><p>Acompanhe a operação da sua loja hoje.</p></div><button class="btn btn-primary" data-go="pedidos">Ver pedidos</button></div>
+        <div class="page-head"><div><h1>Olá</h1><p>Acompanhe a operação da sua loja hoje.</p></div><button class="btn btn-primary" type="button" onclick="location.href='cardapio.html'">Novo pedido</button></div>
         <div class="metrics">
           <div class="metric"><small>Pedidos hoje</small><strong id="metric-orders">0</strong></div>
           <div class="metric"><small>Em preparo</small><strong id="summary-preparing">0</strong></div>
@@ -63,58 +79,21 @@
         <div class="panel">
           <div class="panel-head"><h2>Pedidos recentes</h2><button class="btn btn-secondary" data-go="pedidos">Ver todos</button></div>
           <div id="recent-orders" class="order-list"></div>
-          <div class="inline-actions"><button class="btn btn-primary" type="button" onclick="location.href='cardapio.html'">Criar pedido</button></div>
         </div>
         <div hidden aria-hidden="true"><span id="metric-customers">0</span><span id="summary-products">0</span></div>
       </section>
 
-      <section id="pedidos" class="page"><div class="page-head"><div><h1>Pedidos</h1><p>Organize a fila do recebimento até a entrega.</p></div><button class="btn btn-primary" id="new-order-btn">Novo pedido</button></div><div class="kanban"><div class="kanban-col"><h3>NOVOS</h3><div id="orders-novo"></div></div><div class="kanban-col"><h3>EM PREPARO</h3><div id="orders-preparo"></div></div><div class="kanban-col"><h3>PRONTOS</h3><div id="orders-pronto"></div></div><div class="kanban-col"><h3>ENTREGUES</h3><div id="orders-entregue"></div></div></div></section>
+      <section id="pedidos" class="page"><div class="page-head"><div><h1>Pedidos</h1><p>Priorize os pedidos que exigem ação agora.</p></div><button class="btn btn-primary" id="new-order-btn">Novo pedido</button></div><div class="kanban"><div class="kanban-col"><h3>NOVOS</h3><div id="orders-novo"></div></div><div class="kanban-col"><h3>EM PREPARO</h3><div id="orders-preparo"></div></div><div class="kanban-col"><h3>PRONTOS</h3><div id="orders-pronto"></div></div><div class="kanban-col"><h3>FINALIZADOS</h3><div id="orders-entregue"></div></div></div></section>
 
       <section id="cardapio" class="page"><div class="page-head"><div><h1>Cardápio</h1><p>Gerencie produtos, preços, categorias e disponibilidade.</p></div><button class="btn btn-primary" id="new-product-btn">Adicionar produto</button></div><div class="toolbar"><input class="search" id="product-search" placeholder="Buscar produto..."><select class="search" id="category-filter"><option value="">Todas as categorias</option><option>Lanches</option><option>Combos</option><option>Bebidas</option><option>Porções</option></select></div><div class="panel"><div id="product-list" class="product-list"></div></div></section>
 
       <section id="clientes" class="page"><div class="page-head"><div><h1>Clientes</h1><p>Histórico, frequência e valor gerado por cliente.</p></div></div><div class="panel"><table class="table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Pedidos</th><th>Total</th><th>Último pedido</th></tr></thead><tbody id="customer-table"></tbody></table></div></section>
 
-      <section id="financeiro" class="page"><div class="page-head"><div><h1>Financeiro</h1><p>Visão consolidada das vendas e recebimentos.</p></div><button class="btn btn-secondary">Exportar relatório</button></div><div class="metrics"><div class="metric"><small>Receita do mês</small><strong>R$ 0,00</strong></div><div class="metric"><small>Recebido</small><strong class="positive">R$ 0,00</strong></div><div class="metric"><small>Pendente</small><strong>R$ 0,00</strong></div><div class="metric"><small>Taxas de entrega</small><strong>R$ 0,00</strong></div></div><div class="grid-2"><div class="panel"><div class="panel-head"><h2>Movimentações</h2></div><div class="empty-state">As movimentações aparecerão após os primeiros pedidos.</div></div><div class="panel"><div class="panel-head"><h2>Formas de pagamento</h2></div><div class="empty-state">Sem dados suficientes.</div></div></div></section>
+      <section id="financeiro" class="page"><div class="page-head"><div><h1>Relatórios</h1><p>Indicadores consolidados de vendas, recebimentos e operação.</p></div></div><div class="metrics"><div class="metric"><small>Receita do mês</small><strong>R$ 0,00</strong></div><div class="metric"><small>Recebido</small><strong class="positive">R$ 0,00</strong></div><div class="metric"><small>Pendente</small><strong>R$ 0,00</strong></div><div class="metric"><small>Taxas de entrega</small><strong>R$ 0,00</strong></div></div><div class="grid-2"><div class="panel"><div class="panel-head"><h2>Movimentações</h2></div><div class="empty-state">As movimentações aparecerão após os primeiros pedidos.</div></div><div class="panel"><div class="panel-head"><h2>Formas de pagamento</h2></div><div class="empty-state">Sem dados suficientes.</div></div></div></section>
 
-      <section id="configuracoes" class="page">
-        <div class="page-head"><div><h1>Estabelecimento</h1><p>Configure a identidade, operação e disponibilidade da sua loja.</p></div><button class="btn btn-primary" id="save-settings">Salvar alterações</button></div>
-        <div class="settings-grid">
-          <div class="panel settings-panel">
-            <div class="panel-head"><div><h2>Dados da loja</h2><p>Informações exibidas no painel e no cardápio público.</p></div></div>
-            <div class="form-grid">
-              <div class="field full"><label for="store-name">Nome do estabelecimento</label><input id="store-name" autocomplete="organization"></div>
-              <div class="field"><label for="store-whatsapp">WhatsApp</label><input id="store-whatsapp" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
-              <div class="field"><label for="store-category">Categoria</label><select id="store-category"><option>Hamburgueria</option><option>Pizzaria</option><option>Restaurante</option><option>Lanchonete</option><option>Outro</option></select></div>
-              <div class="field full"><label for="store-description">Descrição</label><textarea id="store-description" rows="4" placeholder="Conte ao cliente o que sua loja oferece."></textarea></div>
-            </div>
-          </div>
-
-          <div class="panel settings-panel">
-            <div class="panel-head"><div><h2>Funcionamento</h2><p>Controle imediatamente se a loja pode receber pedidos.</p></div></div>
-            <div class="store-operation-card">
-              <div><strong id="store-operation-title">Loja fechada</strong><small id="store-operation-description">O cardápio permanece visível, mas novos pedidos ficam bloqueados.</small></div>
-              <label class="switch"><input id="store-open" type="checkbox"><span></span></label>
-            </div>
-            <div class="form-grid">
-              <div class="field"><label for="delivery-time-min">Prazo mínimo</label><div class="input-suffix"><input id="delivery-time-min" type="number" min="0" inputmode="numeric"><span>min</span></div></div>
-              <div class="field"><label for="delivery-time-max">Prazo máximo</label><div class="input-suffix"><input id="delivery-time-max" type="number" min="0" inputmode="numeric"><span>min</span></div></div>
-            </div>
-          </div>
-
-          <div class="panel settings-panel">
-            <div class="panel-head"><div><h2>Pedidos e entrega</h2><p>Valores aplicados automaticamente no fechamento do pedido.</p></div></div>
-            <div class="form-grid">
-              <div class="field"><label for="delivery-fee">Taxa padrão</label><div class="input-prefix"><span>R$</span><input id="delivery-fee" inputmode="decimal" placeholder="0,00"></div></div>
-              <div class="field"><label for="minimum-order">Pedido mínimo</label><div class="input-prefix"><span>R$</span><input id="minimum-order" inputmode="decimal" placeholder="0,00"></div></div>
-            </div>
-          </div>
-
-          <div class="panel settings-panel">
-            <div class="panel-head"><div><h2>Página pública</h2><p>Link exclusivo para compartilhar seu cardápio.</p></div></div>
-            <div class="field full"><label for="public-store-link">Link público</label><div class="copy-field"><input id="public-store-link" readonly><button class="btn btn-secondary" id="copy-store-link" type="button">Copiar</button></div></div>
-            <div class="inline-actions settings-actions"><a class="btn btn-secondary" id="open-public-store" href="loja.html" target="_blank" rel="noopener">Abrir página pública</a></div>
-          </div>
-        </div>
+      <section id="configuracoes" class="page" hidden aria-hidden="true">
+        <div class="page-head"><div><h1>Configurações</h1></div></div>
+        <div hidden><button id="save-settings"></button><input id="store-name"><input id="store-whatsapp"><select id="store-category"><option>Outro</option></select><textarea id="store-description"></textarea><strong id="store-operation-title"></strong><small id="store-operation-description"></small><input id="store-open" type="checkbox"><input id="delivery-time-min"><input id="delivery-time-max"><input id="delivery-fee"><input id="minimum-order"><input id="public-store-link"><button id="copy-store-link"></button><a id="open-public-store" href="loja.html"></a></div>
       </section>
     </div>
   </main>
@@ -122,10 +101,17 @@
   <nav class="mobile-nav" aria-label="Navegação principal">
     <button class="active" data-page="inicio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg><span>Início</span></button>
     <button data-page="pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg><span>Pedidos</span></button>
-    <button data-page="cardapio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg><span>Cardápio</span></button>
-    <button data-page="clientes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Clientes</span></button>
-    <button data-page="financeiro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg><span>Financeiro</span></button>
+    <button type="button" onclick="location.href='caixa.html'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12H3z"/><path d="M7 7V4h10v3"/></svg><span>Caixa</span></button>
+    <button type="button" onclick="location.href='mesas-operacao.html'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16M6 10v9M18 10v9M8 5h8v5H8z"/></svg><span>Mesas</span></button>
+    <button type="button" id="mobile-more-button" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span>Mais</span></button>
   </nav>
+  <div class="mobile-more-menu" id="mobile-more-menu" hidden>
+    <button type="button" data-mobile-page="cardapio">Cardápio</button>
+    <button type="button" data-mobile-page="clientes">Clientes</button>
+    <button type="button" data-mobile-page="financeiro">Relatórios</button>
+    <a href="configuracoes.html">Configurações</a>
+    <a href="loja.html" target="_blank" rel="noopener">Abrir loja pública</a>
+  </div>
 
   <div class="modal" id="product-modal"><div class="modal-card"><div class="modal-head"><h2>Novo produto</h2><button class="icon-btn" data-close>×</button></div><form id="product-form"><div class="form-grid"><div class="field full"><label>Nome</label><input name="name" required></div><div class="field"><label>Categoria</label><select name="category"><option>Lanches</option><option>Combos</option><option>Bebidas</option><option>Porções</option></select></div><div class="field"><label>Preço</label><input name="price" inputmode="decimal" placeholder="29,90" required></div><div class="field full"><label>Descrição</label><textarea name="description" rows="3"></textarea></div><div class="field full"><label>Adicionais separados por vírgula</label><input name="extras" placeholder="Bacon, Queijo, Molho especial"></div></div><div class="actions"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Salvar produto</button></div></form></div></div>
   <div class="modal" id="order-modal"><div class="modal-card"><div class="modal-head"><h2 id="order-modal-title">Pedido</h2><button class="icon-btn" data-close>×</button></div><div id="order-detail" class="print-area"></div><div class="actions"><button class="btn btn-secondary" id="print-order">Imprimir pedido</button><button class="btn btn-primary" id="advance-order">Avançar status</button></div></div></div>
@@ -138,10 +124,15 @@
     (()=>{
       const button=document.getElementById('store-status-button');
       const label=document.getElementById('store-status-label');
-      if(!button||!label)return;
-      const sync=()=>{label.textContent=button.classList.contains('pronto')?'Loja aberta':'Loja fechada'};
-      new MutationObserver(sync).observe(button,{attributes:true,attributeFilter:['class']});
-      sync();
+      if(button&&label){const sync=()=>{label.textContent=button.classList.contains('pronto')?'Loja aberta':'Loja fechada'};new MutationObserver(sync).observe(button,{attributes:true,attributeFilter:['class']});sync()}
+      const moreButton=document.getElementById('mobile-more-button');
+      const moreMenu=document.getElementById('mobile-more-menu');
+      if(moreButton&&moreMenu){
+        const close=()=>{moreMenu.hidden=true;moreButton.setAttribute('aria-expanded','false')};
+        moreButton.addEventListener('click',()=>{const open=moreMenu.hidden;moreMenu.hidden=!open;moreButton.setAttribute('aria-expanded',String(open))});
+        moreMenu.querySelectorAll('[data-mobile-page]').forEach(item=>item.addEventListener('click',()=>{document.querySelector(`[data-page="${item.dataset.mobilePage}"]`)?.click();close()}));
+        document.addEventListener('click',event=>{if(!moreMenu.hidden&&!moreMenu.contains(event.target)&&!moreButton.contains(event.target))close()});
+      }
     })();
   </script>
   <script src="js/notifications.js"></script>
