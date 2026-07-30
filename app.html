@@ -35,6 +35,7 @@
     <header class="topbar">
       <div><b id="page-title">Início</b></div>
       <div class="topbar-actions">
+        <span id="store-status-label" aria-live="polite">Loja fechada</span>
         <button class="status store-status-control" id="store-status-button" type="button" aria-label="Alterar status da loja"></button>
         <div class="notification-wrap">
           <button class="icon-btn notification-button" id="notification-button" type="button" title="Notificações" aria-label="Abrir notificações" aria-expanded="false">
@@ -46,15 +47,25 @@
             <div class="notification-list" id="notification-list"></div>
           </div>
         </div>
-        <button class="btn btn-secondary store-settings-button" id="store-settings-button" type="button">Estabelecimento</button>
+        <button class="btn btn-secondary store-settings-button" id="store-settings-button" type="button" hidden aria-hidden="true" tabindex="-1">Estabelecimento</button>
       </div>
     </header>
 
     <div class="content">
       <section id="inicio" class="page active">
-        <div class="page-head"><div><h1>Olá</h1><p>Acompanhe o movimento do seu delivery hoje.</p></div><button class="btn btn-primary" data-go="pedidos">Ver pedidos</button></div>
-        <div class="metrics"><div class="metric"><small>Pedidos hoje</small><strong id="metric-orders">0</strong></div><div class="metric"><small>Faturamento</small><strong id="metric-revenue">R$ 0,00</strong></div><div class="metric"><small>Ticket médio</small><strong id="metric-ticket">R$ 0,00</strong></div><div class="metric"><small>Clientes</small><strong id="metric-customers">0</strong></div></div>
-        <div class="grid-2"><div class="panel"><div class="panel-head"><h2>Pedidos recentes</h2><button class="btn btn-secondary" data-go="pedidos">Ver todos</button></div><div id="recent-orders" class="order-list"></div></div><div class="panel"><div class="panel-head"><h2>Resumo rápido</h2></div><div class="row-card"><span>Produtos ativos</span><b id="summary-products">0</b></div><div class="row-card"><span>Pedidos em preparo</span><b id="summary-preparing">0</b></div><div class="row-card"><span>Vendas no mês</span><b id="summary-month-sales">R$ 0,00</b></div></div></div>
+        <div class="page-head"><div><h1>Olá</h1><p>Acompanhe a operação da sua loja hoje.</p></div><button class="btn btn-primary" data-go="pedidos">Ver pedidos</button></div>
+        <div class="metrics">
+          <div class="metric"><small>Pedidos hoje</small><strong id="metric-orders">0</strong></div>
+          <div class="metric"><small>Em preparo</small><strong id="summary-preparing">0</strong></div>
+          <div class="metric"><small>Vendas hoje</small><strong id="metric-revenue">R$ 0,00</strong></div>
+          <div class="metric"><small>Ticket médio hoje</small><strong id="metric-ticket">R$ 0,00</strong></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Pedidos recentes</h2><button class="btn btn-secondary" data-go="pedidos">Ver todos</button></div>
+          <div id="recent-orders" class="order-list"></div>
+          <div class="inline-actions"><button class="btn btn-primary" type="button" onclick="location.href='cardapio.html'">Criar pedido</button></div>
+        </div>
+        <div hidden aria-hidden="true"><span id="metric-customers">0</span><span id="summary-products">0</span></div>
       </section>
 
       <section id="pedidos" class="page"><div class="page-head"><div><h1>Pedidos</h1><p>Organize a fila do recebimento até a entrega.</p></div><button class="btn btn-primary" id="new-order-btn">Novo pedido</button></div><div class="kanban"><div class="kanban-col"><h3>NOVOS</h3><div id="orders-novo"></div></div><div class="kanban-col"><h3>EM PREPARO</h3><div id="orders-preparo"></div></div><div class="kanban-col"><h3>PRONTOS</h3><div id="orders-pronto"></div></div><div class="kanban-col"><h3>ENTREGUES</h3><div id="orders-entregue"></div></div></div></section>
@@ -123,6 +134,16 @@
   <script src="js/supabase.js"></script>
   <script src="js/admin-access.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    (()=>{
+      const button=document.getElementById('store-status-button');
+      const label=document.getElementById('store-status-label');
+      if(!button||!label)return;
+      const sync=()=>{label.textContent=button.classList.contains('pronto')?'Loja aberta':'Loja fechada'};
+      new MutationObserver(sync).observe(button,{attributes:true,attributeFilter:['class']});
+      sync();
+    })();
+  </script>
   <script src="js/notifications.js"></script>
 </body>
 </html>
