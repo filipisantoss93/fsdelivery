@@ -32,8 +32,8 @@ async function init(){
   if(error||!est)return showError('Loja não encontrada');
   settings=est;
   if(tableToken){
-    const {data:mesa}=await db.from('mesas').select('id,nome,identificacao,ativo').eq('estabelecimento_id',est.id).eq('token_publico',tableToken).eq('ativo',true).maybeSingle();
-    if(!mesa)return showError('Mesa inválida ou indisponível');
+    const {data:mesa,error:tableError}=await db.from('mesas').select('id,numero,nome,codigo_qr,ativo').eq('estabelecimento_id',est.id).eq('codigo_qr',tableToken).eq('ativo',true).maybeSingle();
+    if(tableError||!mesa)return showError('Mesa inválida ou indisponível');
     table=mesa;
   }
   const {data}=await db.from('produtos').select('*,categorias(nome)').eq('estabelecimento_id',est.id).eq('ativo',true).order('created_at');
@@ -62,7 +62,7 @@ async function init(){
 function showError(message){document.getElementById('menu-content').innerHTML=`<div class="empty-state"><h3>${escapeHtml(message)}</h3></div>`}
 function configureContext(){
   const select=document.getElementById('delivery-type'),label=document.getElementById('order-context-label'),tableInfo=document.getElementById('table-context');
-  if(table){const name=table.nome||`Mesa ${table.identificacao}`;tableInfo.hidden=false;tableInfo.textContent=`Pedido local • ${name}`;label.textContent=name;select.innerHTML='<option value="mesa">Pedido nesta mesa</option>';document.getElementById('address-field').style.display='none';document.getElementById('customer-orders-link').style.display='none'}
+  if(table){const name=table.nome||`Mesa ${table.numero}`;tableInfo.hidden=false;tableInfo.textContent=`Pedido local • ${name}`;label.textContent=name;select.innerHTML='<option value="mesa">Pedido nesta mesa</option>';document.getElementById('address-field').style.display='none';document.getElementById('customer-orders-link').style.display='none'}
   else{label.textContent='Pedido on-line';select.innerHTML='<option value="delivery">Entrega</option><option value="pickup">Retirada no balcão</option><option value="local">Comer no local</option>'}
   updateCheckoutTotal();
 }
@@ -127,7 +127,7 @@ document.getElementById('checkout-form').onsubmit=async event=>{
     if(error)throw error;
     localStorage.setItem(orderKey(),JSON.stringify({codigo:data,slug,telefone:phone,total:orderTotal,created_at:new Date().toISOString()}));
     submitting=false;document.querySelectorAll('.modal').forEach(modal=>modal.classList.remove('open'));document.body.style.overflow='';
-    const context=table?` para ${table.nome||`Mesa ${table.identificacao}`}`:'';
+    const context=table?` para ${table.nome||`Mesa ${table.numero}`}`:'';
     document.getElementById('success-message').textContent=`Pedido #${data} enviado${context}. Total: ${money(orderTotal)}. Status: aguardando confirmação do restaurante.`;
     document.getElementById('track-order-link').href=`cliente.html?loja=${encodeURIComponent(slug)}&telefone=${encodeURIComponent(phone)}&pedido=${encodeURIComponent(data)}`;
     cart=[];saveCart();renderCart();event.currentTarget.reset();openModal('success-modal');

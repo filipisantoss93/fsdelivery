@@ -1,10 +1,11 @@
 const db=window.supabaseClient;
 let store=null;
 let tables=[];
+const qrInstances=new Map();
 
 const bellSvg=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h14M7 16c0-5 2-8 5-8s5 3 5 8M10 7h4M12 4v3M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const escapeHtml=value=>String(value??'').replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
-const publicTableUrl=table=>`${location.origin}/mesa.html?loja=${encodeURIComponent(store.slug)}&mesa=${table.numero}&token=${encodeURIComponent(table.codigo_qr)}`;
+const publicTableUrl=table=>`${location.origin}/mesa.html?loja=${encodeURIComponent(store.slug)}&mesa=${encodeURIComponent(table.numero)}&token=${encodeURIComponent(table.codigo_qr)}`;
 
 async function init(){
   const {data:{session}}=await db.auth.getSession();
@@ -25,6 +26,7 @@ async function loadTables(){
 
 function render(){
   const grid=document.getElementById('tables-grid');
+  qrInstances.clear();
   if(!tables.length){grid.innerHTML='<div class="empty-state qr-empty">Nenhuma mesa cadastrada.</div>';return}
   grid.innerHTML=tables.map(table=>`
     <article class="panel table-admin-card" data-table-card="${table.id}">
@@ -35,7 +37,7 @@ function render(){
       <div class="qr-plate" id="plate-${table.id}">
         <div class="qr-table-title">MESA <span style="color:var(--primary)">${String(table.numero).padStart(2,'0')}</span></div>
         <div class="qr-instruction">ESCANEIE PARA PEDIR</div>
-        <div class="qr-box"><canvas id="qr-${table.id}"></canvas><div class="qr-bell">${bellSvg}</div></div>
+        <div class="qr-box"><div class="qr-code" id="qr-${table.id}"></div><div class="qr-bell">${bellSvg}</div></div>
         <div class="qr-brand"><span>FS</span> DELIVERY</div>
         <div class="qr-tagline">RÁPIDO, FÁCIL E PRÁTICO</div>
         <div class="qr-wave"></div>
@@ -49,7 +51,19 @@ function render(){
       </div>
     </article>`).join('');
 
-  tables.forEach(table=>QRCode.toCanvas(document.getElementById(`qr-${table.id}`),publicTableUrl(table),{errorCorrectionLevel:'H',margin:2,width:720,color:{dark:'#111111',light:'#ffffff'}},error=>{if(error)console.error(error)}));
+  if(typeof QRCode!=='function'){
+    document.querySelectorAll('.qr-code').forEach(element=>element.innerHTML='<div class="qr-error">Falha ao carregar o gerador de QR Code. Atualize a página.</div>');
+  }else{
+    tables.forEach(table=>{
+      try{
+        const instance=new QRCode(document.getElementById(`qr-${table.id}`),{text:publicTableUrl(table),width:720,height:720,colorDark:'#111111',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+        qrInstances.set(String(table.id),instance);
+      }catch(error){
+        console.error('Falha ao gerar QR Code:',error);
+        document.getElementById(`qr-${table.id}`).innerHTML='<div class="qr-error">Não foi possível gerar este QR Code.</div>';
+      }
+    });
+  }
   bindCardActions();
 }
 
@@ -73,7 +87,7 @@ function bindCardActions(){
     if(error){input.checked=!input.checked;alert(error.message)}
   });
   document.querySelectorAll('[data-delete]').forEach(button=>button.onclick=async()=>{
-    const table=tables.find(item=>item.id===button.dataset.delete);
+    const table=tables.find(item=>String(item.id)===button.dataset.delete);
     if(!confirm(`Excluir ${table.nome||`Mesa ${table.numero}`}?`))return;
     const {error}=await db.from('mesas').delete().eq('id',table.id);
     if(error)return alert(error.message);
@@ -90,9 +104,11 @@ function bindCardActions(){
   document.querySelectorAll('[data-print]').forEach(button=>button.onclick=()=>printOne(button.dataset.print));
 }
 
+function qrCanvas(id){return document.querySelector(`#qr-${CSS.escape(String(id))} canvas`)}
 function downloadPng(id){
-  const table=tables.find(item=>item.id===id);
-  const source=document.getElementById(`qr-${id}`);
+  const table=tables.find(item=>String(item.id)===String(id));
+  const source=qrCanvas(id);
+  if(!table||!source)return alert('O QR Code ainda não foi gerado. Atualize a página e tente novamente.');
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.strokeStyle='#ff7a1a';ctx.lineWidth=12;ctx.strokeRect(30,30,1020,1290);
@@ -106,10 +122,15 @@ function downloadPng(id){
   const link=document.createElement('a');link.download=`fs-delivery-mesa-${String(table.numero).padStart(2,'0')}.png`;link.href=canvas.toDataURL('image/png');link.click();
 }
 
-async function downloadSvg(id){
-  const table=tables.find(item=>item.id===id);
-  const qr=await QRCode.toString(publicTableUrl(table),{type:'svg',errorCorrectionLevel:'H',margin:2,color:{dark:'#111111',light:'#ffffff'}});
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350"><rect width="1080" height="1350" fill="#fff"/><rect x="30" y="30" width="1020" height="1290" fill="none" stroke="#ff7a1a" stroke-width="12"/><text x="540" y="140" text-anchor="middle" font-family="Inter,Arial" font-size="88" font-weight="900" fill="#17110d">MESA <tspan fill="#ff7a1a">${String(table.numero).padStart(2,'0')}</tspan></text><text x="540" y="225" text-anchor="middle" font-family="Inter,Arial" font-size="40" font-weight="900" fill="#17110d">ESCANEIE PARA PEDIR</text><g transform="translate(135 270) scale(.81)">${qr.replace(/^<svg[^>]*>|<\/svg>$/g,'')}</g><text x="540" y="1170" text-anchor="middle" font-family="Inter,Arial" font-size="68" font-weight="900" font-style="italic"><tspan fill="#ff7a1a">FS</tspan><tspan fill="#17110d"> DELIVERY</tspan></text><text x="540" y="1225" text-anchor="middle" font-family="Inter,Arial" font-size="24" fill="#4d4036">RÁPIDO, FÁCIL E PRÁTICO</text><rect x="30" y="1270" width="1020" height="50" fill="#ff7a1a"/></svg>`;
+function downloadSvg(id){
+  const table=tables.find(item=>String(item.id)===String(id));
+  const instance=qrInstances.get(String(id));
+  const modules=instance?._oQRCode?.modules;
+  if(!table||!modules?.length)return alert('O QR Code ainda não foi gerado. Atualize a página e tente novamente.');
+  const count=modules.length,qrSize=810,cell=qrSize/count;
+  let paths='';
+  modules.forEach((row,y)=>row.forEach((dark,x)=>{if(dark)paths+=`<rect x="${(135+x*cell).toFixed(3)}" y="${(270+y*cell).toFixed(3)}" width="${cell.toFixed(3)}" height="${cell.toFixed(3)}"/>`}));
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350"><rect width="1080" height="1350" fill="#fff"/><rect x="30" y="30" width="1020" height="1290" fill="none" stroke="#ff7a1a" stroke-width="12"/><text x="540" y="140" text-anchor="middle" font-family="Inter,Arial" font-size="88" font-weight="900" fill="#17110d">MESA <tspan fill="#ff7a1a">${String(table.numero).padStart(2,'0')}</tspan></text><text x="540" y="225" text-anchor="middle" font-family="Inter,Arial" font-size="40" font-weight="900" fill="#17110d">ESCANEIE PARA PEDIR</text><g fill="#111">${paths}</g><text x="540" y="1170" text-anchor="middle" font-family="Inter,Arial" font-size="68" font-weight="900" font-style="italic"><tspan fill="#ff7a1a">FS</tspan><tspan fill="#17110d"> DELIVERY</tspan></text><text x="540" y="1225" text-anchor="middle" font-family="Inter,Arial" font-size="24" fill="#4d4036">RÁPIDO, FÁCIL E PRÁTICO</text><rect x="30" y="1270" width="1020" height="50" fill="#ff7a1a"/></svg>`;
   const blob=new Blob([svg],{type:'image/svg+xml'});const link=document.createElement('a');link.download=`fs-delivery-mesa-${String(table.numero).padStart(2,'0')}.svg`;link.href=URL.createObjectURL(blob);link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
 }
 
