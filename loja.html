@@ -14,6 +14,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .store-summary-compact{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:12px;border:1px solid var(--store-line);border-radius:16px;background:var(--store-surface);overflow-x:auto}
+    .store-summary-chip{display:flex;align-items:center;gap:8px;min-height:42px;padding:9px 12px;border:1px solid var(--store-line);border-radius:12px;background:var(--store-bg);white-space:nowrap}
+    .store-summary-chip span{font-size:12px;color:var(--store-muted)}
+    .store-summary-chip b{font-size:13px;color:var(--store-text)}
+    .store-whatsapp{display:grid;place-items:center;width:42px;height:42px;min-width:42px;margin-left:auto;border:0;border-radius:12px;background:#25d366;color:#fff;cursor:pointer}
+    .store-whatsapp svg{width:22px;height:22px;fill:currentColor}
+    .store-summary-hidden{display:none!important}
+    .category-tabs{top:0;padding:8px 0 12px}
+    .menu-section h2{margin:22px 0 14px}
+    .menu-product-image-placeholder{width:86px;height:86px;border-radius:12px;background:linear-gradient(135deg,#f1e4d7,#e5d0bc);display:grid;place-items:center;color:#9a7c63;font-size:11px;text-align:center;padding:8px}
+    @media(max-width:600px){.store-main{padding-top:16px}.store-summary-compact{margin-bottom:12px;padding:9px}.store-summary-chip{min-height:38px;padding:7px 10px}.store-summary-chip span{display:none}.store-summary-chip b{font-size:12px}.store-whatsapp{width:38px;height:38px;min-width:38px}.category-tabs{position:sticky;top:0;z-index:12;margin:0 -16px;padding:10px 16px 12px;background:var(--store-bg)}.menu-section h2{font-size:25px;margin-top:20px}.menu-product-image-placeholder{width:76px;height:76px}}
+  </style>
 </head>
 <body class="store-body">
   <header class="store-header">
@@ -39,13 +52,14 @@
   <main class="store-main container">
     <div class="feedback" id="store-feedback" role="status" aria-live="polite" hidden></div>
 
-    <section class="panel light-panel" id="store-summary">
-      <div class="grid-2">
-        <div class="row-card"><span>Prazo estimado</span><b id="store-delivery-time">—</b></div>
-        <div class="row-card"><span>Pedido mínimo</span><b id="store-minimum-order">—</b></div>
-        <div class="row-card"><span>Taxa de entrega</span><b id="store-delivery-fee">—</b></div>
-        <div class="row-card"><span>Atendimento</span><b id="store-contact">—</b></div>
-      </div>
+    <section class="store-summary-compact" id="store-summary" aria-label="Informações da loja">
+      <div class="store-summary-chip"><span>Prazo</span><b id="store-delivery-time">—</b></div>
+      <div class="store-summary-chip"><span>Pedido mínimo</span><b id="store-minimum-order">—</b></div>
+      <a class="store-whatsapp" id="store-whatsapp" href="#" target="_blank" rel="noopener" aria-label="Conversar com o estabelecimento pelo WhatsApp" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.84 9.84 0 0 0-8.47 14.82L2 22l5.32-1.52A9.93 9.93 0 1 0 12.04 2Zm5.78 14.02c-.24.68-1.4 1.3-1.95 1.38-.5.08-1.13.12-1.82-.1-.42-.14-.96-.31-1.65-.61-2.9-1.25-4.79-4.18-4.94-4.37-.14-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.27-.29.59-.36.79-.36h.56c.18 0 .42-.07.65.5.24.58.81 1.99.88 2.13.07.14.12.31.02.5-.1.2-.14.32-.29.49-.14.17-.3.38-.43.51-.14.14-.29.29-.12.58.17.29.75 1.24 1.61 2 .99.88 1.82 1.15 2.11 1.29.29.14.46.12.63-.07.17-.2.72-.84.92-1.13.19-.29.38-.24.65-.14.26.1 1.68.79 1.97.94.29.14.48.21.55.33.07.12.07.68-.17 1.36Z"/></svg>
+      </a>
+      <span class="store-summary-hidden" id="store-delivery-fee">—</span>
+      <span class="store-summary-hidden" id="store-contact">—</span>
       <div class="feedback error" id="closed-notice" hidden>A loja está fechada. O cardápio continua disponível para consulta.</div>
     </section>
 
@@ -127,5 +141,30 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/loja-operacional.js"></script>
+  <script>
+    (()=>{
+      let activePublicCategory='';
+      const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+      const originalDecorateStore=decorateStore;
+      decorateStore=function(){
+        originalDecorateStore();
+        const phone=String(settings?.telefone||'').replace(/\D/g,'');
+        const button=document.getElementById('store-whatsapp');
+        if(phone&&button){button.href=`https://wa.me/${phone.startsWith('55')?phone:`55${phone}`}`;button.hidden=false}
+      };
+      renderMenu=function(){
+        const query=(document.getElementById('menu-search').value||'').trim().toLowerCase();
+        const categories=[...new Set(products.map(product=>product.category))];
+        if(!activePublicCategory||!categories.includes(activePublicCategory))activePublicCategory=categories.find(category=>normalize(category)==='lanches')||categories[0]||'';
+        document.getElementById('category-tabs').innerHTML=categories.map(category=>`<button class="${category===activePublicCategory?'active':''}" data-public-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`).join('');
+        const visible=query?products.filter(product=>`${product.name} ${product.description} ${product.category}`.toLowerCase().includes(query)):products.filter(product=>product.category===activePublicCategory);
+        const title=query?'Resultados':activePublicCategory;
+        const cards=visible.map(product=>`<article class="menu-product" data-product="${escapeHtml(product.id)}" tabindex="0" role="button"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.description||'Sem descrição.')}</p><strong>${money(product.price)}</strong></div>${product.image?`<img src="${escapeHtml(product.image)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'menu-product-image-placeholder',textContent:'Sem foto'}))">`:`<div class="menu-product-image-placeholder">Sem foto</div>`}</article>`).join('');
+        document.getElementById('menu-content').innerHTML=visible.length?`<section class="menu-section"><h2>${escapeHtml(title)}</h2><div class="menu-products">${cards}</div></section>`:'<div class="empty-state">Nenhum produto encontrado.</div>';
+        document.querySelectorAll('[data-product]').forEach(card=>{card.onclick=()=>showProduct(card.dataset.product);card.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();showProduct(card.dataset.product)}}});
+        document.querySelectorAll('[data-public-category]').forEach(button=>button.onclick=()=>{activePublicCategory=button.dataset.publicCategory;document.getElementById('menu-search').value='';renderMenu();window.scrollTo({top:document.getElementById('category-tabs').offsetTop-12,behavior:'smooth'})});
+      };
+    })();
+  </script>
 </body>
 </html>
