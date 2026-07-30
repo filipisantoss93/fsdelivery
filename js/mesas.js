@@ -6,6 +6,7 @@ const qrInstances=new Map();
 const bellSvg=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h14M7 16c0-5 2-8 5-8s5 3 5 8M10 7h4M12 4v3M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const escapeHtml=value=>String(value??'').replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
 const publicTableUrl=table=>`${location.origin}/mesa.html?loja=${encodeURIComponent(store.slug)}&mesa=${encodeURIComponent(table.numero)}&token=${encodeURIComponent(table.codigo_qr)}`;
+const nextAvailableNumber=()=>{let number=1;const used=new Set(tables.map(table=>Number(table.numero)));while(used.has(number))number++;return number};
 
 async function init(){
   const {data:{session}}=await db.auth.getSession();
@@ -22,6 +23,12 @@ async function loadTables(){
   if(error){document.getElementById('tables-grid').innerHTML=`<div class="empty-state qr-empty">${escapeHtml(error.message)}</div>`;return}
   tables=data||[];
   render();
+  suggestNextNumber();
+}
+
+function suggestNextNumber(){
+  const input=document.getElementById('table-number');
+  if(input&&!input.value)input.value=nextAvailableNumber();
 }
 
 function render(){
@@ -29,7 +36,7 @@ function render(){
   qrInstances.clear();
   if(!tables.length){grid.innerHTML='<div class="empty-state qr-empty">Nenhuma mesa cadastrada.</div>';return}
   grid.innerHTML=tables.map(table=>`
-    <article class="panel table-admin-card" data-table-card="${table.id}">
+    <article class="panel table-admin-card" data-table-card="${table.id}" data-table-number="${table.numero}">
       <div class="table-admin-head">
         <div><h2>${escapeHtml(table.nome||`Mesa ${table.numero}`)}</h2><small>Mesa ${String(table.numero).padStart(2,'0')}</small></div>
         <label class="switch" title="Ativar ou desativar mesa"><input type="checkbox" data-toggle="${table.id}" ${table.ativo?'checked':''}><span></span></label>
@@ -72,12 +79,30 @@ function bindActions(){
     event.preventDefault();
     const number=Number(document.getElementById('table-number').value);
     const name=document.getElementById('table-name').value.trim()||`Mesa ${number}`;
+    const existing=tables.find(table=>Number(table.numero)===number);
+    if(existing){
+      alert(`A Mesa ${String(number).padStart(2,'0')} já está cadastrada. Use outro número.`);
+      document.querySelector(`[data-table-number="${number}"]`)?.scrollIntoView({behavior:'smooth',block:'center'});
+      document.getElementById('table-number').focus();
+      return;
+    }
     const {error}=await db.from('mesas').insert({estabelecimento_id:store.id,numero:number,nome:name,codigo_qr:crypto.randomUUID().replaceAll('-',''),ativo:true});
-    if(error)return alert(error.message);
+    if(error){
+      if(error.code==='23505'||String(error.message).includes('mesas_estabelecimento_id_numero_key')){
+        alert(`A Mesa ${String(number).padStart(2,'0')} já está cadastrada. Use outro número.`);
+        await loadTables();
+        document.getElementById('table-number').focus();
+        return;
+      }
+      alert('Não foi possível criar a mesa. Tente novamente.');
+      console.error('Falha ao criar mesa:',error);
+      return;
+    }
     event.currentTarget.reset();
     await loadTables();
+    document.getElementById('table-name').focus();
   };
-  document.getElementById('new-table-focus').onclick=()=>document.getElementById('table-number').focus();
+  document.getElementById('new-table-focus').onclick=()=>{document.getElementById('table-number').value=nextAvailableNumber();document.getElementById('table-name').focus()};
   document.getElementById('print-all').onclick=()=>window.print();
 }
 
