@@ -20,7 +20,7 @@
           <button class="icon-btn" data-cart-modal-close type="button" aria-label="Fechar">×</button>
         </div>
         <div id="cart-summary-items"></div>
-        <div class="row-card"><span>Subtotal</span><b id="cart-summary-subtotal">R$ 0,00</b></div>
+        <div class="row-card" id="cart-summary-subtotal-row"><span>Subtotal</span><b id="cart-summary-subtotal">R$ 0,00</b></div>
         <div class="row-card" id="cart-summary-fee-row"><span>Taxa de entrega</span><b id="cart-summary-fee">R$ 0,00</b></div>
         <div class="cart-total"><span>Total</span><span id="cart-summary-total">R$ 0,00</span></div>
         <small id="cart-summary-minimum"></small>
@@ -34,6 +34,7 @@
     byId('cart-summary-checkout').onclick = () => {
       closeCartModal();
       checkout();
+      requestAnimationFrame(applyCheckoutContext);
     };
   }
 
@@ -47,9 +48,12 @@
     return byId('delivery-type')?.value || 'delivery';
   }
 
-  function setFieldVisible(element, visible, display = 'grid') {
+  function setVisible(element, visible, display = 'grid') {
     if (!element) return;
-    element.style.display = visible ? display : 'none';
+    element.hidden = !visible;
+    if (visible) element.style.removeProperty('display');
+    else element.style.setProperty('display', 'none', 'important');
+    if (visible && display !== 'grid') element.style.display = display;
   }
 
   function applyCheckoutContext() {
@@ -57,30 +61,43 @@
     const isTable = orderType === 'mesa';
     const isDelivery = orderType === 'delivery';
     const isPickup = orderType === 'pickup';
-
-    const deliveryField = byId('delivery-type')?.closest('.field');
-    const paymentField = byId('payment-method')?.closest('.field');
-    const notesField = byId('order-notes')?.closest('.field');
     const paymentMethod = byId('payment-method');
 
-    setFieldVisible(deliveryField, !isTable);
-    setFieldVisible(byId('address-field'), isDelivery);
-    setFieldVisible(byId('region-field'), isDelivery);
-    setFieldVisible(paymentField, !isTable);
-    setFieldVisible(notesField, !isTable);
-    setFieldVisible(byId('change-field'), !isTable && paymentMethod?.value === 'Dinheiro');
+    const deliveryField = byId('delivery-type')?.closest('.field');
+    const paymentField = paymentMethod?.closest('.field');
+    const notesField = byId('order-notes')?.closest('.field');
+    const checkoutSubtotalRow = byId('checkout-subtotal')?.closest('.row-card');
+    const checkoutFeeRow = byId('checkout-delivery-fee')?.closest('.row-card');
+    const cartSubtotalRow = byId('cart-subtotal')?.closest('.row-card');
+    const cartFeeRow = byId('cart-delivery-fee')?.closest('.row-card');
 
-    [
-      byId('cart-delivery-fee')?.closest('.row-card'),
-      byId('checkout-delivery-fee')?.closest('.row-card'),
-      byId('cart-summary-fee-row')
-    ].forEach(row => setFieldVisible(row, isDelivery, 'flex'));
+    setVisible(deliveryField, !isTable);
+    setVisible(byId('address-field'), isDelivery);
+    setVisible(byId('region-field'), isDelivery);
+    setVisible(paymentField, !isTable);
+    setVisible(notesField, !isTable);
+    setVisible(byId('change-field'), !isTable && paymentMethod?.value === 'Dinheiro');
 
+    setVisible(cartFeeRow, isDelivery, 'flex');
+    setVisible(checkoutFeeRow, isDelivery, 'flex');
+    setVisible(byId('cart-summary-fee-row'), isDelivery, 'flex');
+
+    // Em pedidos na mesa, subtotal e total são iguais. Exibe somente o total.
+    setVisible(cartSubtotalRow, !isTable, 'flex');
+    setVisible(checkoutSubtotalRow, !isTable, 'flex');
+    setVisible(byId('cart-summary-subtotal-row'), !isTable, 'flex');
+
+    const title = byId('checkout-title');
     const feedback = byId('checkout-modal')?.querySelector('.feedback');
-    if (feedback && isPickup) {
-      feedback.textContent = 'Informe seus dados e escolha a forma de pagamento. O pedido ficará disponível para retirada no estabelecimento.';
-    } else if (feedback && isTable) {
-      feedback.textContent = 'Informe apenas seu nome e WhatsApp para identificarmos o pedido desta mesa.';
+    if (isTable) {
+      if (title) title.textContent = 'Identifique seu pedido';
+      if (feedback) feedback.textContent = 'Informe somente seu nome e WhatsApp para enviar o pedido à mesa.';
+    } else if (isPickup) {
+      if (title) title.textContent = 'Finalizar pedido';
+      if (feedback) feedback.textContent = 'Informe seus dados e escolha a forma de pagamento. O pedido ficará disponível para retirada no estabelecimento.';
+    } else {
+      if (title) title.textContent = 'Finalizar pedido';
+      if (feedback) feedback.textContent = 'Confira os dados antes de enviar. O pedido ficará aguardando confirmação do estabelecimento.';
     }
   }
 
