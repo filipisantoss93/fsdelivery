@@ -28,6 +28,18 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 }
 
+function normalizeProduct(product, category) {
+  return {
+    id: product.id,
+    name: product.nome,
+    description: product.descricao || '',
+    price: Number(product.preco),
+    category: category || product.categoria || product.categorias?.nome || 'Sem categoria',
+    imageUrl: product.imagem_url || product.imagem || product.foto_url || '',
+    featured: Boolean(product.destaque)
+  };
+}
+
 function readTeamSession() {
   try {
     const value = JSON.parse(sessionStorage.getItem(TEAM_SESSION_KEY) || 'null');
@@ -51,6 +63,20 @@ async function resolveAccess() {
   return true;
 }
 
+async function enrichProductImages(storeId) {
+  try {
+    const { data, error } = await db.from('produtos').select('id,imagem_url,destaque').eq('estabelecimento_id', storeId);
+    if (error) return;
+    const visualById = new Map((data || []).map(item => [String(item.id), item]));
+    products = products.map(product => {
+      const visual = visualById.get(String(product.id));
+      return visual ? { ...product, imageUrl: visual.imagem_url || '', featured: Boolean(visual.destaque) } : product;
+    });
+  } catch (error) {
+    console.info('Fotos de produtos ainda não configuradas.', error);
+  }
+}
+
 async function loadOwnerData() {
   const { data: store, error: storeError } = await db.from('estabelecimentos').select('*').eq('usuario_id', ownerSession.user.id).single();
   if (storeError || !store) throw storeError || new Error('Estabelecimento não encontrado.');
@@ -63,7 +89,8 @@ async function loadOwnerData() {
   if (productResult.error) throw productResult.error;
   if (tableResult.error) throw tableResult.error;
   if (orderResult.error) throw orderResult.error;
-  products = (productResult.data || []).map(product => ({ id: product.id, name: product.nome, description: product.descricao || '', price: Number(product.preco), category: product.categorias?.nome || 'Sem categoria' }));
+  products = (productResult.data || []).map(product => normalizeProduct(product));
+  await enrichProductImages(store.id);
   tables = (tableResult.data || []).map(table => ({ id: table.id, numero: table.numero || table.identificacao, nome: table.nome, token: table.codigo_qr || table.token_publico }));
   orders = orderResult.data || [];
 }
@@ -74,7 +101,7 @@ async function loadTeamData() {
   const { data, error } = await db.rpc('carregar_operacao_garcom', { p_telefone: teamSession.phone, p_pin: teamSession.pin });
   if (error) throw error;
   establishment = data.estabelecimento;
-  products = (data.produtos || []).map(product => ({ id: product.id, name: product.nome, description: product.descricao || '', price: Number(product.preco), category: product.categoria || 'Sem categoria' }));
+  products = (data.produtos || []).map(product => normalizeProduct(product, product.categoria));
   tables = (data.mesas || []).map(table => ({ id: table.id, numero: table.numero, nome: table.nome, token: table.token }));
   orders = (data.pedidos || []).map(order => ({ id: order.id, codigo: order.codigo, status: order.status, tipo: order.tipo, total: order.total, created_at: order.created_at, mesa_id: order.mesa_id, clientes: { nome: order.cliente_nome, telefone: order.cliente_telefone }, mesas: { nome: order.mesa_nome, numero: order.mesa_numero }, itens_pedido: order.itens || [] }));
 }
@@ -140,7 +167,7 @@ function bindActions() {
   document.querySelectorAll('[data-close]').forEach(button => button.onclick = closeModal);
   el('waiter-product-modal').onclick = event => { if (event.target === el('waiter-product-modal')) closeModal(); };
   el('waiter-search').oninput = renderProducts;
-  el('waiter-category').onchange = renderProducts;
+  el('waiter-category').onchange = () => { renderCategoryTabs(); renderProducts(); };
   el('waiter-type').onchange = updateDestination;
   el('waiter-table').onchange = updateMenuContext;
   el('waiter-minus').onclick = () => { qty = Math.max(1, qty - 1); el('waiter-qty').textContent = qty; updateAddButton(); };
@@ -149,6 +176,7 @@ function bindActions() {
   el('waiter-submit').onclick = submitOrder;
   el('waiter-refresh').onclick = refreshOperation;
   el('waiter-back-tables').onclick = () => openPage('mesas');
+  el('waiter-cart-summary').onclick = () => el('waiter-order-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function openPage(page) {
@@ -193,13 +221,33 @@ function updateMenuContext() {
 function renderCategories() {
   const categories = [...new Set(products.map(product => product.category))];
   el('waiter-category').innerHTML = '<option value="">Todas as categorias</option>' + categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('');
+  renderCategoryTabs();
+}
+
+function renderCategoryTabs() {
+  const container = el('waiter-category-tabs');
+  if (!container) return;
+  const categories = [...new Set(products.map(product => product.category))];
+  const active = el('waiter-category').value;
+  container.innerHTML = [{ value: '', label: 'Todos' }, ...categories.map(category => ({ value: category, label: category }))]
+    .map(item => `<button type="button" class="${item.value === active ? 'active' : ''}" data-waiter-category="${escapeHtml(item.value)}">${escapeHtml(item.label)}</button>`).join('');
+  container.querySelectorAll('[data-waiter-category]').forEach(button => button.onclick = () => {
+    el('waiter-category').value = button.dataset.waiterCategory;
+    renderCategoryTabs();
+    renderProducts();
+  });
+}
+
+function productImage(product) {
+  if (!product.imageUrl) return '';
+  return `<img src="${escapeHtml(product.imageUrl)}" alt="${escapeHtml(product.name)}" loading="lazy" onerror="this.remove()">`;
 }
 
 function renderProducts() {
   const term = el('waiter-search').value.trim().toLowerCase();
   const category = el('waiter-category').value;
   const list = products.filter(product => (!category || product.category === category) && (!term || `${product.name} ${product.description}`.toLowerCase().includes(term)));
-  el('waiter-products').innerHTML = list.length ? list.map(product => `<article class="row-card" data-product="${escapeHtml(product.id)}"><div class="order-main"><b>${escapeHtml(product.name)}</b><small>${escapeHtml(product.category)}${product.description ? ` • ${escapeHtml(product.description)}` : ''}</small></div><strong>${money(product.price)}</strong></article>`).join('') : '<div class="empty-state">Nenhum produto ativo encontrado no cardápio.</div>';
+  el('waiter-products').innerHTML = list.length ? list.map(product => `<article class="menu-product" data-product="${escapeHtml(product.id)}"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.description || product.category)}</p><strong>${money(product.price)}</strong>${product.featured ? '<span class="status novo">Destaque</span>' : ''}</div>${productImage(product)}</article>`).join('') : '<div class="empty-state">Nenhum produto ativo encontrado no cardápio.</div>';
   el('waiter-products').querySelectorAll('[data-product]').forEach(node => node.onclick = () => showProduct(node.dataset.product));
 }
 
@@ -235,8 +283,16 @@ function renderOrders() {
 function showProduct(id) {
   current = products.find(product => String(product.id) === String(id));
   if (!current) return;
-  qty = 1; el('waiter-product-title').textContent = current.name; el('waiter-product-description').textContent = current.description || 'Sem descrição.'; el('waiter-qty').textContent = qty; el('waiter-item-note').value = ''; updateAddButton(); el('waiter-product-modal').classList.add('open'); document.body.style.overflow = 'hidden';
+  qty = 1;
+  el('waiter-product-title').textContent = current.name;
+  el('waiter-product-description').textContent = current.description || 'Sem descrição.';
+  el('waiter-qty').textContent = qty;
+  el('waiter-item-note').value = '';
+  updateAddButton();
+  el('waiter-product-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
+
 function closeModal() { el('waiter-product-modal').classList.remove('open'); document.body.style.overflow = ''; }
 function updateAddButton() { el('waiter-add').textContent = `Adicionar • ${money((current?.price || 0) * qty)}`; }
 function addCurrentProduct() { if (!current) return; cart.push({ cartId: crypto.randomUUID(), productId: current.id, name: current.name, price: current.price, qty, note: el('waiter-item-note').value.trim() }); closeModal(); renderCart(); }
@@ -245,7 +301,12 @@ function total() { return subtotal() + (el('waiter-type').value === 'entrega' ? 
 
 function renderCart() {
   el('waiter-cart').innerHTML = cart.length ? cart.map(item => `<div class="row-card"><div class="order-main"><b>${Number(item.qty)}x ${escapeHtml(item.name)}</b><small>${item.note ? escapeHtml(item.note) : money(item.price)}</small></div><div><b>${money(item.price * item.qty)}</b><button class="link-button" data-remove="${escapeHtml(item.cartId)}">Remover</button></div></div>`).join('') : '<div class="empty-state">Nenhum item adicionado.</div>';
-  el('waiter-total').textContent = money(total());
+  const itemCount = cart.reduce((sum, item) => sum + Number(item.qty), 0);
+  const orderTotal = total();
+  el('waiter-total').textContent = money(orderTotal);
+  el('waiter-cart-count').textContent = `${itemCount} ${itemCount === 1 ? 'item' : 'itens'}`;
+  el('waiter-cart-summary-total').textContent = money(orderTotal);
+  el('waiter-cart-summary').hidden = itemCount === 0;
   el('waiter-cart').querySelectorAll('[data-remove]').forEach(button => button.onclick = () => { cart = cart.filter(item => item.cartId !== button.dataset.remove); renderCart(); });
 }
 
@@ -269,16 +330,31 @@ async function submitOrder() {
   if ((type === 'entrega' || type === 'retirada') && (name.length < 2 || phone.length < 10)) return alert('Informe nome e WhatsApp válidos do cliente.');
   const selectedTable = el('waiter-table').selectedOptions[0];
   const payload = { tipo: type, mesa_id: type === 'mesa' ? el('waiter-table').value : null, mesa_token: type === 'mesa' ? selectedTable?.dataset.token : null, nome: name || 'Atendimento local', telefone: phone || `mesa${Date.now()}`, endereco: address, pagamento: el('waiter-payment').value, observacoes: el('waiter-notes').value.trim(), itens: cart.map(item => ({ produto_id: item.productId, quantidade: item.qty, observacoes: item.note })) };
-  const button = el('waiter-submit'); const original = button.textContent; button.disabled = true; button.textContent = 'Enviando...';
+  const button = el('waiter-submit');
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Enviando...';
   try {
     let result;
     if (ownerSession) result = await db.rpc('criar_pedido_garcom', { payload });
     else { teamSession = readTeamSession(); if (!teamSession) return redirectToAccess(); result = await db.rpc('criar_pedido_equipe_garcom', { p_telefone: teamSession.phone, p_pin: teamSession.pin, payload }); }
     if (result.error) throw result.error;
     alert(`Pedido #${result.data} enviado com sucesso.`);
-    cart = []; ['waiter-name', 'waiter-phone', 'waiter-address', 'waiter-notes'].forEach(id => { el(id).value = ''; }); renderCart(); await refreshOperation(); orderScope = type === 'mesa' || type === 'local' ? 'local' : 'online'; statusFilter = 'ativos'; openPage('pedidos'); renderOrders();
-  } catch (error) { console.error(error); alert(error.message || 'Não foi possível enviar o pedido.'); }
-  finally { button.disabled = false; button.textContent = original; }
+    cart = [];
+    ['waiter-name', 'waiter-phone', 'waiter-address', 'waiter-notes'].forEach(id => { el(id).value = ''; });
+    renderCart();
+    await refreshOperation();
+    orderScope = type === 'mesa' || type === 'local' ? 'local' : 'online';
+    statusFilter = 'ativos';
+    openPage('pedidos');
+    renderOrders();
+  } catch (error) {
+    console.error(error);
+    alert(error.message || 'Não foi possível enviar o pedido.');
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
 }
 
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !ownerSession) refreshOperation(); });

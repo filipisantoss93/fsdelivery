@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#18120e">
+  <meta name="theme-color" content="#f7f2ec">
   <meta name="apple-mobile-web-app-title" content="Garçom">
   <meta name="application-name" content="Garçom">
   <title>Atendimento — FS Delivery</title>
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
 </head>
-<body class="app-body">
+<body class="app-body store-body waiter-menu-body">
   <aside class="sidebar">
     <a class="brand" href="app.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
     <nav class="nav">
@@ -63,9 +63,10 @@
               <input class="search" id="waiter-search" placeholder="Buscar no cardápio...">
               <select class="search" id="waiter-category"><option value="">Todas as categorias</option></select>
             </div>
-            <div class="panel"><div id="waiter-products" class="product-list"><div class="empty-state">Carregando cardápio...</div></div></div>
+            <div id="waiter-category-tabs" class="category-tabs" aria-label="Categorias do cardápio"></div>
+            <div class="panel light-panel"><div id="waiter-products" class="menu-products"><div class="empty-state">Carregando cardápio...</div></div></div>
           </section>
-          <aside class="panel waiter-order-panel">
+          <aside class="panel light-panel waiter-order-panel" id="waiter-order-panel">
             <div class="panel-head"><div><h2>Pedido</h2><p id="waiter-destination-label">Selecione o atendimento</p></div></div>
             <div class="form-grid">
               <div class="field full"><label>Atendimento</label><select id="waiter-type"><option value="mesa">Mesa</option><option value="entrega">Entrega</option><option value="retirada">Retirada</option><option value="local">Comer no local</option></select></div>
@@ -106,7 +107,12 @@
     <button data-waiter-page="pedidos"><span>Pedidos</span></button>
   </nav>
 
-  <div class="modal" id="waiter-product-modal">
+  <button id="waiter-cart-summary" class="mobile-cart btn btn-primary" type="button" hidden>
+    <span><b id="waiter-cart-count">0 itens</b><small id="waiter-cart-summary-total">R$ 0,00</small></span>
+    <strong>Ver pedido</strong>
+  </button>
+
+  <div class="modal store-modal" id="waiter-product-modal">
     <div class="modal-card">
       <div class="modal-head"><h2 id="waiter-product-title">Produto</h2><button class="icon-btn" data-close>×</button></div>
       <p id="waiter-product-description"></p>
