@@ -14,6 +14,48 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .store-header-action{display:grid;justify-items:center;gap:7px;border:0;background:transparent;color:#fff;cursor:pointer;font-weight:700;padding:4px;min-width:74px}
+    .store-header-action svg{display:block;width:46px;height:46px;padding:11px;border:1px solid rgba(255,255,255,.24);border-radius:50%;background:rgba(255,255,255,.1);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .store-header-action span{font-size:12px;line-height:1.2}
+    .store-summary-icon{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border-radius:12px;background:var(--primary-soft);color:var(--primary)}
+    .store-summary-icon svg{display:block;width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .store-summary-icon.whatsapp svg{fill:currentColor;stroke:none}
+    .store-search-wrap{position:relative;margin-bottom:12px}
+    .store-search-wrap>svg{position:absolute;z-index:2;left:15px;top:50%;width:21px;height:21px;transform:translateY(-50%);fill:none;stroke:var(--store-muted);stroke-width:1.8;stroke-linecap:round;pointer-events:none}
+    .store-search-wrap .search{min-height:52px;padding-left:46px;border-radius:14px;background:#fff;font-size:16px}
+    .category-tabs button{display:inline-flex;align-items:center;gap:7px}
+    .menu-product{grid-template-columns:132px minmax(0,1fr);align-items:stretch;overflow:hidden}
+    .menu-product-media{position:relative;min-width:0;height:132px;border-radius:13px;overflow:hidden;background:var(--surface-2)}
+    .menu-product-media img{width:100%;height:100%;border-radius:0;object-fit:cover}
+    .menu-product-image-placeholder{display:grid;place-items:center;width:100%;height:100%;padding:12px;background:linear-gradient(135deg,#f7eee6,#efe0d2);color:var(--store-muted);font-size:13px;font-weight:700;text-align:center}
+    .menu-product-badge{position:absolute;left:8px;bottom:8px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.94);color:var(--brand-dark);font-size:10px;font-weight:800;box-shadow:0 3px 12px rgba(0,0,0,.1)}
+    .menu-product-copy{display:flex;min-width:0;flex-direction:column}
+    .menu-product-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .menu-product-head h3{min-width:0;overflow-wrap:anywhere}
+    .menu-favorite{flex:0 0 auto;font-size:23px;line-height:1;color:var(--muted)}
+    .menu-product-copy p{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow-wrap:anywhere}
+    .menu-product-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:auto;padding-top:12px}
+    .menu-product-footer strong{margin:0;white-space:nowrap}
+    .menu-product-add{display:inline-flex;align-items:center;gap:5px;min-height:38px;border:0;border-radius:11px;padding:8px 11px;background:var(--primary-soft);color:var(--primary);font-weight:800;cursor:pointer}
+    .menu-product-add span{font-size:19px;line-height:1}
+    .mobile-cart{align-items:center;gap:10px;min-height:62px;border:0;padding:9px 14px;color:#fff;text-align:left}
+    .mobile-cart-icon{position:relative;display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.12)}
+    .mobile-cart-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .mobile-cart-icon b{position:absolute;right:-5px;top:-6px;display:grid;place-items:center;min-width:19px;height:19px;border-radius:10px;padding:0 4px;background:var(--primary);font-size:11px}
+    .mobile-cart-copy{display:flex;min-width:0;flex:1;flex-direction:column}
+    .mobile-cart-copy strong{font-size:15px;line-height:1.2}.mobile-cart-copy small{color:#eadbcf;font-size:11px;white-space:nowrap}
+    .mobile-cart-total{font-weight:800;white-space:nowrap}.mobile-cart-arrow{font-size:27px;line-height:1}
+    @media(max-width:760px){
+      .store-header-actions{gap:8px}.store-header-action{min-width:60px}.store-header-action svg{width:42px;height:42px}.store-summary-icon{display:none}
+      .menu-product{grid-template-columns:100px minmax(0,1fr);min-height:142px;padding:12px;gap:12px}.menu-product-media{height:118px}.menu-product h3{font-size:17px}.menu-product p{font-size:13px;-webkit-line-clamp:2}.menu-product-footer{gap:6px}.menu-product-add{padding:7px 9px;font-size:12px}
+    }
+    @media(max-width:480px){
+      .store-top{display:flex;align-items:flex-start}.store-brand{min-width:0;flex:1;margin-bottom:0}.store-info{min-width:0}.store-info h1{font-size:25px}.store-info p{font-size:14px}.store-logo{flex:0 0 58px;width:58px;height:58px}.store-header-actions{flex:0 0 auto}.store-header-action{min-width:48px}.store-header-action svg{width:40px;height:40px}.store-header-action span{display:none}
+      .store-summary-compact{gap:12px}.store-summary-item b{font-size:16px}.store-summary-item small{font-size:11px}
+      .menu-product{grid-template-columns:92px minmax(0,1fr)}.menu-product-media{height:108px}.menu-product-add{width:38px;justify-content:center;font-size:0}.menu-product-add span{font-size:20px}.mobile-cart{left:10px;right:10px}
+    }
+  </style>
 </head>
 <body class="store-body">
   <header class="store-header">
@@ -42,105 +84,23 @@
 
   <main class="store-main container">
     <div class="feedback" id="store-feedback" role="status" aria-live="polite" hidden></div>
-
     <section class="store-summary-compact" id="store-summary" aria-label="Informações da loja">
-      <div class="store-summary-item">
-        <span class="store-summary-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg></span>
-        <div><small>Entrega em</small><b id="store-delivery-time">—</b></div>
-      </div>
+      <div class="store-summary-item"><span class="store-summary-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg></span><div><small>Entrega em</small><b id="store-delivery-time">—</b></div></div>
       <div class="store-summary-divider"></div>
-      <div class="store-summary-item">
-        <span class="store-summary-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l1 18H5L6 3Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></span>
-        <div><small>Pedido mínimo</small><b id="store-minimum-order">—</b></div>
-      </div>
+      <div class="store-summary-item"><span class="store-summary-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l1 18H5L6 3Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></span><div><small>Pedido mínimo</small><b id="store-minimum-order">—</b></div></div>
       <div class="store-summary-divider"></div>
-      <a class="store-summary-item store-whatsapp" id="store-whatsapp" href="#" target="_blank" rel="noopener" aria-label="Conversar com o estabelecimento pelo WhatsApp" hidden>
-        <span class="store-summary-icon whatsapp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.84 9.84 0 0 0-8.47 14.82L2 22l5.32-1.52A9.93 9.93 0 1 0 12.04 2Zm5.78 14.02c-.24.68-1.4 1.3-1.95 1.38-.5.08-1.13.12-1.82-.1-.42-.14-.96-.31-1.65-.61-2.9-1.25-4.79-4.18-4.94-4.37-.14-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.27-.29.59-.36.79-.36h.56c.18 0 .42-.07.65.5.24.58.81 1.99.88 2.13.07.14.12.31.02.5-.1.2-.14.32-.29.49-.14.17-.3.38-.43.51-.14.14-.29.29-.12.58.17.29.75 1.24 1.61 2 .99.88 1.82 1.15 2.11 1.29.29.14.46.12.63-.07.17-.2.72-.84.92-1.13.19-.29.38-.24.65-.14.26.1 1.68.79 1.97.94.29.14.48.21.55.33.07.12.07.68-.17 1.36Z"/></svg></span>
-        <div><small>Falar conosco</small><b>WhatsApp</b></div>
-      </a>
-      <span class="store-summary-hidden" id="store-delivery-fee">—</span>
-      <span class="store-summary-hidden" id="store-contact">—</span>
-      <div class="feedback error" id="closed-notice" hidden>A loja está fechada. O cardápio continua disponível para consulta.</div>
+      <a class="store-summary-item store-whatsapp" id="store-whatsapp" href="#" target="_blank" rel="noopener" aria-label="Conversar com o estabelecimento pelo WhatsApp" hidden><span class="store-summary-icon whatsapp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2a9.84 9.84 0 0 0-8.47 14.82L2 22l5.32-1.52A9.93 9.93 0 1 0 12.04 2Zm5.78 14.02c-.24.68-1.4 1.3-1.95 1.38-.5.08-1.13.12-1.82-.1-.42-.14-.96-.31-1.65-.61-2.9-1.25-4.79-4.18-4.94-4.37-.14-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.27-.29.59-.36.79-.36h.56c.18 0 .42-.07.65.5.24.58.81 1.99.88 2.13.07.14.12.31.02.5-.1.2-.14.32-.29.49-.14.17-.3.38-.43.51-.14.14-.29.29-.12.58.17.29.75 1.24 1.61 2 .99.88 1.82 1.15 2.11 1.29.29.14.46.12.63-.07.17-.2.72-.84.92-1.13.19-.29.38-.24.65-.14.26.1 1.68.79 1.97.94.29.14.48.21.55.33.07.12.07.68-.17 1.36Z"/></svg></span><div><small>Falar conosco</small><b>WhatsApp</b></div></a>
+      <span class="store-summary-hidden" id="store-delivery-fee">—</span><span class="store-summary-hidden" id="store-contact">—</span><div class="feedback error" id="closed-notice" hidden>A loja está fechada. O cardápio continua disponível para consulta.</div>
     </section>
-
     <div class="store-layout">
-      <section>
-        <div class="store-search-wrap">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input class="search" id="menu-search" type="search" placeholder="Buscar no cardápio..." autocomplete="off" aria-label="Buscar produtos">
-        </div>
-        <nav class="category-tabs" id="category-tabs" aria-label="Categorias do cardápio"></nav>
-        <div id="menu-content"></div>
-      </section>
-
-      <aside class="cart" aria-label="Resumo do pedido">
-        <small id="order-context-label">Pedido on-line</small>
-        <h2>Seu pedido</h2>
-        <div id="cart-items"></div>
-        <div class="row-card"><span>Subtotal</span><b id="cart-subtotal">R$ 0,00</b></div>
-        <div class="row-card"><span>Taxa de entrega</span><b id="cart-delivery-fee">R$ 0,00</b></div>
-        <div class="cart-total"><span>Total</span><span id="cart-total">R$ 0,00</span></div>
-        <small id="minimum-order-hint"></small>
-        <button class="btn btn-primary" id="checkout-btn" type="button">Continuar pedido</button>
-      </aside>
+      <section><div class="store-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="search" id="menu-search" type="search" placeholder="Buscar no cardápio..." autocomplete="off" aria-label="Buscar produtos"></div><nav class="category-tabs" id="category-tabs" aria-label="Categorias do cardápio"></nav><div id="menu-content"></div></section>
+      <aside class="cart" aria-label="Resumo do pedido"><small id="order-context-label">Pedido on-line</small><h2>Seu pedido</h2><div id="cart-items"></div><div class="row-card"><span>Subtotal</span><b id="cart-subtotal">R$ 0,00</b></div><div class="row-card"><span>Taxa de entrega</span><b id="cart-delivery-fee">R$ 0,00</b></div><div class="cart-total"><span>Total</span><span id="cart-total">R$ 0,00</span></div><small id="minimum-order-hint"></small><button class="btn btn-primary" id="checkout-btn" type="button">Continuar pedido</button></aside>
     </div>
   </main>
-
-  <button class="mobile-cart" id="mobile-cart" type="button">
-    <span class="mobile-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l1 18H5L6 3Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><b id="mobile-cart-count">0</b></span>
-    <span class="mobile-cart-copy"><strong>Ver pedido</strong><small id="mobile-cart-label">0 itens</small></span>
-    <span class="mobile-cart-total" id="mobile-total">R$ 0,00</span>
-    <span class="mobile-cart-arrow">›</span>
-  </button>
-
-  <div class="modal store-modal" id="product-store-modal" role="dialog" aria-modal="true" aria-labelledby="store-product-title">
-    <div class="modal-card">
-      <div class="modal-head"><h2 id="store-product-title">Produto</h2><button class="icon-btn" data-close type="button" aria-label="Fechar">×</button></div>
-      <p id="store-product-description"></p>
-      <div id="store-options"></div>
-      <div class="field"><label for="item-note">Observação do item</label><textarea id="item-note" rows="3" placeholder="Ex.: sem cebola"></textarea></div>
-      <div class="actions actions-split">
-        <div class="qty"><button id="qty-minus" type="button" aria-label="Diminuir quantidade">−</button><b id="qty-value">1</b><button id="qty-plus" type="button" aria-label="Aumentar quantidade">+</button></div>
-        <button class="btn btn-primary" id="add-cart-btn" type="button">Adicionar • R$ 0,00</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal store-modal" id="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
-    <div class="modal-card">
-      <div class="modal-head"><h2 id="checkout-title">Finalizar pedido</h2><button class="icon-btn" data-close type="button" aria-label="Fechar">×</button></div>
-      <div class="feedback">Confira os dados antes de enviar. O pedido ficará aguardando confirmação do estabelecimento.</div>
-      <form id="checkout-form">
-        <div class="form-grid">
-          <div class="field full"><label for="customer-name">Nome</label><input id="customer-name" name="name" required autocomplete="name"></div>
-          <div class="field full"><label for="customer-phone">WhatsApp</label><input id="customer-phone" name="phone" required inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
-          <div class="field full"><label for="delivery-type">Como deseja receber?</label><select name="type" id="delivery-type"></select></div>
-          <div class="field full" id="address-field"><label for="customer-address">Endereço completo</label><textarea id="customer-address" name="address" rows="3" placeholder="Rua, número, bairro e complemento"></textarea></div>
-          <div class="field full"><label for="payment-method">Pagamento</label><select name="payment" id="payment-method"></select></div>
-          <div class="field full" id="change-field" hidden><label for="change-value">Troco para</label><input id="change-value" name="change" inputmode="decimal" placeholder="Ex.: 100,00"></div>
-          <div class="field full"><label for="order-notes">Observações do pedido</label><textarea id="order-notes" name="notes" rows="2" placeholder="Informações gerais para o estabelecimento"></textarea></div>
-        </div>
-        <div class="row-card"><span>Subtotal</span><b id="checkout-subtotal">R$ 0,00</b></div>
-        <div class="row-card"><span>Taxa de entrega</span><b id="checkout-delivery-fee">R$ 0,00</b></div>
-        <div class="cart-total"><span id="checkout-total-label">Total</span><span id="checkout-total">R$ 0,00</span></div>
-        <button class="btn btn-primary btn-block" id="submit-order-btn">Enviar pedido</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="modal store-modal" id="success-modal" role="dialog" aria-modal="true">
-    <div class="modal-card success-card">
-      <div class="success-icon">✓</div>
-      <h2>Pedido enviado</h2>
-      <p id="success-message"></p>
-      <div class="feedback">Acompanhe o status enquanto o estabelecimento confirma e prepara seu pedido.</div>
-      <div class="actions actions-center">
-        <a class="btn btn-secondary" id="track-order-link" href="cliente.html">Acompanhar pedido</a>
-        <button class="btn btn-primary" id="new-order-after-success" type="button">Fazer novo pedido</button>
-      </div>
-    </div>
-  </div>
-
+  <button class="mobile-cart" id="mobile-cart" type="button"><span class="mobile-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l1 18H5L6 3Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg><b id="mobile-cart-count">0</b></span><span class="mobile-cart-copy"><strong>Ver pedido</strong><small id="mobile-cart-label">0 itens</small></span><span class="mobile-cart-total" id="mobile-total">R$ 0,00</span><span class="mobile-cart-arrow">›</span></button>
+  <div class="modal store-modal" id="product-store-modal" role="dialog" aria-modal="true" aria-labelledby="store-product-title"><div class="modal-card"><div class="modal-head"><h2 id="store-product-title">Produto</h2><button class="icon-btn" data-close type="button" aria-label="Fechar">×</button></div><p id="store-product-description"></p><div id="store-options"></div><div class="field"><label for="item-note">Observação do item</label><textarea id="item-note" rows="3" placeholder="Ex.: sem cebola"></textarea></div><div class="actions actions-split"><div class="qty"><button id="qty-minus" type="button" aria-label="Diminuir quantidade">−</button><b id="qty-value">1</b><button id="qty-plus" type="button" aria-label="Aumentar quantidade">+</button></div><button class="btn btn-primary" id="add-cart-btn" type="button">Adicionar • R$ 0,00</button></div></div></div>
+  <div class="modal store-modal" id="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-title"><div class="modal-card"><div class="modal-head"><h2 id="checkout-title">Finalizar pedido</h2><button class="icon-btn" data-close type="button" aria-label="Fechar">×</button></div><div class="feedback">Confira os dados antes de enviar. O pedido ficará aguardando confirmação do estabelecimento.</div><form id="checkout-form"><div class="form-grid"><div class="field full"><label for="customer-name">Nome</label><input id="customer-name" name="name" required autocomplete="name"></div><div class="field full"><label for="customer-phone">WhatsApp</label><input id="customer-phone" name="phone" required inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div><div class="field full"><label for="delivery-type">Como deseja receber?</label><select name="type" id="delivery-type"></select></div><div class="field full" id="address-field"><label for="customer-address">Endereço completo</label><textarea id="customer-address" name="address" rows="3" placeholder="Rua, número, bairro e complemento"></textarea></div><div class="field full"><label for="payment-method">Pagamento</label><select name="payment" id="payment-method"></select></div><div class="field full" id="change-field" hidden><label for="change-value">Troco para</label><input id="change-value" name="change" inputmode="decimal" placeholder="Ex.: 100,00"></div><div class="field full"><label for="order-notes">Observações do pedido</label><textarea id="order-notes" name="notes" rows="2" placeholder="Informações gerais para o estabelecimento"></textarea></div></div><div class="row-card"><span>Subtotal</span><b id="checkout-subtotal">R$ 0,00</b></div><div class="row-card"><span>Taxa de entrega</span><b id="checkout-delivery-fee">R$ 0,00</b></div><div class="cart-total"><span id="checkout-total-label">Total</span><span id="checkout-total">R$ 0,00</span></div><button class="btn btn-primary btn-block" id="submit-order-btn">Enviar pedido</button></form></div></div>
+  <div class="modal store-modal" id="success-modal" role="dialog" aria-modal="true"><div class="modal-card success-card"><div class="success-icon">✓</div><h2>Pedido enviado</h2><p id="success-message"></p><div class="feedback">Acompanhe o status enquanto o estabelecimento confirma e prepara seu pedido.</div><div class="actions actions-center"><a class="btn btn-secondary" id="track-order-link" href="cliente.html">Acompanhar pedido</a><button class="btn btn-primary" id="new-order-after-success" type="button">Fazer novo pedido</button></div></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/loja-operacional.js"></script>
