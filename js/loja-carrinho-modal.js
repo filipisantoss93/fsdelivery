@@ -1,5 +1,31 @@
 (() => {
   const byId = id => document.getElementById(id);
+  const isTableOrder = () => typeof table !== 'undefined' && Boolean(table);
+
+  function setRowVisibility(valueId, visible) {
+    const row = byId(valueId)?.closest('.row-card');
+    if (row) row.hidden = !visible;
+  }
+
+  function configureLocalCheckout() {
+    const local = isTableOrder();
+    const fieldIds = ['delivery-type', 'address-field', 'region-field', 'payment-method', 'change-field', 'order-notes'];
+
+    fieldIds.forEach(id => {
+      const element = byId(id);
+      if (!element) return;
+      const field = element.classList.contains('field') ? element : element.closest('.field');
+      if (field) field.hidden = local;
+    });
+
+    setRowVisibility('checkout-delivery-fee', !local);
+    if (local) {
+      const title = byId('checkout-title');
+      if (title) title.textContent = 'Identifique seu pedido';
+      const notice = byId('checkout-modal')?.querySelector('.feedback');
+      if (notice) notice.textContent = 'Informe somente seu nome e WhatsApp para enviar o pedido à mesa.';
+    }
+  }
 
   function ensureCartModal() {
     if (byId('cart-summary-modal')) return;
@@ -33,6 +59,7 @@
     });
     byId('cart-summary-checkout').onclick = () => {
       closeCartModal();
+      configureLocalCheckout();
       checkout();
     };
   }
@@ -79,6 +106,7 @@
     byId('cart-summary-minimum').textContent = byId('minimum-order-hint')?.textContent || '';
     byId('cart-summary-minimum').style.color = byId('minimum-order-hint')?.style.color || '';
     byId('cart-summary-checkout').disabled = !cart.length;
+    setRowVisibility('cart-summary-fee', !isTableOrder());
     bindModalCartActions();
   }
 
@@ -106,6 +134,9 @@
       event.stopImmediatePropagation();
       openCartModal();
     }, true);
+
+    byId('checkout-btn')?.addEventListener('click', configureLocalCheckout, true);
+    byId('checkout-modal')?.addEventListener('transitionstart', configureLocalCheckout);
   }
 
   if (document.readyState === 'loading') {
