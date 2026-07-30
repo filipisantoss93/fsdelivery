@@ -31,3 +31,4 @@ const loadGlobalScript=(src,datasetKey)=>{
 
 loadGlobalScript('js/pull-to-refresh.js','fs-pull-refresh');
 loadGlobalScript('js/navigation.js','fs-navigation');
+loadGlobalScript('js/dashboard-audit-fixes.js','fs-dashboard-audit');
