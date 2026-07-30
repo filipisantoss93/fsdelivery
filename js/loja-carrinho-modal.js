@@ -99,7 +99,13 @@
   function bindMobileCart() {
     ensureCartModal();
     const button = byId('mobile-cart');
-    if (button) button.onclick = openCartModal;
+    if (!button || button.dataset.cartModalBound) return;
+    button.dataset.cartModalBound = 'true';
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openCartModal();
+    }, true);
   }
 
   if (document.readyState === 'loading') {
