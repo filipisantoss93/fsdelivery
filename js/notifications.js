@@ -16,3 +16,33 @@
  document.getElementById('configuracoes')?.remove();const top=document.getElementById('store-settings-button');if(top){top.textContent='Config';top.onclick=()=>location.href='configuracoes.html'}
  const requested=location.hash.slice(1).split('&')[0];if(requested&&document.getElementById(requested)&&typeof openPage==='function')activate(requested);
 })();
+
+(()=>{
+ const sameLocalDay=(date,reference=new Date())=>date.getFullYear()===reference.getFullYear()&&date.getMonth()===reference.getMonth()&&date.getDate()===reference.getDate();
+ const originalRender=window.render;
+ if(typeof originalRender==='function')window.render=function(){
+  originalRender();
+  const todayOrders=(window.orders||orders||[]).filter(order=>order.status!=='cancelado'&&sameLocalDay(order.createdAt));
+  const todayRevenue=todayOrders.reduce((total,order)=>total+Number(order.total||0),0);
+  const recentToday=todayOrders.slice(0,4);
+  const activeProducts=(window.products||products||[]).filter(product=>product.active).length;
+  const setText=(id,value)=>{const element=document.getElementById(id);if(element)element.textContent=value};
+  setText('metric-orders',todayOrders.length);
+  setText('summary-preparing',todayOrders.filter(order=>order.status==='preparo').length);
+  setText('metric-revenue',money(todayRevenue));
+  setText('metric-ticket',money(todayOrders.length?todayRevenue/todayOrders.length:0));
+  const recent=document.getElementById('recent-orders');
+  if(recent)recent.innerHTML=recentToday.length?recentToday.map(order=>orderCard(order,true)).join(''):'<div class="empty-state"><b>Nenhum pedido recebido hoje.</b><small>Crie um pedido manual ou aguarde novos pedidos da loja.</small></div>';
+  let alert=document.getElementById('inactive-products-alert');
+  const panel=recent?.closest('.panel');
+  if(!activeProducts&&panel){
+   if(!alert){alert=document.createElement('div');alert.id='inactive-products-alert';alert.className='empty-state';alert.innerHTML='<b>Nenhum produto ativo no cardápio.</b><small>Ative pelo menos um produto para receber pedidos.</small>';panel.insertBefore(alert,recent)}
+  }else alert?.remove();
+ };
+ const originalLabels=window.setupLabels;
+ if(typeof originalLabels==='function')window.setupLabels=function(){
+  originalLabels();
+  const label=document.getElementById('store-status-label');
+  if(label)label.textContent=store?.aberto?'Loja aberta':'Loja fechada';
+ };
+})();
