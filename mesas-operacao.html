@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
+  <link rel="stylesheet" href="css/operational-hierarchy.css">
 </head>
 <body class="app-body">
   <aside class="sidebar">
@@ -18,30 +19,42 @@
       <button type="button" onclick="location.href='app.html'">Início</button>
       <button type="button" onclick="location.href='app.html#pedidos'">Pedidos</button>
       <button type="button" onclick="location.href='caixa.html'">Caixa</button>
-      <button type="button" onclick="location.href='garcom.html'">Cardápio</button>
       <button class="active" type="button">Mesas</button>
-      <button type="button" onclick="location.href='configuracoes.html'">Config</button>
+      <button type="button" onclick="location.href='app.html#cardapio'">Cardápio</button>
+      <button type="button" onclick="location.href='configuracoes.html'">Configurações</button>
     </nav>
   </aside>
   <main class="main">
-    <header class="topbar"><div><b>Mesas</b></div><div class="topbar-actions"><button class="btn btn-secondary" id="refresh-tables" type="button">Atualizar</button><a class="btn btn-primary" href="mesas.html">Gerenciar QR Codes</a></div></header>
+    <header class="topbar"><div><b>Mesas</b></div><div class="topbar-actions"><button class="btn btn-secondary" id="refresh-tables" type="button">Atualizar</button><a class="btn btn-secondary" href="mesas.html">Configurar mesas e QR Codes</a></div></header>
     <div class="content">
-      <div class="page-head"><div><h1>Mapa de mesas</h1><p>Veja mesas livres e ocupadas. Toque em uma mesa ocupada para abrir o pedido.</p></div></div>
-      <div class="metrics tables-summary"><div class="metric"><small>Total</small><strong id="tables-total">0</strong></div><div class="metric"><small>Livres</small><strong id="tables-free">0</strong></div><div class="metric"><small>Ocupadas</small><strong id="tables-busy">0</strong></div><div class="metric"><small>Pedidos locais</small><strong id="tables-orders">0</strong></div></div>
-      <section class="operational-tables-grid" id="operational-tables-grid"><div class="empty-state">Carregando mesas...</div></section>
+      <div class="page-head"><div><h1>Mapa operacional</h1><p>Identifique rapidamente mesas livres, ocupadas e com pedidos em andamento.</p></div><button class="btn btn-primary" type="button" onclick="location.href='cardapio.html'">Novo pedido</button></div>
+      <div class="metrics tables-summary"><div class="metric"><small>Ocupadas</small><strong id="tables-busy">0</strong></div><div class="metric"><small>Pedidos locais</small><strong id="tables-orders">0</strong></div><div class="metric"><small>Livres</small><strong id="tables-free">0</strong></div><div class="metric"><small>Total</small><strong id="tables-total">0</strong></div></div>
+      <section class="panel">
+        <div class="panel-head"><div><h2>Salão</h2><p>Toque em uma mesa ocupada para abrir o pedido.</p></div><div class="table-map-tools"><select class="search" id="table-status-filter" aria-label="Filtrar mesas"><option value="">Todas as mesas</option><option value="livre">Livres</option><option value="ocupada">Ocupadas</option></select></div></div>
+        <div class="operational-tables-grid" id="operational-tables-grid"><div class="empty-state">Carregando mesas...</div></div>
+      </section>
     </div>
   </main>
   <nav class="mobile-nav config-mobile-nav" aria-label="Navegação principal">
     <button type="button" onclick="location.href='app.html'"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Início</span></button>
     <button type="button" onclick="location.href='app.html#pedidos'"><svg viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6"/></svg><span>Pedidos</span></button>
     <button type="button" onclick="location.href='caixa.html'"><svg viewBox="0 0 24 24"><path d="M3 7h18v12H3z"/><path d="M7 7V4h10v3"/></svg><span>Caixa</span></button>
-    <button type="button" onclick="location.href='garcom.html'"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8"/></svg><span>Cardápio</span></button>
     <button class="active" type="button"><svg viewBox="0 0 24 24"><path d="M4 10h16M6 10v9M18 10v9M8 5h8v5H8z"/></svg><span>Mesas</span></button>
-    <button type="button" onclick="location.href='configuracoes.html'"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1V21h-4v-.09a1.7 1.7 0 0 0-.4-1 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1-.4H3v-4h.09a1.7 1.7 0 0 0 1-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1V3h4v.09a1.7 1.7 0 0 0 .4 1 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.2.37.54.72 1 .9.3.12.64.18 1 .18H21v4h-.09a1.7 1.7 0 0 0-1 .4c-.22.14-.4.32-.51.52z"/></svg><span>Config</span></button>
+    <button type="button" onclick="location.href='configuracoes.html'"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1V21h-4v-.09a1.7 1.7 0 0 0-.4-1 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1-.4H3v-4h.09a1.7 1.7 0 0 0 1-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1V3h4v.09a1.7 1.7 0 0 0 .4 1 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.2.37.54.72 1 .9.3.12.64.18 1 .18H21v4h-.09a1.7 1.7 0 0 0-1 .4c-.22.14-.4.32-.51.52z"/></svg><span>Mais</span></button>
   </nav>
   <div class="modal" id="table-order-modal"><div class="modal-card"><div class="modal-head"><h2 id="table-order-title">Pedido da mesa</h2><button class="icon-btn" data-close>×</button></div><div id="table-order-detail"></div><div class="actions"><button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="open-order-panel">Abrir em pedidos</button></div></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/mesas-operacao.js"></script>
+  <script>
+    (()=>{
+      const filter=document.getElementById('table-status-filter');
+      const grid=document.getElementById('operational-tables-grid');
+      if(!filter||!grid)return;
+      const apply=()=>{const value=filter.value;[...grid.children].forEach(card=>{if(card.classList.contains('empty-state'))return;const text=(card.textContent||'').toLowerCase();const free=text.includes('livre')||text.includes('disponível');const matches=!value||(value==='livre'&&free)||(value==='ocupada'&&!free);card.hidden=!matches})};
+      filter.addEventListener('change',apply);
+      new MutationObserver(apply).observe(grid,{childList:true,subtree:true});
+    })();
+  </script>
 </body>
 </html>
