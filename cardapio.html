@@ -16,14 +16,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
+  <style>
+    .waiter-menu-body .sidebar .nav button{display:flex;align-items:center;gap:11px}
+    .waiter-menu-body .sidebar .nav button svg{flex:0 0 20px;width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+    .waiter-nav-badge{position:absolute;top:4px;left:calc(50% + 8px);display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border:2px solid #120d09;border-radius:999px;background:var(--primary);color:#fff;font-size:10px;font-weight:800;line-height:1}
+    .waiter-nav-badge[hidden]{display:none}
+    @media(max-width:760px){
+      .waiter-menu-body .mobile-nav{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .waiter-menu-body .mobile-nav button{position:relative}
+    }
+  </style>
 </head>
 <body class="app-body store-body waiter-menu-body">
   <aside class="sidebar">
     <a class="brand" href="app.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
-    <nav class="nav">
-      <button class="active" data-waiter-page="mesas">Mesas</button>
-      <button data-waiter-page="cardapio">Cardápio</button>
-      <button data-waiter-page="pedidos">Pedidos</button>
+    <nav class="nav" aria-label="Navegação do garçom">
+      <button class="active" data-waiter-page="mesas" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Mesas</span>
+      </button>
+      <button data-waiter-page="cardapio" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M12 16v4M10 18h4"/></svg>
+        <span>Novo pedido</span>
+      </button>
+      <button data-waiter-page="pedidos" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10l2 3v14H5V7z"/><path d="M9 11h6M9 15h6"/></svg>
+        <span>Pedidos</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <small>Atendimento presencial</small>
@@ -101,10 +120,20 @@
     </div>
   </main>
 
-  <nav class="mobile-nav">
-    <button class="active" data-waiter-page="mesas"><span>Mesas</span></button>
-    <button data-waiter-page="cardapio"><span>Cardápio</span></button>
-    <button data-waiter-page="pedidos"><span>Pedidos</span></button>
+  <nav class="mobile-nav" aria-label="Navegação do garçom">
+    <button class="active" data-waiter-page="mesas" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Mesas</span>
+    </button>
+    <button data-waiter-page="cardapio" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M12 16v4M10 18h4"/></svg>
+      <span>Novo pedido</span>
+    </button>
+    <button data-waiter-page="pedidos" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10l2 3v14H5V7z"/><path d="M9 11h6M9 15h6"/></svg>
+      <span>Pedidos</span>
+      <b class="waiter-nav-badge" id="waiter-ready-nav-count" hidden>0</b>
+    </button>
   </nav>
 
   <button id="waiter-cart-summary" class="mobile-cart btn btn-primary" type="button" hidden>
@@ -125,7 +154,32 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/supabase.js"></script>
   <script>
-    (async()=>{const db=window.supabaseClient;const teamKey='fsdelivery_team';const maxAge=12*60*60*1000;let ownerSession=null;try{const result=await db.auth.getSession();ownerSession=result.data.session}catch(error){console.error('Falha ao validar sessão do proprietário:',error)}const team=JSON.parse(sessionStorage.getItem(teamKey)||'null');const validTeam=Boolean(team&&team.funcao==='garcom'&&team.estabelecimento_id&&team.authenticated_at&&Date.now()-Number(team.authenticated_at)<=maxAge);if(!ownerSession&&!validTeam){sessionStorage.removeItem(teamKey);location.replace('garcom.html');return}document.getElementById('waiter-logout').onclick=async()=>{sessionStorage.removeItem(teamKey);if(ownerSession){await db.auth.signOut()}location.replace('garcom.html')};const script=document.createElement('script');script.src='js/garcom.js';script.onerror=()=>{document.getElementById('waiter-store-status').textContent='Erro ao carregar';document.getElementById('waiter-store-status').className='status cancelado'};document.body.appendChild(script)})();
+    (async()=>{
+      const db=window.supabaseClient;
+      const teamKey='fsdelivery_team';
+      const maxAge=12*60*60*1000;
+      let ownerSession=null;
+      try{const result=await db.auth.getSession();ownerSession=result.data.session}catch(error){console.error('Falha ao validar sessão do proprietário:',error)}
+      const team=JSON.parse(sessionStorage.getItem(teamKey)||'null');
+      const validTeam=Boolean(team&&team.funcao==='garcom'&&team.estabelecimento_id&&team.authenticated_at&&Date.now()-Number(team.authenticated_at)<=maxAge);
+      if(!ownerSession&&!validTeam){sessionStorage.removeItem(teamKey);location.replace('garcom.html');return}
+      document.getElementById('waiter-logout').onclick=async()=>{sessionStorage.removeItem(teamKey);if(ownerSession){await db.auth.signOut()}location.replace('garcom.html')};
+      const script=document.createElement('script');
+      script.src='js/garcom.js';
+      script.onload=()=>{
+        const title=document.getElementById('waiter-page-title');
+        const readySource=document.getElementById('waiter-ready-count');
+        const readyBadge=document.getElementById('waiter-ready-nav-count');
+        const syncTitle=()=>{if(title.textContent==='Cardápio')title.textContent='Novo pedido'};
+        const syncReadyBadge=()=>{const count=Math.max(0,Number(readySource.textContent)||0);readyBadge.textContent=count>99?'99+':String(count);readyBadge.hidden=count===0};
+        new MutationObserver(syncTitle).observe(title,{childList:true,subtree:true,characterData:true});
+        new MutationObserver(syncReadyBadge).observe(readySource,{childList:true,subtree:true,characterData:true});
+        syncTitle();
+        syncReadyBadge();
+      };
+      script.onerror=()=>{document.getElementById('waiter-store-status').textContent='Erro ao carregar';document.getElementById('waiter-store-status').className='status cancelado'};
+      document.body.appendChild(script);
+    })();
   </script>
 </body>
 </html>
