@@ -1,1 +1,125 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#18120e"><meta name="apple-mobile-web-app-title" content="Cardápio"><meta name="application-name" content="Cardápio"><title>Cardápio</title><link rel="icon" href="icons/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="manifest" href="icons/cardapio.webmanifest"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/app-polish.css"></head><body class="app-body"><aside class="sidebar"><a class="brand" href="app.html"><span class="brand-mark">FS</span><span>Delivery</span></a><nav class="nav"><button onclick="location.href='app.html'">Painel</button><button class="active" data-waiter-page="pedidos">Pedidos</button><button data-waiter-page="cardapio">Cardápio</button></nav><div class="sidebar-footer"><small>Atendimento presencial</small><button class="btn btn-secondary btn-block" id="waiter-logout">Sair</button></div></aside><main class="main"><header class="topbar"><div><b>Cardápio</b></div><div class="topbar-actions"><span class="status pronto" id="waiter-store-status">Carregando</span></div></header><div class="content"><div class="toolbar waiter-main-tabs"><button class="btn btn-primary" type="button" data-waiter-page="pedidos">Pedidos</button><button class="btn btn-secondary" type="button" data-waiter-page="cardapio">Cardápio</button></div><section class="page active" id="waiter-page-pedidos"><div class="page-head"><div><h1>Pedidos</h1><p>Acompanhe todos os pedidos locais e on-line.</p></div></div><div class="toolbar waiter-order-tabs"><button class="btn btn-primary" type="button" data-order-scope="local">Local</button><button class="btn btn-secondary" type="button" data-order-scope="online">Online</button></div><div class="panel"><div id="waiter-orders" class="order-list"><div class="empty-state">Carregando pedidos...</div></div></div></section><section class="page" id="waiter-page-cardapio"><div class="page-head"><div><h1>Novo pedido</h1><p>Use o cardápio oficial da loja e escolha onde o pedido será atendido.</p></div></div><div class="grid-2"><section><div class="toolbar"><input class="search" id="waiter-search" placeholder="Buscar no cardápio..."><select class="search" id="waiter-category"><option value="">Todas as categorias</option></select></div><div class="panel"><div id="waiter-products" class="product-list"><div class="empty-state">Carregando cardápio...</div></div></div></section><aside class="panel waiter-order-panel"><div class="panel-head"><div><h2>Pedido</h2><p id="waiter-destination-label">Selecione o atendimento</p></div></div><div class="form-grid"><div class="field full"><label>Atendimento</label><select id="waiter-type"><option value="mesa">Mesa</option><option value="entrega">Entrega</option><option value="retirada">Retirada</option><option value="local">Vem comer</option></select></div><div class="field full" id="waiter-table-field"><label>Mesa</label><select id="waiter-table"></select></div><div class="field full"><label>Nome do cliente ou referência</label><input id="waiter-name" placeholder="Ex.: João ou Balcão 3"></div><div class="field full"><label>WhatsApp</label><input id="waiter-phone" inputmode="tel" placeholder="Opcional para mesa/local"></div><div class="field full" id="waiter-address-field" hidden><label>Endereço completo</label><textarea id="waiter-address" rows="3"></textarea></div><div class="field full"><label>Pagamento</label><select id="waiter-payment"><option>PIX</option><option>Cartão</option><option>Dinheiro</option><option>Pagamento no caixa</option></select></div><div class="field full"><label>Observações</label><textarea id="waiter-notes" rows="2"></textarea></div></div><div id="waiter-cart" class="order-list"></div><div class="cart-total"><span>Total</span><span id="waiter-total">R$ 0,00</span></div><button class="btn btn-primary btn-block" id="waiter-submit">Enviar pedido</button></aside></div></section></div></main><div class="modal" id="waiter-product-modal"><div class="modal-card"><div class="modal-head"><h2 id="waiter-product-title">Produto</h2><button class="icon-btn" data-close>×</button></div><p id="waiter-product-description"></p><div class="field"><label>Quantidade</label><div class="inline-actions"><button class="btn btn-secondary" id="waiter-minus" type="button">−</button><strong id="waiter-qty">1</strong><button class="btn btn-secondary" id="waiter-plus" type="button">+</button></div></div><div class="field"><label>Observação do item</label><textarea id="waiter-item-note" rows="3"></textarea></div><div class="actions"><button class="btn btn-secondary" data-close type="button">Cancelar</button><button class="btn btn-primary" id="waiter-add" type="button">Adicionar</button></div></div></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script><script src="js/supabase.js"></script><script>(async()=>{const db=window.supabaseClient;const teamKey='fsdelivery_team';const maxAge=12*60*60*1000;let ownerSession=null;try{const result=await db.auth.getSession();ownerSession=result.data.session}catch(error){console.error('Falha ao validar sessão do proprietário:',error)}const team=JSON.parse(sessionStorage.getItem(teamKey)||'null');const validTeam=Boolean(team&&team.funcao==='garcom'&&team.estabelecimento_id&&team.authenticated_at&&Date.now()-Number(team.authenticated_at)<=maxAge);if(!ownerSession&&!validTeam){sessionStorage.removeItem(teamKey);location.replace('garcom.html');return}document.getElementById('waiter-logout').onclick=async()=>{sessionStorage.removeItem(teamKey);if(ownerSession){await db.auth.signOut()}location.replace('garcom.html')};const script=document.createElement('script');script.src='js/garcom.js';script.onerror=()=>{document.getElementById('waiter-store-status').textContent='Erro ao carregar';document.getElementById('waiter-store-status').className='status cancelado'};document.body.appendChild(script)})();</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#18120e">
+  <meta name="apple-mobile-web-app-title" content="Garçom">
+  <meta name="application-name" content="Garçom">
+  <title>Atendimento — FS Delivery</title>
+  <link rel="icon" href="icons/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="icons/cardapio.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/app-polish.css">
+</head>
+<body class="app-body">
+  <aside class="sidebar">
+    <a class="brand" href="app.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
+    <nav class="nav">
+      <button class="active" data-waiter-page="mesas">Mesas</button>
+      <button data-waiter-page="cardapio">Cardápio</button>
+      <button data-waiter-page="pedidos">Pedidos</button>
+    </nav>
+    <div class="sidebar-footer">
+      <small>Atendimento presencial</small>
+      <button class="btn btn-secondary btn-block" id="waiter-logout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><b id="waiter-page-title">Mesas</b></div>
+      <div class="topbar-actions"><span class="status pronto" id="waiter-store-status">Carregando</span></div>
+    </header>
+
+    <div class="content">
+      <section class="page active" id="waiter-page-mesas">
+        <div class="page-head">
+          <div><h1>Mesas</h1><p>Selecione uma mesa para abrir ou continuar o atendimento.</p></div>
+          <button class="btn btn-secondary" type="button" id="waiter-refresh">Atualizar</button>
+        </div>
+        <div class="metrics">
+          <article class="metric"><small>Mesas livres</small><strong id="waiter-free-count">0</strong></article>
+          <article class="metric"><small>Em atendimento</small><strong id="waiter-busy-count">0</strong></article>
+          <article class="metric"><small>Pedidos em preparo</small><strong id="waiter-preparing-count">0</strong></article>
+          <article class="metric"><small>Prontos para servir</small><strong id="waiter-ready-count">0</strong></article>
+        </div>
+        <div id="waiter-tables-grid" class="operational-tables-grid"><div class="empty-state">Carregando mesas...</div></div>
+      </section>
+
+      <section class="page" id="waiter-page-cardapio">
+        <div class="page-head">
+          <div><h1 id="waiter-menu-title">Novo pedido</h1><p id="waiter-menu-subtitle">Selecione uma mesa ou outro tipo de atendimento.</p></div>
+          <button class="btn btn-secondary" type="button" id="waiter-back-tables">Voltar às mesas</button>
+        </div>
+        <div class="grid-2">
+          <section>
+            <div class="toolbar">
+              <input class="search" id="waiter-search" placeholder="Buscar no cardápio...">
+              <select class="search" id="waiter-category"><option value="">Todas as categorias</option></select>
+            </div>
+            <div class="panel"><div id="waiter-products" class="product-list"><div class="empty-state">Carregando cardápio...</div></div></div>
+          </section>
+          <aside class="panel waiter-order-panel">
+            <div class="panel-head"><div><h2>Pedido</h2><p id="waiter-destination-label">Selecione o atendimento</p></div></div>
+            <div class="form-grid">
+              <div class="field full"><label>Atendimento</label><select id="waiter-type"><option value="mesa">Mesa</option><option value="entrega">Entrega</option><option value="retirada">Retirada</option><option value="local">Comer no local</option></select></div>
+              <div class="field full" id="waiter-table-field"><label>Mesa</label><select id="waiter-table"></select></div>
+              <div class="field full"><label>Nome do cliente ou referência</label><input id="waiter-name" placeholder="Ex.: João ou Balcão 3"></div>
+              <div class="field full"><label>WhatsApp</label><input id="waiter-phone" inputmode="tel" placeholder="Opcional para mesa/local"></div>
+              <div class="field full" id="waiter-address-field" hidden><label>Endereço completo</label><textarea id="waiter-address" rows="3"></textarea></div>
+              <div class="field full"><label>Pagamento</label><select id="waiter-payment"><option>PIX</option><option>Cartão</option><option>Dinheiro</option><option>Pagamento no caixa</option></select></div>
+              <div class="field full"><label>Observações</label><textarea id="waiter-notes" rows="2"></textarea></div>
+            </div>
+            <div id="waiter-cart" class="order-list"></div>
+            <div class="cart-total"><span>Total</span><span id="waiter-total">R$ 0,00</span></div>
+            <button class="btn btn-primary btn-block" id="waiter-submit">Enviar para cozinha</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="waiter-page-pedidos">
+        <div class="page-head"><div><h1>Pedidos</h1><p>Acompanhe produção, pedidos prontos e atendimentos finalizados.</p></div></div>
+        <div class="toolbar waiter-order-tabs">
+          <button class="btn btn-primary" type="button" data-order-scope="local">Local</button>
+          <button class="btn btn-secondary" type="button" data-order-scope="online">On-line</button>
+        </div>
+        <div class="order-status-tabs">
+          <button class="active" type="button" data-status-filter="ativos">Ativos <b id="waiter-active-count">0</b></button>
+          <button type="button" data-status-filter="preparo">Em preparo <b id="waiter-prep-count">0</b></button>
+          <button type="button" data-status-filter="pronto">Prontos <b id="waiter-done-count">0</b></button>
+          <button type="button" data-status-filter="finalizados">Finalizados</button>
+        </div>
+        <div class="panel"><div id="waiter-orders" class="orders-active-list"><div class="empty-state">Carregando pedidos...</div></div></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="mobile-nav">
+    <button class="active" data-waiter-page="mesas"><span>Mesas</span></button>
+    <button data-waiter-page="cardapio"><span>Cardápio</span></button>
+    <button data-waiter-page="pedidos"><span>Pedidos</span></button>
+  </nav>
+
+  <div class="modal" id="waiter-product-modal">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="waiter-product-title">Produto</h2><button class="icon-btn" data-close>×</button></div>
+      <p id="waiter-product-description"></p>
+      <div class="field"><label>Quantidade</label><div class="inline-actions"><button class="btn btn-secondary" id="waiter-minus" type="button">−</button><strong id="waiter-qty">1</strong><button class="btn btn-secondary" id="waiter-plus" type="button">+</button></div></div>
+      <div class="field"><label>Observação do item</label><textarea id="waiter-item-note" rows="3"></textarea></div>
+      <div class="actions"><button class="btn btn-secondary" data-close type="button">Cancelar</button><button class="btn btn-primary" id="waiter-add" type="button">Adicionar</button></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    (async()=>{const db=window.supabaseClient;const teamKey='fsdelivery_team';const maxAge=12*60*60*1000;let ownerSession=null;try{const result=await db.auth.getSession();ownerSession=result.data.session}catch(error){console.error('Falha ao validar sessão do proprietário:',error)}const team=JSON.parse(sessionStorage.getItem(teamKey)||'null');const validTeam=Boolean(team&&team.funcao==='garcom'&&team.estabelecimento_id&&team.authenticated_at&&Date.now()-Number(team.authenticated_at)<=maxAge);if(!ownerSession&&!validTeam){sessionStorage.removeItem(teamKey);location.replace('garcom.html');return}document.getElementById('waiter-logout').onclick=async()=>{sessionStorage.removeItem(teamKey);if(ownerSession){await db.auth.signOut()}location.replace('garcom.html')};const script=document.createElement('script');script.src='js/garcom.js';script.onerror=()=>{document.getElementById('waiter-store-status').textContent='Erro ao carregar';document.getElementById('waiter-store-status').className='status cancelado'};document.body.appendChild(script)})();
+  </script>
+</body>
+</html>
