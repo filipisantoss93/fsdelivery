@@ -2,92 +2,138 @@
 
 ## Objetivo
 
-Revisar as páginas HTML do FS Delivery para eliminar informações duplicadas, reduzir ruído visual e priorizar dados operacionais relevantes.
+Revisar as páginas HTML do FS Delivery para eliminar informações duplicadas, reduzir ruído visual e priorizar dados operacionais relevantes sem quebrar os fluxos atuais.
+
+## Situação da implementação
+
+A auditoria passou a ser executada na branch `auditoria-html-redundancias-v2`, criada diretamente da versão atual da `main`.
+
+A branch anterior não deve ser mesclada porque ficou divergente em relação ao projeto.
+
+### Concluído nesta branch
+
+- [x] Separar a navegação da lógica de notificações.
+- [x] Manter `js/notifications.js` responsável somente pelo sino e pela lista de notificações.
+- [x] Criar `js/navigation.js` como fonte única para a navegação principal.
+- [x] Carregar a navegação compartilhada pelo arquivo global `js/supabase.js`.
+- [x] Remover visualmente o acesso duplicado de configurações no cabeçalho.
+- [x] Corrigir o nome do acesso para `garcom.html` de **Cardápio** para **Novo pedido**.
 
 ## Página inicial
 
 ### Problemas identificados
 
-1. **Faturamento** e **Vendas no mês** são exibidos na mesma tela sem deixar claro o período considerado em cada indicador.
-2. **Pedidos hoje** e **Pedidos em preparo** são métricas válidas, mas estão distribuídas em blocos diferentes.
-3. **Clientes** possui baixa relevância operacional na página inicial e pode ficar restrito à área de clientes ou relatórios.
-4. O bloco **Resumo rápido** repete informações já apresentadas nos cards superiores.
-5. **Produtos ativos** não precisa ocupar espaço permanente na tela inicial quando não existe problema no cardápio.
-6. O acesso **Config** aparece no cabeçalho e novamente na navegação inferior.
-7. O status da loja é representado apenas por um interruptor, sem texto explicando o estado atual.
-8. O card **Pedidos recentes** ocupa uma área grande mesmo quando não existem pedidos.
+1. As métricas da página inicial ainda são calculadas em `js/app.js` usando todo o histórico de pedidos, embora os rótulos indiquem período diário.
+2. O JavaScript ainda depende de elementos ocultos ou seções antigas para executar sem erros.
+3. As áreas de Cardápio, Clientes, Financeiro e Configurações permanecem incorporadas em `app.html`, mesmo com páginas dedicadas para parte dessas funções.
+4. `setupAccount()` ainda inicializa a antiga seção interna de configurações.
+5. `render()` ainda executa `renderProducts()`, `renderCustomers()` e `renderFinance()` em toda atualização da página inicial.
+6. O botão **Novo pedido** gerado na página de pedidos direciona para `cardapio.html`, enquanto o fluxo interno atual utiliza `garcom.html`.
+7. O status da loja depende de um observador inline em `app.html`, além da função `setupLabels()` existente em `app.js`.
+8. A navegação antiga ainda permanece escrita no HTML e é substituída em tempo de execução por `navigation.js`.
 
 ## Correções recomendadas
 
-### 1. Consolidar os indicadores principais
+### 1. Tornar `app.js` tolerante a componentes opcionais
 
-Manter apenas quatro cards na parte superior:
+Antes de remover seções antigas do HTML, todas as funções devem verificar se seus elementos existem.
 
-- **Pedidos hoje**
-- **Em preparo**
-- **Vendas hoje**
-- **Ticket médio hoje**
+Funções prioritárias:
 
-Todos os indicadores devem utilizar o mesmo período de referência para evitar ambiguidade.
+- `renderProducts()`;
+- `renderCustomers()`;
+- `renderFinance()`;
+- `setupAccount()`;
+- `saveSettings()`;
+- `bindActions()`;
+- `setupLabels()`.
 
-### 2. Remover o bloco "Resumo rápido"
+Nenhuma função deve interromper a inicialização da página por ausência de um componente que não pertence mais ao painel principal.
 
-O bloco deve ser removido da página inicial porque repete métricas já exibidas nos indicadores principais.
+### 2. Corrigir as métricas diárias
 
-Informações como **Produtos ativos** devem aparecer somente como alerta contextual, por exemplo:
+Manter quatro indicadores:
 
-> Nenhum produto ativo no cardápio.
+- **Pedidos hoje**;
+- **Em preparo**;
+- **Vendas hoje**;
+- **Ticket médio hoje**.
 
-### 3. Ajustar "Pedidos recentes"
+Regras:
 
-Quando não houver pedidos, exibir um estado vazio útil:
+- considerar somente pedidos criados no dia local atual;
+- excluir pedidos cancelados;
+- calcular o ticket médio sobre os pedidos válidos do dia;
+- manter **Em preparo** como quantidade operacional do dia.
 
-> Nenhum pedido recebido hoje.
+### 3. Remover seções órfãs de `app.html`
 
-Adicionar uma ação contextual:
+Após o endurecimento do JavaScript, remover do painel principal:
 
-- **Criar pedido**
+- seção interna de Cardápio;
+- seção interna de Clientes;
+- seção interna de Financeiro;
+- seção interna de Configurações;
+- modal de produto, quando não houver mais uso no painel;
+- elementos ocultos usados apenas como compatibilidade.
 
-Manter o botão **Ver todos** direcionando para a página de pedidos.
+As páginas dedicadas devem permanecer como fonte única para essas operações.
 
-### 4. Corrigir o cabeçalho
+### 4. Consolidar o status da loja
 
-O cabeçalho deve conter:
+A função `setupLabels()` deve atualizar diretamente:
 
-- título **Início**;
-- status textual **Loja aberta** ou **Loja fechada**;
-- interruptor de alteração do status;
-- sino de notificações.
+- texto **Loja aberta** ou **Loja fechada**;
+- classe visual do status;
+- `aria-label`;
+- controle de abertura e fechamento, quando existente.
 
-Remover o botão grande **Config** do cabeçalho, pois a configuração já está disponível na barra de navegação inferior.
+Depois disso, remover o `MutationObserver` inline de `app.html`.
 
-### 5. Reposicionar a métrica de clientes
+### 5. Consolidar a navegação no HTML
 
-Remover o card **Clientes** da página inicial.
+O HTML não deve manter um menu completo que será descartado e recriado pelo JavaScript.
 
-A quantidade total de clientes pode ser exibida em:
+A solução final deve utilizar uma destas estratégias:
 
-- página de clientes;
-- relatórios;
-- painel administrativo detalhado.
+1. marcação mínima com `data-fs-navigation`, preenchida por `navigation.js`; ou
+2. navegação HTML definitiva, com `navigation.js` responsável apenas pelo estado ativo.
 
-## Estrutura final esperada
+A primeira opção reduz duplicidade entre páginas e é a recomendada para o padrão atual.
 
-1. Cabeçalho com título, status da loja e notificações.
-2. Quatro indicadores operacionais.
-3. Lista de pedidos recentes.
-4. Alertas contextuais somente quando houver pendências.
-5. Navegação inferior sem ações duplicadas no cabeçalho.
+### 6. Corrigir o fluxo de novo pedido
+
+Todos os acessos internos para criação de pedidos devem apontar para:
+
+`garcom.html`
+
+O arquivo `cardapio.html` não deve ser usado como destino interno sem que sua finalidade esteja definida e validada.
+
+## Ordem segura de execução
+
+1. Endurecer `app.js` para elementos opcionais.
+2. Corrigir métricas e estado vazio da página inicial.
+3. Corrigir o destino do botão **Novo pedido**.
+4. Consolidar o status da loja em `setupLabels()`.
+5. Remover seções órfãs e marcações antigas de `app.html`.
+6. Validar Início, Pedidos, Novo pedido, Caixa, Mesas e Configurações.
+7. Comparar a branch com a `main` antes do merge.
+8. Fazer um único merge final para reduzir deploys de produção.
 
 ## Critérios de aceite
 
-- [ ] Não existe duplicidade de acesso à página de configurações.
-- [ ] O status da loja possui texto explícito.
-- [ ] O bloco **Resumo rápido** foi removido.
-- [ ] As métricas financeiras indicam claramente o período.
-- [ ] O card **Clientes** não aparece na página inicial.
+- [x] A navegação não está mais implementada dentro de `notifications.js`.
+- [x] Existe uma fonte compartilhada para a navegação principal.
+- [x] O acesso duplicado de configurações no cabeçalho fica oculto.
+- [x] O acesso a `garcom.html` possui nome operacional correto.
+- [ ] As métricas financeiras usam claramente o período diário.
+- [ ] Pedidos cancelados não entram nos indicadores.
 - [ ] O estado vazio de pedidos recentes apresenta mensagem e ação útil.
+- [ ] `app.js` funciona sem seções internas de Cardápio, Clientes, Financeiro e Configurações.
+- [ ] O status textual da loja é controlado por uma única implementação.
+- [ ] A navegação antiga não permanece duplicada no HTML.
+- [ ] O botão **Novo pedido** direciona para `garcom.html`.
 - [ ] A página inicial fica mais curta e focada na operação diária.
 - [ ] O padrão visual consolidado do FS Delivery é preservado.
 - [ ] Nenhum arquivo CSS adicional ou regra de override é criado.
-- [ ] As alterações reutilizam os componentes, fontes de dados e estilos existentes.
+- [ ] As alterações reutilizam componentes, fontes de dados e estilos existentes.
