@@ -32,10 +32,15 @@ window.supabaseClient=window.supabase.createClient(
   document.head.appendChild(element);
 });
 
-if(!document.querySelector('link[data-fs-admin-mobile-nav]')){
-  const navStyle=document.createElement('link');
-  navStyle.rel='stylesheet';
-  navStyle.href='css/admin-mobile-nav.css';
-  navStyle.dataset.fsAdminMobileNav='true';
-  document.head.appendChild(navStyle);
-}
+[
+  ['css/admin-mobile-nav.css','fsAdminMobileNav'],
+  ['css/mobile-density.css','fsMobileDensity']
+].forEach(([href,key])=>{
+  const selector=`link[data-${key.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`)}]`;
+  if(document.querySelector(selector))return;
+  const style=document.createElement('link');
+  style.rel='stylesheet';
+  style.href=href;
+  style.dataset[key]='true';
+  document.head.appendChild(style);
+});
