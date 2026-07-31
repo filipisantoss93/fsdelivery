@@ -1,191 +1,29 @@
-const db = window.supabaseClient;
-const TEAM_SESSION_KEY = 'fsdelivery_team';
-const SESSION_MAX_AGE = 12 * 60 * 60 * 1000;
-const LOGIN_PAGE = 'entrega.html';
-const REFRESH_INTERVAL = 20000;
-
-const money = value => new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL'
-}).format(Number(value) || 0);
-
-function readSession() {
-  try {
-    return JSON.parse(sessionStorage.getItem(TEAM_SESSION_KEY) || 'null');
-  } catch (error) {
-    console.error('Sessão da equipe inválida:', error);
-    return null;
-  }
-}
-
-function isValidDeliverySession(value) {
-  if (!value || value.funcao !== 'entregador') return false;
-  if (!value.estabelecimento_id || !value.slug || !value.phone || !value.pin) return false;
-
-  const authenticatedAt = Number(value.authenticated_at || 0);
-  return authenticatedAt > 0 && Date.now() - authenticatedAt <= SESSION_MAX_AGE;
-}
-
-function clearSessionAndRedirect() {
-  sessionStorage.removeItem(TEAM_SESSION_KEY);
-  location.replace(LOGIN_PAGE);
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-function normalizePhone(value) {
-  return String(value || '').replace(/\D/g, '');
-}
-
-function getAddress(order) {
-  const address = order?.endereco_entrega;
-  if (!address) return 'Endereço não informado';
-  if (typeof address === 'string') return address;
-
-  return [
-    address.endereco,
-    address.numero,
-    address.complemento,
-    address.bairro,
-    address.cidade,
-    address.referencia
-  ].filter(Boolean).join(', ') || 'Endereço não informado';
-}
-
-function friendlyError(error) {
-  console.error(error);
-  return 'Não foi possível atualizar as entregas. Verifique sua conexão e tente novamente.';
-}
-
-const session = readSession();
-if (!isValidDeliverySession(session)) {
-  clearSessionAndRedirect();
-  throw new Error('Sessão de entregador ausente, inválida ou expirada.');
-}
-
-const userLabel = document.getElementById('delivery-user');
-const logoutButton = document.getElementById('delivery-logout');
-const orderList = document.getElementById('delivery-orders');
-
-userLabel.textContent = `${session.nome || 'Entregador'} • Entregador`;
-logoutButton.onclick = clearSessionAndRedirect;
-
-let loading = false;
-let refreshTimer = null;
-
-function renderOrders(orders) {
-  if (!orders.length) {
-    orderList.innerHTML = '<div class="empty-state">Nenhuma entrega disponível.</div>';
-    return;
-  }
-
-  orderList.innerHTML = orders.map(order => {
-    const phone = normalizePhone(order.cliente_telefone);
-    const address = getAddress(order);
-    const nextStatus = order.status === 'pronto' ? 'saiu_entrega' : 'entregue';
-    const actionLabel = order.status === 'pronto' ? 'Iniciar entrega' : 'Marcar entregue';
-    const statusLabel = order.status === 'pronto' ? 'Pronto para sair' : 'Em entrega';
-    const phoneLink = phone
-      ? `<a class="link-button" href="tel:+55${phone}">Ligar</a>`
-      : '';
-    const routeLink = address !== 'Endereço não informado'
-      ? `<a class="link-button" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" target="_blank" rel="noopener noreferrer">Abrir rota</a>`
-      : '';
-
-    return `<article class="order-card">
-      <div class="order-main">
-        <b>#${escapeHtml(order.id)} • ${escapeHtml(order.cliente_nome || 'Cliente')}</b>
-        <small>${escapeHtml(order.cliente_telefone || 'Telefone não informado')} • ${escapeHtml(address)}</small>
-        <div class="inline-actions">${phoneLink}${routeLink}</div>
-      </div>
-      <div>
-        <span class="status ${escapeHtml(order.status)}">${statusLabel}</span>
-        <b style="display:block;margin-top:7px">${money(order.total)}</b>
-      </div>
-      <button class="btn btn-primary" data-delivery="${escapeHtml(order.id)}" data-status="${nextStatus}">${actionLabel}</button>
-    </article>`;
-  }).join('');
-
-  orderList.querySelectorAll('[data-delivery]').forEach(button => {
-    button.onclick = () => updateDelivery(button);
-  });
-}
-
-async function updateDelivery(button) {
-  const nextStatus = button.dataset.status;
-  const confirmationMessage = nextStatus === 'entregue'
-    ? 'Confirmar que este pedido foi entregue ao cliente?'
-    : 'Confirmar o início desta entrega?';
-
-  if (!window.confirm(confirmationMessage)) return;
-
-  button.disabled = true;
-  const originalText = button.textContent;
-  button.textContent = 'Atualizando...';
-
-  const { error } = await db.rpc('atualizar_entrega_equipe', {
-    p_slug: session.slug,
-    p_telefone: session.phone,
-    p_pin: session.pin,
-    p_pedido: Number(button.dataset.delivery),
-    p_status: nextStatus
-  });
-
-  if (error) {
-    alert(friendlyError(error));
-    button.disabled = false;
-    button.textContent = originalText;
-    return;
-  }
-
-  await loadDeliveries();
-}
-
-async function loadDeliveries() {
-  if (loading) return;
-  if (!isValidDeliverySession(readSession())) {
-    clearSessionAndRedirect();
-    return;
-  }
-
-  loading = true;
-  try {
-    const { data, error } = await db.rpc('listar_entregas_equipe', {
-      p_slug: session.slug,
-      p_telefone: session.phone,
-      p_pin: session.pin
-    });
-
-    if (error) throw error;
-    renderOrders(data || []);
-  } catch (error) {
-    orderList.innerHTML = `<div class="empty-state">${friendlyError(error)}</div>`;
-  } finally {
-    loading = false;
-  }
-}
-
-function scheduleRefresh() {
-  clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => {
-    if (document.visibilityState === 'visible') loadDeliveries();
-  }, REFRESH_INTERVAL);
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') loadDeliveries();
-});
-
-window.addEventListener('pageshow', () => {
-  if (!isValidDeliverySession(readSession())) clearSessionAndRedirect();
-});
-
-loadDeliveries();
-scheduleRefresh();
+const db=window.supabaseClient;
+const TEAM_SESSION_KEY='fsdelivery_team';
+const SESSION_MAX_AGE=12*60*60*1000;
+const LOGIN_PAGE='entrega.html';
+const REFRESH_INTERVAL=20000;
+const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
+const readSession=()=>{try{return JSON.parse(sessionStorage.getItem(TEAM_SESSION_KEY)||'null')}catch(error){console.error('Sessão inválida',error);return null}};
+const validSession=value=>value?.funcao==='entregador'&&value.estabelecimento_id&&value.slug&&value.phone&&value.pin&&Date.now()-Number(value.authenticated_at||0)<=SESSION_MAX_AGE;
+const logout=()=>{sessionStorage.removeItem(TEAM_SESSION_KEY);location.replace(LOGIN_PAGE)};
+const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+const normalizePhone=value=>String(value||'').replace(/\D/g,'');
+function addressOf(order){const value=order?.endereco_entrega;if(!value)return'Endereço não informado';if(typeof value==='string')return value;return[value.endereco,value.numero,value.complemento,value.bairro,value.cidade,value.referencia].filter(Boolean).join(', ')||'Endereço não informado'}
+function coordsOf(order){const lat=Number(order.latitude??order.endereco_entrega?.latitude);const lng=Number(order.longitude??order.endereco_entrega?.longitude);return Number.isFinite(lat)&&Number.isFinite(lng)?{lat,lng}:null}
+function distance(a,b){const r=6371,toRad=v=>v*Math.PI/180;const dLat=toRad(b.lat-a.lat),dLng=toRad(b.lng-a.lng);const x=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;return 2*r*Math.asin(Math.sqrt(x))}
+function optimize(orders,start){const pending=[...orders],result=[];let current=start||coordsOf(pending[0]);while(pending.length){let index=0;if(current){let best=Infinity;pending.forEach((item,i)=>{const c=coordsOf(item);if(!c)return;const d=distance(current,c);if(d<best){best=d;index=i}})}const[next]=pending.splice(index,1);result.push(next);current=coordsOf(next)||current}return result}
+function friendlyError(error){console.error(error);return'Não foi possível atualizar as entregas. Verifique sua conexão e tente novamente.'}
+const session=readSession();if(!validSession(session)){logout();throw new Error('Sessão de entregador ausente, inválida ou expirada.')}
+const userLabel=document.getElementById('delivery-user');const logoutButton=document.getElementById('delivery-logout');const orderList=document.getElementById('delivery-orders');const pendingCount=document.getElementById('delivery-pending');const activeCount=document.getElementById('delivery-active');const routeButton=document.getElementById('delivery-route');const refreshButton=document.getElementById('delivery-refresh');const locationButton=document.getElementById('delivery-location');
+userLabel.textContent=`${session.nome||'Entregador'} • Entregador`;logoutButton.onclick=logout;
+let loading=false,refreshTimer=null,currentOrders=[],currentPosition=null,watchId=null;
+function mapsDestination(order){const c=coordsOf(order);return c?`${c.lat},${c.lng}`:addressOf(order)}
+function openSingleRoute(order){window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapsDestination(order))}&travelmode=driving`,'_blank','noopener')}
+function openFullRoute(){if(!currentOrders.length)return alert('Nenhuma entrega pendente.');const ordered=optimize(currentOrders,currentPosition);const points=ordered.map(mapsDestination).filter(Boolean);const destination=points.pop();const origin=currentPosition?`${currentPosition.lat},${currentPosition.lng}`:'';const params=new URLSearchParams({api:'1',destination,travelmode:'driving'});if(origin)params.set('origin',origin);if(points.length)params.set('waypoints',points.slice(0,8).join('|'));window.open(`https://www.google.com/maps/dir/?${params}`,'_blank','noopener')}
+function renderOrders(orders){currentOrders=optimize(orders,currentPosition);pendingCount.textContent=String(currentOrders.filter(o=>o.status==='pronto').length);activeCount.textContent=String(currentOrders.filter(o=>o.status==='saiu_entrega').length);routeButton.disabled=!currentOrders.length;if(!currentOrders.length){orderList.innerHTML='<div class="empty-state">Nenhuma entrega disponível.</div>';return}orderList.innerHTML=currentOrders.map((order,index)=>{const phone=normalizePhone(order.cliente_telefone),address=addressOf(order),nextStatus=order.status==='pronto'?'saiu_entrega':'entregue',actionLabel=order.status==='pronto'?'Iniciar entrega':'Confirmar entrega',statusLabel=order.status==='pronto'?'Pronto para sair':'Em rota';return `<article class="order-card"><span class="delivery-route-index">${index+1}</span><div class="order-main"><b>#${escapeHtml(order.id)} • ${escapeHtml(order.cliente_nome||'Cliente')}</b><small class="delivery-address">${escapeHtml(address)}</small><div class="delivery-meta"><span>${escapeHtml(order.cliente_telefone||'Sem telefone')}</span><span>${money(order.total)}</span><span>${statusLabel}</span></div><div class="delivery-actions">${phone?`<a class="btn btn-secondary" href="tel:+55${phone}">Ligar</a>`:''}<button class="btn btn-secondary" data-map="${escapeHtml(order.id)}">Navegar</button><button class="btn btn-primary" data-delivery="${escapeHtml(order.id)}" data-status="${nextStatus}">${actionLabel}</button></div></div></article>`}).join('');orderList.querySelectorAll('[data-map]').forEach(button=>button.onclick=()=>openSingleRoute(currentOrders.find(order=>String(order.id)===button.dataset.map)));orderList.querySelectorAll('[data-delivery]').forEach(button=>button.onclick=()=>updateDelivery(button))}
+async function updateDelivery(button){const nextStatus=button.dataset.status;const message=nextStatus==='entregue'?'Confirma que o pedido foi entregue ao cliente? Esta ação registra a conclusão.':'Confirmar saída para entrega?';if(!confirm(message))return;button.disabled=true;const label=button.textContent;button.textContent='Atualizando...';const{error}=await db.rpc('atualizar_entrega_equipe',{p_slug:session.slug,p_telefone:session.phone,p_pin:session.pin,p_pedido:Number(button.dataset.delivery),p_status:nextStatus});if(error){alert(friendlyError(error));button.disabled=false;button.textContent=label;return}await loadDeliveries()}
+async function loadDeliveries(){if(loading)return;if(!validSession(readSession()))return logout();loading=true;try{const{data,error}=await db.rpc('listar_entregas_equipe',{p_slug:session.slug,p_telefone:session.phone,p_pin:session.pin});if(error)throw error;renderOrders(data||[])}catch(error){orderList.innerHTML=`<div class="empty-state">${friendlyError(error)}</div>`}finally{loading=false}}
+async function sendLocation(position){currentPosition={lat:position.coords.latitude,lng:position.coords.longitude};locationButton.textContent='Localização ativa';locationButton.classList.add('delivery-location-active');renderOrders(currentOrders);try{await db.rpc('registrar_localizacao_entregador',{p_slug:session.slug,p_telefone:session.phone,p_pin:session.pin,p_latitude:currentPosition.lat,p_longitude:currentPosition.lng})}catch(error){console.warn('Localização disponível apenas neste aparelho.',error)}}
+function toggleLocation(){if(!navigator.geolocation)return alert('Localização não disponível neste aparelho.');if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;locationButton.textContent='Ativar localização';locationButton.classList.remove('delivery-location-active');return}watchId=navigator.geolocation.watchPosition(sendLocation,error=>{console.error(error);alert('Permita o acesso à localização para ordenar a rota a partir da sua posição.')},{enableHighAccuracy:true,maximumAge:15000,timeout:12000})}
+routeButton.onclick=openFullRoute;refreshButton.onclick=loadDeliveries;locationButton.onclick=toggleLocation;document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadDeliveries()});window.addEventListener('pageshow',()=>{if(!validSession(readSession()))logout()});refreshTimer=setInterval(()=>{if(document.visibilityState==='visible')loadDeliveries()},REFRESH_INTERVAL);loadDeliveries();
