@@ -1,0 +1,40 @@
+@media(max-width:760px){
+  .app-body .content{padding:18px 16px calc(88px + env(safe-area-inset-bottom))}
+  .app-body .topbar{min-height:64px;padding:0 16px}
+  .app-body .topbar>b,.app-body .topbar>div>b{font-size:16px}
+  .app-body .page-head{gap:14px;margin-bottom:18px}
+  .app-body .page-head h1{font-size:30px;line-height:1.08}
+  .app-body .page-head p{margin-top:8px;font-size:15px;line-height:1.45}
+  .app-body .page-head>.btn,.app-body .page-head>button{width:100%;min-height:48px}
+  .app-body .metrics{gap:10px!important}
+  .app-body .metrics .metric{min-height:118px!important;padding:14px!important}
+  .app-body .metrics .metric small{font-size:12px!important}
+  .app-body .metrics .metric strong{font-size:23px!important}
+  .config-body .config-groups{gap:12px}
+  .config-body .config-group{padding:14px;border-radius:12px}
+  .config-body .config-group-head{margin-bottom:10px}
+  .config-body .config-group-head h2{font-size:17px}
+  .config-body .config-group-head p{font-size:12px;line-height:1.4}
+  .config-body .config-group .config-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+  .config-body .config-shortcut{min-height:112px!important;padding:12px!important;gap:10px!important}
+  .config-body .config-shortcut span{font-size:14px!important;line-height:1.25}
+  .config-body .config-shortcut small{font-size:11px;line-height:1.35}
+  .operation-alerts{margin-bottom:14px}
+  .operation-alert{min-height:104px;align-items:flex-start;flex-direction:column;padding:12px!important}
+  .operation-alert strong{font-size:13px}
+  .operation-alert small{font-size:11px;line-height:1.35}
+  .operation-alert b{align-self:flex-end;font-size:20px}
+  .panel{padding:14px}
+  .panel-head{gap:10px}
+  .panel-head h2{font-size:18px}
+  .table-map-tools{display:grid!important;grid-template-columns:1fr 1fr;width:100%}
+  .table-map-tools .search,.table-map-tools .btn{width:100%;min-width:0!important}
+  .operational-tables-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+  .operational-table-card{min-height:142px;padding:14px}
+  .operational-table-card strong{font-size:18px}
+  .operational-table-card small{font-size:10px}
+}
+@media(max-width:360px){
+  .config-body .config-group .config-shortcuts{grid-template-columns:1fr!important}
+  .operational-tables-grid{grid-template-columns:1fr!important}
+}
