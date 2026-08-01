@@ -24,7 +24,8 @@ window.supabaseClient=window.supabase.createClient(
   ['script','js/pull-to-refresh.js','fsPullRefresh'],
   ['script','js/admin-mobile-nav.js','fsAdminMobileNav'],
   ['script','js/config-modal-bootstrap.js','fsConfigModalBootstrap'],
-  ['script','js/subscription-entry.js','fsSubscriptionEntry']
+  ['script','js/subscription-entry.js','fsSubscriptionEntry'],
+  ['script','js/assinatura-complemento.js','fsSubscriptionGuards']
 ].forEach(([tag,src,key])=>{
   if(document.querySelector(`${tag}[data-${key.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`)}]`))return;
   const element=document.createElement(tag);
