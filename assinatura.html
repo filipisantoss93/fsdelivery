@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#18120e">
+  <title>Assinatura — FS Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/app-polish.css">
+  <link rel="stylesheet" href="css/assinatura.css">
+</head>
+<body class="app-body subscription-body">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
+    <nav class="nav" aria-label="Navegação principal">
+      <button type="button" onclick="location.href='app.html'">Início</button>
+      <button type="button" onclick="location.href='app.html#pedidos'">Pedidos</button>
+      <button type="button" onclick="location.href='caixa.html'">Caixa</button>
+      <button type="button" onclick="location.href='mesas-operacao.html'">Mesas</button>
+      <button type="button" onclick="location.href='configuracoes.html'">Configurações</button>
+      <button class="active" type="button">Assinatura</button>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><b>Plano e assinatura</b></div>
+      <a class="btn btn-secondary" href="configuracoes.html#plano-config">Voltar às configurações</a>
+    </header>
+
+    <div class="content subscription-shell">
+      <div class="page-head">
+        <div>
+          <h1>Assinatura do FS Delivery</h1>
+          <p>Gerencie acesso, renovação, PIX e cartão com confirmação automática pela Efí.</p>
+        </div>
+      </div>
+
+      <div id="subscription-feedback" class="feedback" hidden role="status" aria-live="polite"></div>
+
+      <section class="panel subscription-current">
+        <div class="panel-head">
+          <div>
+            <h2>Assinatura atual</h2>
+            <p id="subscription-current-description">Carregando situação da conta...</p>
+          </div>
+          <span id="subscription-current-status" class="status">Carregando</span>
+        </div>
+        <div class="subscription-summary">
+          <div><small>Plano</small><strong id="subscription-current-plan">—</strong></div>
+          <div><small>Forma de pagamento</small><strong id="subscription-current-method">—</strong></div>
+          <div><small>Acesso válido até</small><strong id="subscription-current-validity">—</strong></div>
+          <div><small>Renovação</small><strong id="subscription-current-renewal">—</strong></div>
+        </div>
+        <div class="inline-actions subscription-current-actions">
+          <button class="btn btn-secondary" id="update-card-button" type="button" hidden>Atualizar cartão</button>
+          <button class="btn btn-danger" id="cancel-subscription-button" type="button" hidden>Cancelar renovação</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Escolha o período</h2>
+            <p>PIX libera o período contratado após a confirmação. Cartão renova mensalmente.</p>
+          </div>
+        </div>
+        <div id="subscription-plans" class="subscription-plan-grid">
+          <div class="empty-state">Carregando planos...</div>
+        </div>
+      </section>
+
+      <section class="panel subscription-checkout" id="pix-checkout" hidden>
+        <div class="panel-head">
+          <div>
+            <h2>Pagamento por PIX</h2>
+            <p>O acesso será ativado automaticamente após a confirmação bancária.</p>
+          </div>
+          <button class="icon-btn" id="close-pix-checkout" type="button" aria-label="Fechar">×</button>
+        </div>
+        <div class="pix-checkout-grid">
+          <div class="pix-qr-wrap">
+            <img id="pix-qr-image" alt="QR Code PIX" hidden>
+            <div id="pix-qr-placeholder" class="empty-state">Gerando QR Code...</div>
+          </div>
+          <div>
+            <div class="row-card"><span>Plano</span><b id="pix-plan-name">—</b></div>
+            <div class="row-card"><span>Valor</span><b id="pix-plan-value">—</b></div>
+            <div class="row-card"><span>Vencimento</span><b id="pix-expiration">—</b></div>
+            <div class="field">
+              <label for="pix-copy-code">PIX Copia e Cola</label>
+              <textarea id="pix-copy-code" rows="5" readonly></textarea>
+            </div>
+            <div class="inline-actions">
+              <button class="btn btn-primary" id="copy-pix-button" type="button">Copiar código PIX</button>
+              <button class="btn btn-secondary" id="verify-pix-button" type="button">Verificar pagamento</button>
+            </div>
+            <p class="subscription-note" id="pix-status-text">Aguardando pagamento...</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel subscription-checkout" id="card-checkout" hidden>
+        <div class="panel-head">
+          <div>
+            <h2 id="card-checkout-title">Assinar com cartão</h2>
+            <p>Os dados do cartão são tokenizados no navegador e não são armazenados pelo FS Delivery.</p>
+          </div>
+          <button class="icon-btn" id="close-card-checkout" type="button" aria-label="Fechar">×</button>
+        </div>
+        <form id="card-subscription-form">
+          <input id="card-plan-id" type="hidden">
+          <input id="card-update-mode" type="hidden" value="create">
+          <div class="subscription-form-section">
+            <h3>Dados do cartão</h3>
+            <div class="form-grid">
+              <div class="field full"><label for="card-holder-name">Nome impresso no cartão</label><input id="card-holder-name" autocomplete="cc-name" required></div>
+              <div class="field full"><label for="card-number">Número do cartão</label><input id="card-number" inputmode="numeric" autocomplete="cc-number" maxlength="23" required></div>
+              <div class="field"><label for="card-expiration-month">Mês</label><input id="card-expiration-month" inputmode="numeric" autocomplete="cc-exp-month" maxlength="2" placeholder="MM" required></div>
+              <div class="field"><label for="card-expiration-year">Ano</label><input id="card-expiration-year" inputmode="numeric" autocomplete="cc-exp-year" maxlength="4" placeholder="AAAA" required></div>
+              <div class="field"><label for="card-cvv">CVV</label><input id="card-cvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" required></div>
+              <div class="field"><label for="card-holder-document">CPF do titular</label><input id="card-holder-document" inputmode="numeric" maxlength="14" required></div>
+            </div>
+          </div>
+
+          <div class="subscription-form-section" id="card-customer-section">
+            <h3>Dados do titular</h3>
+            <div class="form-grid">
+              <div class="field full"><label for="customer-name">Nome completo</label><input id="customer-name" autocomplete="name" required></div>
+              <div class="field"><label for="customer-email">E-mail</label><input id="customer-email" type="email" autocomplete="email" required></div>
+              <div class="field"><label for="customer-phone">Telefone</label><input id="customer-phone" inputmode="tel" autocomplete="tel" required></div>
+              <div class="field"><label for="customer-birth">Data de nascimento</label><input id="customer-birth" type="date" required></div>
+              <div class="field"><label for="billing-zipcode">CEP</label><input id="billing-zipcode" inputmode="numeric" autocomplete="postal-code" maxlength="9" required></div>
+              <div class="field full"><label for="billing-street">Rua</label><input id="billing-street" autocomplete="address-line1" required></div>
+              <div class="field"><label for="billing-number">Número</label><input id="billing-number" required></div>
+              <div class="field"><label for="billing-neighborhood">Bairro</label><input id="billing-neighborhood" required></div>
+              <div class="field"><label for="billing-city">Cidade</label><input id="billing-city" autocomplete="address-level2" required></div>
+              <div class="field"><label for="billing-state">UF</label><input id="billing-state" autocomplete="address-level1" maxlength="2" required></div>
+              <div class="field full"><label for="billing-complement">Complemento</label><input id="billing-complement" autocomplete="address-line2"></div>
+            </div>
+          </div>
+
+          <label class="check-row subscription-consent">
+            <input id="card-consent" type="checkbox" required>
+            Autorizo a cobrança recorrente mensal e li as condições de cancelamento.
+          </label>
+
+          <div class="actions">
+            <button class="btn btn-secondary" id="cancel-card-form" type="button">Voltar</button>
+            <button class="btn btn-primary" id="submit-card-subscription" type="submit">Confirmar assinatura</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><h2>Histórico de cobranças</h2><p>Últimas movimentações de assinatura.</p></div></div>
+        <div id="subscription-history" class="order-list">
+          <div class="empty-state">Carregando histórico...</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/payment-token-efi/dist/payment-token-efi-umd.min.js"></script>
+  <script src="js/assinatura.js"></script>
+</body>
+</html>
