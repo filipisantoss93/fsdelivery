@@ -18,7 +18,15 @@
     .config-group .config-shortcut{min-height:auto;padding:14px;border-radius:10px;background:transparent}
     .config-group .config-shortcut:hover{background:var(--surface-2)}
     .config-body .mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
-    @media(max-width:760px){.config-group{padding:14px}.config-group .config-shortcuts{grid-template-columns:1fr}}
+    .operational-links{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+    .operational-links-head h3{margin:0 0 4px;font-size:15px}.operational-links-head p{margin:0;color:var(--muted);font-size:13px}
+    .operational-links-grid{display:grid;gap:10px}
+    .operational-link-card{display:grid;grid-template-columns:minmax(150px,.7fr) minmax(220px,1.3fr) auto;gap:12px;align-items:center;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+    .operational-link-card strong,.operational-link-card small{display:block}.operational-link-card small{margin-top:3px;color:var(--muted)}
+    .operational-link-card input{width:100%;min-width:0}
+    .operational-link-actions{flex-wrap:nowrap}
+    @media(max-width:900px){.operational-link-card{grid-template-columns:1fr}.operational-link-actions{flex-wrap:wrap}}
+    @media(max-width:760px){.config-group{padding:14px}.config-group .config-shortcuts{grid-template-columns:1fr}.operational-link-actions .btn{flex:1 1 120px}}
   </style>
 </head>
 <body class="app-body config-body">

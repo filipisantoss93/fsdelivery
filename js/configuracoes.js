@@ -36,36 +36,46 @@ function fillStore(){
 }
 
 function renderOperationalLinks(){
-  const shortcuts=document.querySelector('.config-shortcuts');
-  if(!shortcuts||byId('operational-links'))return;
-  const publicPath=store.slug?`loja.html?loja=${encodeURIComponent(store.slug)}`:'loja.html';
+  const accessGroup=[...document.querySelectorAll('.config-group')].find(group=>group.querySelector('.config-group-head h2')?.textContent.trim()==='Equipe e acessos');
+  if(!accessGroup||byId('operational-links'))return;
   const links=[
-    {label:'Página pública',path:publicPath},
-    {label:'Cozinha',path:'cozinha.html'},
-    {label:'Garçom',path:'garcom.html'},
-    {label:'Entrega',path:'entregador.html'}
+    {label:'Cozinha',path:'cozinha.html',description:'Painel para receber e preparar pedidos'},
+    {label:'Garçom',path:'garcom.html',description:'Acesso para lançar e acompanhar pedidos'},
+    {label:'Entregador',path:'entregador.html',description:'Painel de entregas e confirmações'}
   ];
-  const section=document.createElement('section');
+  const section=document.createElement('div');
   section.id='operational-links';
-  section.className='panel';
+  section.className='operational-links';
   section.setAttribute('aria-labelledby','operational-links-title');
-  section.innerHTML=`<div class="panel-head"><div><h2 id="operational-links-title">Links de acesso</h2><p>Copie ou abra cada página para conferir o acesso.</p></div></div><div class="form-grid">${links.map((item,index)=>{const url=new URL(item.path,location.href).href;return `<div class="field full"><label for="operational-link-${index}">${item.label}</label><div class="inline-actions operational-link-actions"><input id="operational-link-${index}" value="${url}" readonly aria-label="Link de acesso da área ${item.label}"><button class="btn btn-secondary" type="button" data-copy-operational-link="operational-link-${index}">Copiar</button><a class="btn btn-secondary" href="${url}" target="_blank" rel="noopener">Abrir</a></div></div>`}).join('')}</div>`;
-  shortcuts.insertAdjacentElement('afterend',section);
+  section.innerHTML=`<div class="config-group-head operational-links-head"><h3 id="operational-links-title">Links para acessar e compartilhar</h3><p>Envie cada acesso para a equipe usando o compartilhamento do celular.</p></div><div class="operational-links-grid">${links.map((item,index)=>{const url=new URL(item.path,location.href).href;return `<article class="operational-link-card"><div><strong>${item.label}</strong><small>${item.description}</small></div><input id="operational-link-${index}" value="${url}" readonly aria-label="Link de acesso da área ${item.label}"><div class="inline-actions operational-link-actions"><a class="btn btn-secondary" href="${url}" target="_blank" rel="noopener">Abrir</a><button class="btn btn-secondary" type="button" data-copy-operational-link="operational-link-${index}">Copiar link</button><button class="btn btn-primary" type="button" data-share-operational-link="operational-link-${index}" data-share-title="${item.label}">Compartilhar</button></div></article>`}).join('')}</div>`;
+  accessGroup.appendChild(section);
   section.querySelectorAll('[data-copy-operational-link]').forEach(button=>button.onclick=()=>copyOperationalLink(button));
+  section.querySelectorAll('[data-share-operational-link]').forEach(button=>button.onclick=()=>shareOperationalLink(button));
 }
 
 async function copyOperationalLink(button){
-  const input=byId(button.dataset.copyOperationalLink);
+  const input=byId(button.dataset.copyOperationalLink||button.dataset.shareOperationalLink);
   if(!input)return;
   try{
     if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(input.value);
     else{input.focus();input.select();document.execCommand('copy');input.setSelectionRange(0,0)}
-    const original=button.textContent;button.textContent='Copiado';button.disabled=true;
+    const original=button.textContent;button.textContent='Link copiado';button.disabled=true;
     setTimeout(()=>{button.textContent=original;button.disabled=false},1600);
   }catch(error){
     input.focus();input.select();
     alert('Não foi possível copiar automaticamente. O link foi selecionado para cópia manual.');
   }
+}
+
+async function shareOperationalLink(button){
+  const input=byId(button.dataset.shareOperationalLink);
+  if(!input)return;
+  const title=`FS Delivery — ${button.dataset.shareTitle||'Acesso'}`;
+  const text=`Acesse o painel ${button.dataset.shareTitle||'operacional'} do ${store.nome||'estabelecimento'}.`;
+  if(navigator.share){
+    try{await navigator.share({title,text,url:input.value});return}catch(error){if(error.name==='AbortError')return}
+  }
+  await copyOperationalLink(button);
 }
 
 function openConfigModal(id){
