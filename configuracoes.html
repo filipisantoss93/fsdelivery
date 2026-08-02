@@ -70,19 +70,22 @@
             <button class="config-shortcut" data-target="garcom-config"><span>Garçons</span><small>Telefone, PIN e permissões</small></button>
             <button class="config-shortcut" data-target="entregador-config"><span>Entregadores</span><small>Telefone, PIN e permissões</small></button>
           </div>
+          <div class="operational-links" id="operational-links" aria-labelledby="operational-links-title">
+            <div class="config-group-head operational-links-head"><h3 id="operational-links-title">Links para acessar e compartilhar</h3><p>Abra, copie ou compartilhe o painel correto com cada membro da equipe.</p></div>
+            <div class="operational-links-grid">
+              <article class="operational-link-card"><div><strong>Cozinha</strong><small>Receber e preparar pedidos</small></div><input id="operational-link-cozinha" value="cozinha.html" readonly aria-label="Link de acesso da cozinha"><div class="inline-actions operational-link-actions"><a class="btn btn-secondary" href="cozinha.html" data-operational-open="cozinha">Abrir</a><button class="btn btn-secondary" type="button" data-copy-operational-link="operational-link-cozinha">Copiar link</button><button class="btn btn-primary" type="button" data-share-operational-link="operational-link-cozinha" data-share-title="Cozinha">Compartilhar</button></div></article>
+              <article class="operational-link-card"><div><strong>Garçom</strong><small>Lançar e acompanhar pedidos</small></div><input id="operational-link-garcom" value="garcom.html" readonly aria-label="Link de acesso do garçom"><div class="inline-actions operational-link-actions"><a class="btn btn-secondary" href="garcom.html" data-operational-open="garcom">Abrir</a><button class="btn btn-secondary" type="button" data-copy-operational-link="operational-link-garcom">Copiar link</button><button class="btn btn-primary" type="button" data-share-operational-link="operational-link-garcom" data-share-title="Garçom">Compartilhar</button></div></article>
+              <article class="operational-link-card"><div><strong>Entregador</strong><small>Entregas e confirmações</small></div><input id="operational-link-entregador" value="entregador.html" readonly aria-label="Link de acesso do entregador"><div class="inline-actions operational-link-actions"><a class="btn btn-secondary" href="entregador.html" data-operational-open="entregador">Abrir</a><button class="btn btn-secondary" type="button" data-copy-operational-link="operational-link-entregador">Copiar link</button><button class="btn btn-primary" type="button" data-share-operational-link="operational-link-entregador" data-share-title="Entregador">Compartilhar</button></div></article>
+            </div>
+          </div>
         </div>
         <div class="config-group">
           <div class="config-group-head"><h2>Mesas</h2><p>Cadastro, identificação e acesso por QR Code.</p></div>
-          <div class="config-shortcuts">
-            <button class="config-shortcut" data-target="mesas-config"><span>Mesas e QR Codes</span><small>Cadastre e gere os acessos das mesas</small></button>
-          </div>
+          <div class="config-shortcuts"><button class="config-shortcut" data-target="mesas-config"><span>Mesas e QR Codes</span><small>Cadastre e gere os acessos das mesas</small></button></div>
         </div>
         <div class="config-group">
           <div class="config-group-head"><h2>Conta</h2><p>Segurança, perfil administrativo e assinatura.</p></div>
-          <div class="config-shortcuts">
-            <button class="config-shortcut" data-target="perfil-config"><span>Perfil e segurança</span><small>Conta administrativa e acesso</small></button>
-            <button class="config-shortcut" data-target="plano-config"><span>Plano e assinatura</span><small>Status da plataforma</small></button>
-          </div>
+          <div class="config-shortcuts"><button class="config-shortcut" data-target="perfil-config"><span>Perfil e segurança</span><small>Conta administrativa e acesso</small></button><button class="config-shortcut" data-target="plano-config"><span>Plano e assinatura</span><small>Status da plataforma</small></button></div>
         </div>
       </section>
     </div>
