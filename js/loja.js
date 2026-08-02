@@ -1,8 +1,10 @@
 const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
 const db=window.supabaseClient;
 const params=new URLSearchParams(location.search);
-const slug=params.get('loja');
+let slug=params.get('loja');
+const storeId=params.get('estabelecimento');
 const tableToken=params.get('mesa');
+if(['undefined','null',''].includes(String(slug||'').toLowerCase()))slug=null;
 let settings;
 let table=null;
 let products=[];
@@ -12,8 +14,8 @@ let qty=1;
 let submitting=false;
 
 const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
-const cartKey=()=>`fsdelivery_cart_${slug||'public'}_${tableToken||'online'}`;
-const orderKey=()=>`fsdelivery_last_order_${slug||'public'}`;
+const cartKey=()=>`fsdelivery_cart_${slug||storeId||'public'}_${tableToken||'online'}`;
+const orderKey=()=>`fsdelivery_last_order_${slug||storeId||'public'}`;
 const saveCart=()=>localStorage.setItem(cartKey(),JSON.stringify(cart));
 const loadCart=()=>{try{cart=JSON.parse(localStorage.getItem(cartKey())||'[]')}catch(_){cart=[]}};
 const friendlyError=error=>{
@@ -26,11 +28,34 @@ const friendlyError=error=>{
   return 'Não foi possível enviar o pedido. Revise os dados e tente novamente.';
 };
 
+async function resolveStore(){
+  if(slug){
+    const result=await db.from('estabelecimentos').select('*').eq('slug',slug).maybeSingle();
+    if(result.data)return result;
+  }
+  if(storeId){
+    const result=await db.from('estabelecimentos').select('*').eq('id',storeId).maybeSingle();
+    if(result.data)return result;
+  }
+  const {data:{session}}=await db.auth.getSession();
+  if(session){
+    const result=await db.from('estabelecimentos').select('*').eq('usuario_id',session.user.id).maybeSingle();
+    if(result.data)return result;
+  }
+  return {data:null,error:null};
+}
+
 async function init(){
-  if(!slug)return showError('Loja não informada');
-  const {data:est,error}=await db.from('estabelecimentos').select('*').eq('slug',slug).single();
-  if(error||!est)return showError('Loja não encontrada');
+  const {data:est,error}=await resolveStore();
+  if(error||!est)return showError(slug||storeId?'Loja não encontrada':'Loja não informada');
   settings=est;
+  slug=est.slug||slug;
+  if(slug&&params.get('loja')!==slug){
+    const nextParams=new URLSearchParams(location.search);
+    nextParams.set('loja',slug);
+    nextParams.delete('estabelecimento');
+    history.replaceState(null,'',`${location.pathname}?${nextParams.toString()}${location.hash}`);
+  }
   if(tableToken){
     const {data:mesa,error:tableError}=await db.from('mesas').select('id,numero,nome,codigo_qr,ativo').eq('estabelecimento_id',est.id).eq('codigo_qr',tableToken).eq('ativo',true).maybeSingle();
     if(tableError||!mesa)return showError('Mesa inválida ou indisponível');
@@ -54,8 +79,8 @@ async function init(){
   document.getElementById('store-delivery-fee').textContent=Number(settings.taxa_entrega)>0?money(settings.taxa_entrega):'Grátis';
   document.getElementById('store-contact').textContent=settings.telefone||'Consulte no pedido';
   document.getElementById('closed-notice').hidden=Boolean(settings.aberto);
-  document.getElementById('customer-orders-link').href=`cliente.html?loja=${encodeURIComponent(slug)}`;
-  document.getElementById('track-order-link').href=`cliente.html?loja=${encodeURIComponent(slug)}`;
+  document.getElementById('customer-orders-link').href=`cliente.html?loja=${encodeURIComponent(slug||'')}`;
+  document.getElementById('track-order-link').href=`cliente.html?loja=${encodeURIComponent(slug||'')}`;
   configureContext();bindPageActions();renderMenu();renderCart();
 }
 
@@ -129,7 +154,7 @@ document.getElementById('checkout-form').onsubmit=async event=>{
     submitting=false;document.querySelectorAll('.modal').forEach(modal=>modal.classList.remove('open'));document.body.style.overflow='';
     const context=table?` para ${table.nome||`Mesa ${table.numero}`}`:'';
     document.getElementById('success-message').textContent=`Pedido #${data} enviado${context}. Total: ${money(orderTotal)}. Status: aguardando confirmação do restaurante.`;
-    document.getElementById('track-order-link').href=`cliente.html?loja=${encodeURIComponent(slug)}&telefone=${encodeURIComponent(phone)}&pedido=${encodeURIComponent(data)}`;
+    document.getElementById('track-order-link').href=`cliente.html?loja=${encodeURIComponent(slug||'')}&telefone=${encodeURIComponent(phone)}&pedido=${encodeURIComponent(data)}`;
     cart=[];saveCart();renderCart();event.currentTarget.reset();openModal('success-modal');
   }catch(error){alert(friendlyError(error));console.error('Falha ao criar pedido público:',error)}
   finally{submitting=false;button.disabled=false;button.textContent='Confirmar pedido'}
