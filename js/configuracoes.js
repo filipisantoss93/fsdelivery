@@ -22,7 +22,7 @@ async function init(){
     db.from('taxas_entrega_regioes').select('*').eq('estabelecimento_id',store.id).order('nome')
   ]);
   orders=ordersResult.data||[];team=teamResult.data||[];operational=opResult.data||{estabelecimento_id:store.id};hours=hoursResult.data||[];regions=regionsResult.data||[];
-  fillStore();renderTeam();renderReports();renderHours();renderPayments();renderRegions();renderOperationalLinks();bindActions();openRequestedSection();
+  fillStore();renderTeam();renderOperationalLinks();renderReports();renderHours();renderPayments();renderRegions();bindActions();openRequestedSection();
 }
 
 function fillStore(){
@@ -112,6 +112,22 @@ async function saveRegion(event){event.preventDefault();const form=new FormData(
 function renderRegions(){byId('region-list').innerHTML=regions.length?regions.map(item=>`<div class="row-card"><div><b>${item.nome}</b><small>${money(item.taxa)} • +${item.prazo_adicional||0} min</small></div><div class="inline-actions"><button class="btn btn-secondary" data-toggle-region="${item.id}">${item.ativo?'Desativar':'Ativar'}</button><button class="btn btn-danger" data-delete-region="${item.id}">Excluir</button></div></div>`).join(''):'<div class="empty-state">Nenhuma região específica cadastrada.</div>';document.querySelectorAll('[data-toggle-region]').forEach(button=>button.onclick=async()=>{const item=regions.find(r=>r.id===button.dataset.toggleRegion);const {error}=await db.from('taxas_entrega_regioes').update({ativo:!item.ativo}).eq('id',item.id);if(error)return alert(error.message);item.ativo=!item.ativo;renderRegions()});document.querySelectorAll('[data-delete-region]').forEach(button=>button.onclick=async()=>{if(!confirm('Excluir esta região?'))return;const {error}=await db.from('taxas_entrega_regioes').delete().eq('id',button.dataset.deleteRegion);if(error)return alert(error.message);regions=regions.filter(r=>r.id!==button.dataset.deleteRegion);renderRegions()})}
 function renderTeam(){document.querySelectorAll('[data-team-role]').forEach(section=>{const role=section.dataset.teamRole;section.querySelector('.team-list').innerHTML=team.filter(item=>item.funcao===role).map(item=>`<div class="row-card"><div><b>${item.nome}</b><small>${item.telefone}</small></div><button class="btn btn-danger" data-delete-team="${item.id}">Excluir</button></div>`).join('')||'<div class="empty-state">Nenhum cadastro.</div>'});document.querySelectorAll('[data-delete-team]').forEach(button=>button.onclick=async()=>{const {error}=await db.from('equipe_operacional').delete().eq('id',button.dataset.deleteTeam);if(error)return alert(error.message);team=team.filter(item=>item.id!==button.dataset.deleteTeam);renderTeam()})}
 async function saveTeamMember(event){event.preventDefault();const section=event.currentTarget.closest('[data-team-role]'),form=new FormData(event.currentTarget);const payload={estabelecimento_id:store.id,funcao:section.dataset.teamRole,nome:String(form.get('name')).trim(),telefone:normalizePhone(form.get('phone')),pin:String(form.get('pin')).trim(),ativo:true};const {data,error}=await db.from('equipe_operacional').insert(payload).select().single();if(error)return alert(error.message);team.unshift(data);event.currentTarget.reset();renderTeam()}
-function renderReports(){const valid=orders.filter(item=>item.status!=='cancelado'),revenue=valid.reduce((sum,item)=>sum+Number(item.total||0),0),received=valid.filter(item=>['entregue','finalizado'].includes(item.status)).reduce((sum,item)=>sum+Number(item.total||0),0);byId('report-revenue').textContent=money(revenue);byId('report-ticket').textContent=money(revenue/(valid.length||1));byId('report-received').textContent=money(received);byId('report-pending').textContent=money(revenue-received);byId('report-orders').textContent=valid.length;byId('report-new').textContent=valid.filter(item=>item.status==='novo').length;byId('report-preparing').textContent=valid.filter(item=>item.status==='preparo').length;byId('report-done').textContent=valid.filter(item=>['entregue','finalizado'].includes(item.status)).length}
+function renderReports(){
+  const targets={
+    revenue:byId('report-revenue'),ticket:byId('report-ticket'),received:byId('report-received'),pending:byId('report-pending'),orders:byId('report-orders'),newOrders:byId('report-new'),preparing:byId('report-preparing'),done:byId('report-done')
+  };
+  if(!Object.values(targets).some(Boolean))return;
+  const valid=orders.filter(item=>item.status!=='cancelado');
+  const revenue=valid.reduce((sum,item)=>sum+Number(item.total||0),0);
+  const received=valid.filter(item=>['entregue','finalizado'].includes(item.status)).reduce((sum,item)=>sum+Number(item.total||0),0);
+  if(targets.revenue)targets.revenue.textContent=money(revenue);
+  if(targets.ticket)targets.ticket.textContent=money(revenue/(valid.length||1));
+  if(targets.received)targets.received.textContent=money(received);
+  if(targets.pending)targets.pending.textContent=money(revenue-received);
+  if(targets.orders)targets.orders.textContent=valid.length;
+  if(targets.newOrders)targets.newOrders.textContent=valid.filter(item=>item.status==='novo').length;
+  if(targets.preparing)targets.preparing.textContent=valid.filter(item=>item.status==='preparo').length;
+  if(targets.done)targets.done.textContent=valid.filter(item=>['entregue','finalizado'].includes(item.status)).length;
+}
 function openRequestedSection(){const id=location.hash.slice(1);if(id)openConfigModal(id)}
 init();
