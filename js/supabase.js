@@ -19,6 +19,64 @@ window.supabaseClient=window.supabase.createClient(
   }
 );
 
+// A loja pública ainda usa o slug como identificador principal. Links internos
+// antigos podem chegar com ?estabelecimento=<uuid> ou sem identificador quando
+// abertos pelo administrador. Resolve esses casos antes de continuar e troca a
+// URL pelo link público canônico.
+(async function resolvePublicStoreUrl(){
+  const isPublicStore=/(^|\/)loja\.html$/i.test(location.pathname);
+  if(!isPublicStore)return;
+
+  const params=new URLSearchParams(location.search);
+  const rawSlug=String(params.get('loja')||'').trim();
+  const slug=['','undefined','null'].includes(rawSlug.toLowerCase())?'':rawSlug;
+  if(slug)return;
+
+  const storeId=String(params.get('estabelecimento')||'').trim();
+  const conceal=document.createElement('style');
+  conceal.id='fs-store-resolver-style';
+  conceal.textContent='body{visibility:hidden!important}';
+  document.head.appendChild(conceal);
+
+  try{
+    let store=null;
+
+    if(storeId){
+      const {data,error}=await window.supabaseClient
+        .from('estabelecimentos')
+        .select('id,slug')
+        .eq('id',storeId)
+        .maybeSingle();
+      if(error)throw error;
+      store=data;
+    }
+
+    if(!store){
+      const {data:{session}}=await window.supabaseClient.auth.getSession();
+      if(session){
+        const {data,error}=await window.supabaseClient
+          .from('estabelecimentos')
+          .select('id,slug')
+          .eq('usuario_id',session.user.id)
+          .maybeSingle();
+        if(error)throw error;
+        store=data;
+      }
+    }
+
+    if(store?.slug){
+      params.set('loja',store.slug);
+      params.delete('estabelecimento');
+      location.replace(`${location.pathname}?${params.toString()}${location.hash}`);
+      return;
+    }
+  }catch(error){
+    console.error('Falha ao resolver a loja pública:',error);
+  }
+
+  conceal.remove();
+})();
+
 // Recursos globais compartilhados pelas páginas da plataforma.
 [
   ['script','js/pull-to-refresh.js','fsPullRefresh'],
