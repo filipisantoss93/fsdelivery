@@ -1,8 +1,8 @@
 {
-  "name": "Garçom — FS Delivery",
-  "short_name": "Garçom",
-  "description": "Pedidos, mesas e avisos operacionais do garçom.",
-  "start_url": "/cardapio.html",
+  "name": "Entregador — FS Delivery",
+  "short_name": "Entregador",
+  "description": "Entregas, rotas e avisos operacionais.",
+  "start_url": "/entregador.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f2ec",
