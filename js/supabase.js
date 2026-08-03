@@ -1,6 +1,42 @@
 const SUPABASE_URL='https://kvjvhoziqcevkzyszdke.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_NgOVxQYh3jxQ7Go7y2HTLg_rVJuQ3mc';
 
+// Mantém a interface em escala fixa nas páginas públicas, administrativas e
+// operacionais. Permite rolagem normal, mas bloqueia pinça, duplo toque,
+// Ctrl/Cmd + teclas de zoom e Ctrl + roda do mouse.
+(function bloquearZoomGlobal(){
+  const viewport=document.querySelector('meta[name="viewport"]')||document.createElement('meta');
+  viewport.name='viewport';
+  viewport.content='width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
+  if(!viewport.parentNode)document.head.appendChild(viewport);
+
+  const style=document.createElement('style');
+  style.id='fs-global-zoom-lock';
+  style.textContent='html,body{touch-action:pan-x pan-y}';
+  document.head.appendChild(style);
+
+  const impedir=event=>event.preventDefault();
+  ['gesturestart','gesturechange','gestureend'].forEach(type=>{
+    document.addEventListener(type,impedir,{passive:false});
+  });
+
+  let ultimoToque=0;
+  document.addEventListener('touchend',event=>{
+    const agora=Date.now();
+    if(agora-ultimoToque<=300)event.preventDefault();
+    ultimoToque=agora;
+  },{passive:false});
+
+  document.addEventListener('wheel',event=>{
+    if(event.ctrlKey)event.preventDefault();
+  },{passive:false});
+
+  document.addEventListener('keydown',event=>{
+    const tecla=String(event.key||'').toLowerCase();
+    if((event.ctrlKey||event.metaKey)&&['+','-','=','0'].includes(tecla))event.preventDefault();
+  });
+})();
+
 // Evita travamentos do LockManager observados no Safari/iOS durante a
 // persistência da sessão. O Supabase continua armazenando e renovando a sessão
 // normalmente, sem deixar signInWithPassword preso após autenticar.
