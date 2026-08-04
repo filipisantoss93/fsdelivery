@@ -5,7 +5,8 @@
   window.__fsAdminMobileNav=true;
 
   const adminPages=new Set(['app.html','caixa.html','mesas-operacao.html','configuracoes.html']);
-  const page=(location.pathname.split('/').pop()||'app.html').toLowerCase();
+  const pathPage=(location.pathname.split('/').pop()||'').toLowerCase();
+  const page=pathPage||'index.html';
   if(!adminPages.has(page))return;
 
   const icons={
