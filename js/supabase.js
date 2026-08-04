@@ -71,4 +71,5 @@ if(/(^|\/)balcao\.html$/i.test(location.pathname)&&!document.querySelector('scri
   if(!/(^|\/)app\.html$/i.test(location.pathname))return;
   if(!document.querySelector('link[href="css/app-orders-operational.css"]')){const style=document.createElement('link');style.rel='stylesheet';style.href='css/app-orders-operational.css';document.head.appendChild(style)}
   if(!document.querySelector('script[src="js/app-orders-operational.js"]')){const script=document.createElement('script');script.src='js/app-orders-operational.js';script.defer=true;document.head.appendChild(script)}
+  if(!document.querySelector('script[src="js/app-orders-type-filters.js"]')){const script=document.createElement('script');script.src='js/app-orders-type-filters.js';script.defer=true;document.head.appendChild(script)}
 })();
