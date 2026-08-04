@@ -1,0 +1,23 @@
+.fs-orders-shell{display:grid;gap:16px}
+.fs-orders-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.fs-orders-head h1{margin:0 0 4px}.fs-orders-head p{margin:0;color:var(--muted)}
+.fs-order-filters{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
+.fs-order-filter{flex:0 0 auto;display:flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font:inherit;font-weight:750;cursor:pointer}
+.fs-order-filter.active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary)}
+.fs-order-filter b{display:grid;place-items:center;min-width:21px;height:21px;padding:0 5px;border-radius:999px;background:var(--surface-2);font-size:11px}
+.fs-orders-list{display:grid;gap:12px}
+.fs-order-card{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-sm)}
+.fs-order-card.status-aguardando_aprovacao{border-left-color:#d99717}.fs-order-card.status-confirmado{border-left-color:#5a78d1}.fs-order-card.status-preparo{border-left-color:#c46d18}.fs-order-card.status-pronto{border-left-color:#27834b}.fs-order-card.status-servido{border-left-color:#7a4bb3}.fs-order-card.status-saiu_entrega{border-left-color:#2e73b8}
+.fs-order-card-top,.fs-order-card-middle,.fs-order-card-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.fs-order-number{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fs-order-number strong{font-size:16px}.fs-order-card small{display:block;color:var(--muted)}
+.fs-order-reference{font-weight:800}.fs-order-meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.fs-order-total{text-align:right}.fs-order-total b{display:block;font-size:17px}.fs-order-total small.is-pending{color:#9a5b00;font-weight:750}.fs-order-total small.is-paid{color:#257c45;font-weight:750}
+.fs-order-items{display:flex;gap:7px;flex-wrap:wrap}.fs-order-item-chip{padding:5px 8px;border-radius:8px;background:var(--surface-2);font-size:12px}
+.fs-order-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.fs-order-payment-warning{padding:10px 12px;border:1px solid #e2bf72;border-radius:9px;background:#fff8e7;color:#6c4b00;font-size:13px;font-weight:700}
+.fs-order-error{padding:14px;border:1px solid #d99;border-radius:10px;background:#fff1f1;color:#852525}
+.fs-order-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}.fs-order-detail-grid .row-card{margin:0}
+.fs-order-timeline{display:grid;gap:0;margin:18px 0}.fs-order-event{position:relative;display:grid;grid-template-columns:18px 1fr;gap:10px;padding-bottom:16px}.fs-order-event:last-child{padding-bottom:0}.fs-order-event:before{content:'';position:absolute;left:8px;top:15px;bottom:0;width:1px;background:var(--line)}.fs-order-event:last-child:before{display:none}.fs-order-event-dot{position:relative;z-index:1;width:17px;height:17px;border:4px solid var(--surface);border-radius:50%;background:var(--primary);box-shadow:0 0 0 1px var(--line)}.fs-order-event b,.fs-order-event small{display:block}.fs-order-event small{color:var(--muted)}
+.fs-order-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+.fs-orders-compat{display:none!important}
+@media(max-width:700px){.fs-orders-head{display:grid}.fs-orders-head .btn{width:100%}.fs-order-card-top,.fs-order-card-middle,.fs-order-card-foot{display:grid}.fs-order-total{text-align:left}.fs-order-actions{justify-content:stretch}.fs-order-actions .btn{flex:1}.fs-order-detail-grid{grid-template-columns:1fr}}
