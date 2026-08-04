@@ -7,28 +7,29 @@
   <title>Novo pedido — FS Delivery</title>
   <link rel="icon" href="icons/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="icons/balcao.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
-  <style>
-    .counter-body{min-height:100vh;padding-bottom:40px;background:var(--bg)}
-    .counter-topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:74px;padding:12px max(20px,calc((100vw - 1220px)/2));border-bottom:1px solid var(--line);background:rgba(247,242,236,.95);backdrop-filter:blur(14px)}
-    .counter-topbar>div b,.counter-topbar>div small{display:block}.counter-topbar>div small{color:var(--muted)}
-    .counter-content{width:min(1220px,calc(100% - 32px));margin:28px auto}.counter-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,.65fr);gap:20px;align-items:start}
-    .counter-products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.counter-product{display:grid;grid-template-columns:1fr 92px;gap:14px;min-height:132px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;cursor:pointer}.counter-product:hover{border-color:var(--primary)}.counter-product h3{margin:0 0 5px;font-size:16px}.counter-product p{margin:0 0 12px;color:var(--muted);font-size:12px}.counter-product strong{color:var(--primary)}.counter-product img{width:92px;height:92px;border-radius:10px;object-fit:cover}.counter-order{position:sticky;top:94px}.counter-cart{display:grid;gap:9px;margin-top:16px}.counter-warning{margin-bottom:16px;padding:13px 15px;border:1px solid #e9c785;border-radius:11px;background:#fff8e8;color:#72520c}.counter-warning[hidden]{display:none}.counter-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:16px}.counter-type-grid button{min-height:42px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:700;cursor:pointer}.counter-type-grid button.active{border-color:var(--primary);background:var(--primary-soft);color:#a94700}.counter-mobile-cart{display:none}
-    @media(max-width:900px){.counter-layout{grid-template-columns:1fr}.counter-order{position:static}.counter-products{grid-template-columns:1fr 1fr}}
-    @media(max-width:620px){.counter-content{width:min(100% - 24px,1220px);margin-top:18px}.counter-topbar{padding-inline:14px}.counter-topbar .btn{padding-inline:12px}.counter-products{grid-template-columns:1fr}.counter-type-grid{grid-template-columns:1fr 1fr}.page-head{display:block}.page-head .toolbar{margin-top:14px}.counter-order{margin-bottom:80px}.counter-mobile-cart{position:fixed;right:12px;bottom:12px;left:12px;z-index:60;display:flex;align-items:center;justify-content:space-between;min-height:58px;padding:11px 16px}.counter-mobile-cart[hidden]{display:none}}
-  </style>
+  <link rel="stylesheet" href="css/operational.css">
+  <link rel="stylesheet" href="css/balcao.css">
 </head>
 <body class="counter-body">
   <header class="counter-topbar">
     <div><b>Novo pedido</b><small id="counter-status">Carregando operação...</small></div>
-    <a class="btn btn-secondary" href="app.html#pedidos">Voltar ao painel</a>
+    <div class="counter-topbar-actions topbar-actions">
+      <a class="btn btn-secondary" href="app.html#pedidos">Voltar ao painel</a>
+    </div>
   </header>
 
   <main class="counter-content">
+    <div class="counter-success" id="counter-success" role="status" aria-live="polite" hidden>
+      <span id="counter-success-text">Pedido criado com sucesso.</span>
+      <a href="app.html#pedidos">Acompanhar pedidos</a>
+    </div>
+
     <div class="page-head">
       <div><h1>Pedido de balcão</h1><p>Crie pedidos de retirada, consumo local, mesa ou entrega sem entrar no portal do garçom.</p></div>
       <div class="toolbar"><input class="search" id="counter-search" placeholder="Buscar produto..."></div>
@@ -66,6 +67,14 @@
 
   <button class="btn btn-primary counter-mobile-cart" id="counter-mobile-cart" type="button" hidden><span id="counter-mobile-count">0 itens</span><strong id="counter-mobile-total">R$ 0,00</strong></button>
 
+  <nav class="counter-mobile-nav" aria-label="Navegação do balcão">
+    <a href="app.html#pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg><span>Pedidos</span></a>
+    <a class="active" href="balcao.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Novo</span></a>
+    <a href="caixa.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v12H3z"/><path d="M7 7V4h10v3"/></svg><span>Caixa</span></a>
+    <a href="mesas-operacao.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16M6 10v9M18 10v9M8 5h8v5H8z"/></svg><span>Mesas</span></a>
+    <a href="app.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>Início</span></a>
+  </nav>
+
   <div class="modal" id="counter-product-modal">
     <div class="modal-card">
       <div class="modal-head"><h2 id="counter-product-title">Produto</h2><button class="icon-btn" data-close type="button">×</button></div>
@@ -78,6 +87,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/pedido-status.js"></script>
+  <script src="js/operational-notifications.js"></script>
   <script src="js/balcao.js"></script>
 </body>
 </html>

@@ -37,6 +37,23 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_NgOVxQYh3jxQ7Go7y2HTLg_rVJuQ3mc';
   });
 })();
 
+// Centraliza o fluxo administrativo de criação de pedidos no balcão. Os botões
+// antigos que ainda apontam para a página do garçom são corrigidos em captura,
+// sem interferir na navegação interna do portal do garçom.
+(function direcionarNovoPedidoParaBalcao(){
+  document.addEventListener('click',event=>{
+    const trigger=event.target.closest?.('a,button');
+    if(!trigger)return;
+    const label=String(trigger.textContent||'').trim().toLowerCase();
+    const destination=`${trigger.getAttribute('href')||''} ${trigger.getAttribute('onclick')||''}`.toLowerCase();
+    const isAdministrativeNewOrder=trigger.id==='new-order-btn'||(label.includes('novo pedido')&&destination.includes('cardapio.html'));
+    if(!isAdministrativeNewOrder)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    location.href='balcao.html';
+  },true);
+})();
+
 // Evita travamentos do LockManager observados no Safari/iOS durante a
 // persistência da sessão. O Supabase continua armazenando e renovando a sessão
 // normalmente, sem deixar signInWithPassword preso após autenticar.

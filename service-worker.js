@@ -1,5 +1,5 @@
-const CACHE='fsdelivery-operational-v2';
-const CORE=['/css/style.css','/css/app-polish.css','/css/operational.css','/js/pedido-status.js','/icons/icon-192x192.png'];
+const CACHE='fsdelivery-operational-v3';
+const CORE=['/balcao.html','/css/style.css','/css/app-polish.css','/css/operational.css','/css/balcao.css','/js/supabase.js','/js/pedido-status.js','/js/operational-notifications.js','/js/balcao.js','/icons/balcao.webmanifest','/icons/icon-192x192.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))));self.clients.claim()});
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy)).catch(()=>{});return response}).catch(()=>caches.match(event.request)))});
