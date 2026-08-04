@@ -1,0 +1,33 @@
+name: Auditoria de pedidos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js/**'
+      - 'supabase/migrations/**'
+      - 'tests/auditoria-pedidos-estatica.mjs'
+      - '.github/workflows/auditoria-pedidos.yml'
+  pull_request:
+    paths:
+      - 'js/**'
+      - 'supabase/migrations/**'
+      - 'tests/auditoria-pedidos-estatica.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validar fluxos de pedidos
+        run: node tests/auditoria-pedidos-estatica.mjs
