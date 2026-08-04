@@ -9,7 +9,7 @@ const checks = [
       ['Página pública não oferece consumo local', content => !/value=\\?"local\\?"|value='local'/.test(content)],
       ['Endereço condicionado à entrega', /delivery-street/],
       ['Modalidade obrigatória', /Escolha Entrega ou Retirada/],
-      ['Proteção contra envio duplicado', /fs-order-submit-lock|Enviando pedido/]
+      ['Proteção contra envio duplicado', /confirmedSubmission|Enviando pedido/]
     ]
   },
   {
@@ -39,17 +39,22 @@ const checks = [
   {
     file: 'js/entregador-operational.js',
     rules: [
-      ['Entregador possui retirada', /retirar|Iniciar entrega/i],
+      ['Entregador possui retirada', /Aceitar e retirar/i],
       ['Entregador possui confirmação de entrega', /Confirmar entrega/i],
-      ['Entregador possui navegação', /data-map|Navegar/i]
+      ['Entregador possui navegação individual', /data-map|Abrir rota/i],
+      ['Rota múltipla utiliza otimização', /optimize\(routeOrders,currentPosition\)/],
+      ['Rota múltipla utiliza waypoints', /params\.set\('waypoints'/],
+      ['Rota limita paradas intermediárias', /points\.slice\(0,8\)/],
+      ['Rota define destino final', /destination=points\.pop\(\)/],
+      ['Rota usa posição atual como origem', /currentPosition\.lat.*currentPosition\.lng/s]
     ]
   },
   {
     file: 'supabase/migrations/20260803_consolidar_fluxos_pedidos.sql',
     rules: [
-      ['Pedido online inicia aguardando aprovação', /aguardando_aprovacao/i],
-      ['Mesa não recebe endereço', /endereco/i],
-      ['Entrega possui validação própria', /entrega/i]
+      ['Migration histórica documenta aprovação online', /aguardando_aprovacao/i],
+      ['Migration histórica trata endereço', /endereco/i],
+      ['Migration histórica trata entrega', /entrega/i]
     ]
   }
 ];
@@ -60,7 +65,7 @@ for (const check of checks) {
   let content;
   try {
     content = await readFile(new URL(`../${check.file}`, import.meta.url), 'utf8');
-  } catch (error) {
+  } catch {
     failures++;
     console.error(`✗ Arquivo ausente: ${check.file}`);
     continue;
