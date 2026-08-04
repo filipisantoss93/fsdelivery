@@ -56,8 +56,9 @@ window.supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISH
 if(/(^|\/)balcao\.html$/i.test(location.pathname)&&!document.querySelector('script[src="js/balcao-fluxos.js"]')){
   window.addEventListener('DOMContentLoaded',()=>{const script=document.createElement('script');script.src='js/balcao-fluxos.js';script.dataset.fsBalcaoFluxos='true';document.body.appendChild(script)});
 }
-if(/(^|\/)loja\.html$/i.test(location.pathname)&&!document.querySelector('script[src="js/loja-fluxos-pedido.js"]')){
-  const script=document.createElement('script');script.src='js/loja-fluxos-pedido.js';script.defer=true;script.dataset.fsLojaFluxos='true';document.head.appendChild(script);
+if(/(^|\/)loja\.html$/i.test(location.pathname)){
+  if(!document.querySelector('script[src="js/loja-fluxos-pedido.js"]')){const script=document.createElement('script');script.src='js/loja-fluxos-pedido.js';script.defer=true;script.dataset.fsLojaFluxos='true';document.head.appendChild(script)}
+  if(!document.querySelector('script[src="js/loja-pos-envio.js"]')){const script=document.createElement('script');script.src='js/loja-pos-envio.js';script.defer=true;script.dataset.fsLojaPosEnvio='true';document.head.appendChild(script)}
 }
 
 [
