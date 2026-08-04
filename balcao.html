@@ -19,9 +19,7 @@
 <body class="counter-body">
   <header class="counter-topbar">
     <div><b>Novo pedido</b><small id="counter-status">Carregando operação...</small></div>
-    <div class="counter-topbar-actions topbar-actions">
-      <a class="btn btn-secondary" href="app.html#pedidos">Voltar ao painel</a>
-    </div>
+    <div class="counter-topbar-actions topbar-actions"><a class="btn btn-secondary" href="app.html#pedidos">Voltar ao painel</a></div>
   </header>
 
   <main class="counter-content">
@@ -31,7 +29,7 @@
     </div>
 
     <div class="page-head">
-      <div><h1>Pedido de balcão</h1><p>Crie pedidos de retirada, consumo local, mesa ou entrega sem entrar no portal do garçom.</p></div>
+      <div><h1>Pedido de balcão</h1><p>Escolha Local, Retirada ou Entrega. Somente os campos necessários serão exibidos.</p></div>
       <div class="toolbar"><input class="search" id="counter-search" placeholder="Buscar produto..."></div>
     </div>
 
@@ -47,17 +45,32 @@
         <div class="counter-type-grid" id="counter-type-grid">
           <button class="active" type="button" data-counter-type="retirada">Retirada</button>
           <button type="button" data-counter-type="local">Local</button>
-          <button type="button" data-counter-type="mesa">Mesa</button>
           <button type="button" data-counter-type="entrega">Entrega</button>
         </div>
+
         <div class="form-grid">
           <div class="field full" id="counter-table-field" hidden><label>Mesa</label><select id="counter-table"></select></div>
-          <div class="field full"><label>Cliente ou referência</label><input id="counter-name" placeholder="Nome do cliente ou Balcão 1"></div>
-          <div class="field full"><label>WhatsApp</label><input id="counter-phone" inputmode="tel" placeholder="Obrigatório para entrega e retirada"></div>
-          <div class="field full" id="counter-address-field" hidden><label>Endereço completo</label><textarea id="counter-address" rows="3"></textarea></div>
+          <div class="field full" id="counter-name-field"><label>Nome do cliente</label><input id="counter-name" placeholder="Nome do cliente"></div>
+          <div class="field full" id="counter-phone-field"><label>WhatsApp</label><input id="counter-phone" inputmode="tel" placeholder="DDD + número"></div>
+
+          <div class="field full" id="counter-address-field" hidden>
+            <label>Endereço de entrega</label>
+            <div class="counter-address-grid">
+              <input id="counter-cep" inputmode="numeric" placeholder="CEP">
+              <input id="counter-street" placeholder="Rua ou avenida">
+              <input id="counter-number" placeholder="Número">
+              <input id="counter-neighborhood" placeholder="Bairro">
+              <input id="counter-city" placeholder="Cidade">
+              <input id="counter-complement" placeholder="Complemento">
+              <input id="counter-reference" placeholder="Ponto de referência">
+            </div>
+          </div>
+
           <div class="field full"><label>Pagamento</label><select id="counter-payment"></select></div>
+          <div class="field full" id="counter-change-field" hidden><label>Troco para</label><input id="counter-change" inputmode="decimal" placeholder="Ex.: 100,00"></div>
           <div class="field full"><label>Observações</label><textarea id="counter-notes" rows="2"></textarea></div>
         </div>
+
         <div class="counter-cart" id="counter-cart"><div class="empty-state">Nenhum item adicionado.</div></div>
         <div class="cart-total"><span>Total estimado</span><span id="counter-total">R$ 0,00</span></div>
         <button class="btn btn-primary btn-block" id="counter-submit" type="button">Criar pedido</button>
