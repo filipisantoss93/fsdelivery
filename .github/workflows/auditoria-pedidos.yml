@@ -5,14 +5,27 @@ on:
     branches: [main]
     paths:
       - 'js/**'
+      - 'loja.html'
+      - 'balcao.html'
+      - 'garcom.html'
+      - 'cozinha.html'
+      - 'caixa.html'
+      - 'entregador.html'
       - 'supabase/migrations/**'
       - 'tests/auditoria-pedidos-estatica.mjs'
       - '.github/workflows/auditoria-pedidos.yml'
   pull_request:
     paths:
       - 'js/**'
+      - 'loja.html'
+      - 'balcao.html'
+      - 'garcom.html'
+      - 'cozinha.html'
+      - 'caixa.html'
+      - 'entregador.html'
       - 'supabase/migrations/**'
       - 'tests/auditoria-pedidos-estatica.mjs'
+      - '.github/workflows/auditoria-pedidos.yml'
 
 permissions:
   contents: read
@@ -29,5 +42,18 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validar fluxos de pedidos
+      - name: Verificar sintaxe dos scripts críticos
+        run: |
+          node --check js/loja-operacional.js
+          node --check js/loja-fluxos-pedido.js
+          node --check js/loja-pos-envio.js
+          node --check js/balcao-fluxos.js
+          node --check js/garcom-restricao-salao.js
+          node --check js/cozinha.js
+          node --check js/caixa.js
+          node --check js/entregador-core.js
+          node --check js/entregador-operational.js
+          node --check js/cliente.js
+
+      - name: Validar regras dos fluxos de pedidos
         run: node tests/auditoria-pedidos-estatica.mjs
