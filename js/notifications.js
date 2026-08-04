@@ -71,3 +71,4 @@
 })();
 
 (()=>{const script=document.createElement('script');script.src='js/operational-admin.js';script.onerror=()=>console.error('Falha ao carregar painel operacional.');document.body.appendChild(script)})();
+(()=>{if(document.querySelector('script[src="js/app-navigation.js"]'))return;const script=document.createElement('script');script.src='js/app-navigation.js';script.onerror=()=>console.error('Falha ao carregar navegação do painel.');document.body.appendChild(script)})();
