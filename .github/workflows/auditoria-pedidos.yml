@@ -1,0 +1,69 @@
+name: Auditoria de pedidos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js/**'
+      - 'loja.html'
+      - 'balcao.html'
+      - 'garcom.html'
+      - 'cozinha.html'
+      - 'caixa.html'
+      - 'entregador.html'
+      - 'supabase/migrations/**'
+      - 'tests/auditoria-pedidos-estatica.mjs'
+      - '.github/workflows/auditoria-pedidos.yml'
+  pull_request:
+    paths:
+      - 'js/**'
+      - 'loja.html'
+      - 'balcao.html'
+      - 'garcom.html'
+      - 'cozinha.html'
+      - 'caixa.html'
+      - 'entregador.html'
+      - 'supabase/migrations/**'
+      - 'tests/auditoria-pedidos-estatica.mjs'
+      - '.github/workflows/auditoria-pedidos.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verificar sintaxe dos scripts críticos
+        run: |
+          scripts=(
+            js/loja-operacional.js
+            js/loja-fluxos-pedido.js
+            js/loja-pos-envio.js
+            js/balcao-fluxos.js
+            js/garcom.js
+            js/cozinha.js
+            js/caixa.js
+            js/entregador-core.js
+            js/entregador-operational.js
+            js/cliente.js
+            js/clientes-enderecos.js
+          )
+          for script in "${scripts[@]}"; do
+            if [ ! -f "$script" ]; then
+              echo "Arquivo crítico ausente: $script"
+              exit 1
+            fi
+            node --check "$script"
+          done
+
+      - name: Validar regras dos fluxos de pedidos
+        run: node tests/auditoria-pedidos-estatica.mjs
