@@ -14,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/store-splash.css">
   <style>
     .store-header-action{display:grid;justify-items:center;gap:7px;border:0;background:transparent;color:#fff;cursor:pointer;font-weight:700;padding:4px;min-width:74px}
     .store-header-action svg{display:block;width:46px;height:46px;padding:11px;border:1px solid rgba(255,255,255,.24);border-radius:50%;background:rgba(255,255,255,.1);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -53,11 +54,20 @@
     @media(max-width:480px){
       .store-top{display:flex;align-items:flex-start}.store-brand{min-width:0;flex:1;margin-bottom:0}.store-info{min-width:0}.store-info h1{font-size:25px}.store-info p{font-size:14px}.store-logo{flex:0 0 58px;width:58px;height:58px}.store-header-actions{flex:0 0 auto}.store-header-action{min-width:48px}.store-header-action svg{width:40px;height:40px}.store-header-action span{display:none}
       .store-summary-compact{gap:12px}.store-summary-item b{font-size:16px}.store-summary-item small{font-size:11px}
-      .menu-product{grid-template-columns:92px minmax(0,1fr)}.menu-product-media{height:108px}.menu-product-add{width:38px;justify-content:center;font-size:0}.menu-product-add span{font-size:20px}.mobile-cart{left:10px;right:10px}
+      .menu-product{grid-template-columns:92px minmax(0,1fr)}.menu-product-media{height:108px}.menu-product-add{width:38px;justify-content:center;font-size:0}.menu-product-add span{font-size:20px}
     }
   </style>
 </head>
-<body class="store-body">
+<body class="store-body store-loading">
+  <div id="store-splash" class="store-splash" role="status" aria-live="polite" aria-busy="true">
+    <div class="store-splash-card">
+      <div id="store-splash-logo" class="store-splash-logo">FS</div>
+      <h1 id="store-splash-name">FS Delivery</h1>
+      <p id="store-splash-message">Carregando estabelecimento...</p>
+      <span class="store-splash-loader" aria-hidden="true"></span>
+      <button id="store-splash-retry" class="btn btn-primary" type="button" hidden>Tentar novamente</button>
+    </div>
+  </div>
   <header class="store-header">
     <div class="container store-top">
       <div class="store-brand">
@@ -103,6 +113,7 @@
   <div class="modal store-modal" id="success-modal" role="dialog" aria-modal="true"><div class="modal-card success-card"><div class="success-icon">✓</div><h2>Pedido enviado</h2><p id="success-message"></p><div class="feedback">Acompanhe o status enquanto o estabelecimento confirma e prepara seu pedido.</div><div class="actions actions-center"><a class="btn btn-secondary" id="track-order-link" href="cliente.html">Acompanhar pedido</a><button class="btn btn-primary" id="new-order-after-success" type="button">Fazer novo pedido</button></div></div></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/store-splash.js"></script>
   <script src="js/loja-operacional.js"></script>
   <script src="js/loja-carrinho-modal.js"></script>
 </body>

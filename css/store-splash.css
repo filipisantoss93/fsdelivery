@@ -1,0 +1,14 @@
+/* Splash da loja pública: mantém a interface oculta até o cardápio terminar de carregar. */
+body.store-loading{overflow:hidden;background:#fff8f1}
+body.store-loading>:not(#store-splash){visibility:hidden!important}
+.store-splash{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,#fff8f1,#f7eee6);transition:opacity .28s ease,visibility .28s ease}
+.store-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.store-splash-card{display:grid;justify-items:center;gap:14px;width:min(100%,360px);text-align:center}
+.store-splash-logo{display:grid;place-items:center;width:92px;height:92px;border-radius:24px;background:#2a170d;color:#fff;font-size:30px;font-weight:800;letter-spacing:.02em;background-size:cover;background-position:center;box-shadow:0 14px 36px rgba(42,23,13,.18)}
+.store-splash-logo.has-image{font-size:0}
+.store-splash h1{margin:0;color:#2a170d;font-size:27px;line-height:1.15}
+.store-splash p{margin:0;color:#77685f;font-size:15px}
+.store-splash-loader{width:32px;height:32px;border:3px solid rgba(42,23,13,.15);border-top-color:#2a170d;border-radius:50%;animation:store-splash-spin .8s linear infinite}
+.store-splash .btn{margin-top:4px}
+@keyframes store-splash-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.store-splash,.store-splash-loader{transition:none;animation-duration:1.6s}}
