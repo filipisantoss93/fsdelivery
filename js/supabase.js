@@ -111,6 +111,7 @@ if(matchesPage('balcao.html')){
 if(matchesPage('loja.html')){
   appendScript('js/loja-fluxos-pedido.js','fsLojaFluxos');
   appendScript('js/loja-pos-envio.js','fsLojaPosEnvio');
+  appendScript('js/loja-envio-seguro.js','fsLojaEnvioSeguro');
 }
 
 if(matchesPage('app.html')){
