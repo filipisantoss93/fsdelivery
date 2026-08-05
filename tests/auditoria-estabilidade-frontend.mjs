@@ -8,6 +8,8 @@ const supabase=read('js/supabase.js');
 const customers=read('js/clientes-enderecos.js');
 const orderFilters=read('js/app-orders-type-filters.js');
 const postOrder=read('js/loja-pos-envio.js');
+const appHtml=read('app.html');
+const appUi=read('js/app-ui-sync.js');
 
 assert(!/maximum-scale\s*=\s*1|user-scalable\s*=\s*no/i.test(supabase),'supabase.js não pode bloquear zoom do navegador.');
 assert(!/db\.rpc\s*=|supabaseClient\.rpc\s*=/.test(customers),'clientes-enderecos.js não pode sobrescrever o método RPC global.');
@@ -16,6 +18,13 @@ assert(!/document\.createElement\(['"]style['"]\)/.test(orderFilters),'CSS dos f
 assert(!/setInterval\s*\(/.test(postOrder),'Pós-envio da loja não pode usar polling contínuo.');
 assert(/matchesPage\('loja\.html'\)/.test(supabase),'Carregamento da loja deve ser condicionado à página atual.');
 assert(/matchesPage\('app\.html'\)/.test(supabase),'Carregamento do painel deve ser condicionado à página atual.');
+assert(!/<style[\s>]/i.test(appHtml),'app.html não pode conter CSS operacional inline.');
+assert(!/MutationObserver/.test(appHtml),'app.html não pode conter MutationObserver inline.');
+assert(!/<script>(?!\s*<\/script>)/i.test(appHtml),'app.html não pode conter JavaScript inline.');
+assert(/js\/app-ui-sync\.js/.test(appHtml),'app.html deve carregar o módulo externo de sincronização.');
+assert(!/MutationObserver/.test(appUi),'app-ui-sync.js deve usar sincronização explícita, sem observers.');
+assert(!/setInterval\s*\(/.test(appUi),'app-ui-sync.js não pode usar polling contínuo.');
+assert(/pagehide/.test(appUi),'app-ui-sync.js deve limpar listeners e timers ao sair da página.');
 
 if(failures.length){
   console.error('\nFalhas na auditoria de estabilidade:');
