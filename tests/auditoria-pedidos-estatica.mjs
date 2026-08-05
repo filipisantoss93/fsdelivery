@@ -21,10 +21,12 @@ const checks = [
     ]
   },
   {
-    file: 'js/garcom-restricao-salao.js',
+    file: 'js/garcom-salao.js',
     rules: [
-      ['Garçom restrito a mesa', /mesa/i],
-      ['Garçom não permite entrega', content => !/option[^>]+value=["'](?:delivery|entrega)["']/.test(content)]
+      ['Garçom restrito a mesa', /value=["']mesa["']|value===?["']mesa["']/i],
+      ['Garçom exige mesa antes do envio', /Selecione uma mesa antes de enviar o pedido/i],
+      ['Garçom remove escopo on-line', /data-order-scope=["']online["']/i],
+      ['Garçom oculta endereço de entrega', /waiter-address-field/]
     ]
   },
   {
