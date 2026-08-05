@@ -47,7 +47,8 @@ window.supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISH
   ['script','js/config-modal-bootstrap.js','fsConfigModalBootstrap'],
   ['script','js/subscription-entry.js','fsSubscriptionEntry'],
   ['script','js/assinatura-complemento.js','fsSubscriptionGuards'],
-  ['script','js/public-store-link-config.js','fsPublicStoreLinkConfig']
+  ['script','js/public-store-link-config.js','fsPublicStoreLinkConfig'],
+  ['script','js/clientes-enderecos.js','fsClientesEnderecos']
 ].forEach(([tag,src,key])=>{
   if(document.querySelector(`${tag}[data-${key.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`)}]`))return;
   const element=document.createElement(tag);element.src=src;element.defer=true;element.dataset[key]='true';document.head.appendChild(element);

@@ -44,16 +44,26 @@ jobs:
 
       - name: Verificar sintaxe dos scripts críticos
         run: |
-          node --check js/loja-operacional.js
-          node --check js/loja-fluxos-pedido.js
-          node --check js/loja-pos-envio.js
-          node --check js/balcao-fluxos.js
-          node --check js/garcom-restricao-salao.js
-          node --check js/cozinha.js
-          node --check js/caixa.js
-          node --check js/entregador-core.js
-          node --check js/entregador-operational.js
-          node --check js/cliente.js
+          scripts=(
+            js/loja-operacional.js
+            js/loja-fluxos-pedido.js
+            js/loja-pos-envio.js
+            js/balcao-fluxos.js
+            js/garcom.js
+            js/cozinha.js
+            js/caixa.js
+            js/entregador-core.js
+            js/entregador-operational.js
+            js/cliente.js
+            js/clientes-enderecos.js
+          )
+          for script in "${scripts[@]}"; do
+            if [ ! -f "$script" ]; then
+              echo "Arquivo crítico ausente: $script"
+              exit 1
+            fi
+            node --check "$script"
+          done
 
       - name: Validar regras dos fluxos de pedidos
         run: node tests/auditoria-pedidos-estatica.mjs
