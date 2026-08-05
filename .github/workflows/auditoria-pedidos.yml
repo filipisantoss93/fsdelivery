@@ -6,6 +6,7 @@ on:
     paths:
       - 'js/**'
       - 'css/**'
+      - 'app.html'
       - 'loja.html'
       - 'balcao.html'
       - 'garcom.html'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'js/**'
       - 'css/**'
+      - 'app.html'
       - 'loja.html'
       - 'balcao.html'
       - 'garcom.html'
@@ -61,6 +63,7 @@ jobs:
             js/clientes-enderecos.js
             js/app-orders-operational.js
             js/app-orders-type-filters.js
+            js/app-ui-sync.js
           )
           for script in "${scripts[@]}"; do
             if [ ! -f "$script" ]; then
