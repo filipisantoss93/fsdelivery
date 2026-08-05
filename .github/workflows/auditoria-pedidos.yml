@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'js/**'
+      - 'css/**'
       - 'loja.html'
       - 'balcao.html'
       - 'garcom.html'
@@ -12,11 +13,12 @@ on:
       - 'caixa.html'
       - 'entregador.html'
       - 'supabase/migrations/**'
-      - 'tests/auditoria-pedidos-estatica.mjs'
+      - 'tests/**'
       - '.github/workflows/auditoria-pedidos.yml'
   pull_request:
     paths:
       - 'js/**'
+      - 'css/**'
       - 'loja.html'
       - 'balcao.html'
       - 'garcom.html'
@@ -24,7 +26,7 @@ on:
       - 'caixa.html'
       - 'entregador.html'
       - 'supabase/migrations/**'
-      - 'tests/auditoria-pedidos-estatica.mjs'
+      - 'tests/**'
       - '.github/workflows/auditoria-pedidos.yml'
 
 permissions:
@@ -45,6 +47,7 @@ jobs:
       - name: Verificar sintaxe dos scripts críticos
         run: |
           scripts=(
+            js/supabase.js
             js/loja-operacional.js
             js/loja-fluxos-pedido.js
             js/loja-pos-envio.js
@@ -56,6 +59,8 @@ jobs:
             js/entregador-operational.js
             js/cliente.js
             js/clientes-enderecos.js
+            js/app-orders-operational.js
+            js/app-orders-type-filters.js
           )
           for script in "${scripts[@]}"; do
             if [ ! -f "$script" ]; then
@@ -67,3 +72,6 @@ jobs:
 
       - name: Validar regras dos fluxos de pedidos
         run: node tests/auditoria-pedidos-estatica.mjs
+
+      - name: Validar estabilidade do frontend
+        run: node tests/auditoria-estabilidade-frontend.mjs
