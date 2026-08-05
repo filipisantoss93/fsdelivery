@@ -1,9 +1,10 @@
 .fs-orders-shell{display:grid;gap:16px}
 .fs-orders-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .fs-orders-head h1{margin:0 0 4px}.fs-orders-head p{margin:0;color:var(--muted)}
-.fs-order-filters{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
-.fs-order-filter{flex:0 0 auto;display:flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font:inherit;font-weight:750;cursor:pointer}
-.fs-order-filter.active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary)}
+.fs-order-filters,.fs-order-type-filters{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
+.fs-order-type-filters{margin:-6px 0 16px}
+.fs-order-filter,.fs-order-type-filters button{flex:0 0 auto;display:flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font:inherit;font-weight:750;cursor:pointer;white-space:nowrap}
+.fs-order-filter.active,.fs-order-type-filters button.active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary)}
 .fs-order-filter b{display:grid;place-items:center;min-width:21px;height:21px;padding:0 5px;border-radius:999px;background:var(--surface-2);font-size:11px}
 .fs-orders-list{display:grid;gap:12px}
 .fs-order-card{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-sm)}
