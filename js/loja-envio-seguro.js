@@ -9,10 +9,10 @@
   const fieldByLabel=text=>[...document.querySelectorAll('#address-field label')].find(label=>label.textContent.trim().toLowerCase()===text.toLowerCase())?.control||null;
   const fields=()=>({
     cep:byId('customer-cep'),
-    street:byId('customer-street')||byId('address-street')||fieldByLabel('Rua'),
-    number:byId('customer-number')||byId('address-number')||fieldByLabel('Número'),
-    neighborhood:byId('customer-neighborhood')||byId('address-neighborhood')||fieldByLabel('Bairro'),
-    complement:byId('customer-complement')||byId('address-complement')||fieldByLabel('Complemento ou referência'),
+    street:byId('delivery-street')||byId('customer-street')||byId('address-street')||fieldByLabel('Rua'),
+    number:byId('delivery-number')||byId('customer-number')||byId('address-number')||fieldByLabel('Número'),
+    neighborhood:byId('delivery-neighborhood')||byId('customer-neighborhood')||byId('address-neighborhood')||fieldByLabel('Bairro'),
+    complement:byId('delivery-complement')||byId('customer-complement')||byId('address-complement')||fieldByLabel('Complemento ou referência'),
     city:byId('customer-city')||byId('address-city'),
     state:byId('customer-state')||byId('address-state'),
     legacy:byId('customer-address')
@@ -59,59 +59,60 @@
   }
 
   async function refreshStoreAvailability(){
-    const storeSlug=typeof slug!=='undefined'&&slug?slug:params.get('loja');
-    if(!storeSlug)return false;
+    if(typeof settings==='undefined'||!settings)return false;
     try{
-      const {data:store,error:storeError}=await window.supabaseClient.from('estabelecimentos').select('id,aberto').eq('slug',storeSlug).maybeSingle();
-      if(storeError||!store)throw storeError||new Error('Loja não encontrada');
-      const {data:available,error}=await window.supabaseClient.rpc('loja_disponivel',{p_estabelecimento:store.id});
+      const {data,error}=await window.supabaseClient.rpc('loja_disponivel',{p_estabelecimento:settings.id});
       if(error)throw error;
-      const isOpen=Boolean(store.aberto&&available!==false);
-      if(typeof settings!=='undefined'&&settings)settings.aberto=isOpen;
-      setClosedState(!isOpen);
-      const status=byId('public-store-status');
-      if(status){status.textContent=isOpen?'Aberto agora':'Fechado agora';status.classList.toggle('is-open',isOpen);status.classList.toggle('is-closed',!isOpen)}
-      if(byId('closed-notice'))byId('closed-notice').hidden=isOpen;
-      return isOpen;
+      settings.aberto=Boolean(settings.aberto&&data!==false);
     }catch(error){
       console.warn('Não foi possível confirmar disponibilidade da loja:',error);
-      if(typeof settings!=='undefined'&&settings)settings.aberto=false;
-      setClosedState(true);
-      return false;
+      settings.aberto=false;
     }
+    setClosedState(!settings.aberto);
+    const status=byId('public-store-status');
+    if(status){status.textContent=settings.aberto?'Aberto agora':'Fechado agora';status.classList.toggle('is-open',settings.aberto);status.classList.toggle('is-closed',!settings.aberto)}
+    if(byId('closed-notice'))byId('closed-notice').hidden=settings.aberto;
+    return settings.aberto;
+  }
+
+  function showValidationError(message,field){
+    if(typeof setFeedback==='function')setFeedback(message,'error',0);
+    else alert(message);
+    field?.focus({preventScroll:true});
+    field?.scrollIntoView({behavior:'smooth',block:'center'});
   }
 
   function validate(formData,orderType,address){
+    const f=fields();
     const name=String(formData.get('name')||'').trim();
     const phone=digits(formData.get('phone'));
     const payment=String(formData.get('payment')||'').trim();
-    if(name.length<2)throw new Error('Informe seu nome.');
-    if(phone.length<10||phone.length>13)throw new Error('Informe um WhatsApp válido.');
-    if(orderType!=='mesa'&&!payment)throw new Error('Selecione a forma de pagamento.');
+    if(name.length<2){showValidationError('Informe seu nome.',byId('customer-name'));return null}
+    if(phone.length<10||phone.length>13){showValidationError('Informe um WhatsApp válido.',byId('customer-phone'));return null}
+    if(orderType!=='mesa'&&!payment){showValidationError('Selecione a forma de pagamento.',byId('payment-method'));return null}
     if(orderType==='delivery'){
-      if(address.cep.length!==8)throw new Error('Informe um CEP válido.');
-      if(address.logradouro.length<3)throw new Error('Informe a rua da entrega.');
-      if(!address.numero)throw new Error('Informe o número do endereço.');
-      if(address.bairro.length<2)throw new Error('Informe o bairro da entrega.');
-      if(typeof regions!=='undefined'&&regions.length&&typeof selectedRegion!=='undefined'&&!selectedRegion)throw new Error('Selecione o bairro ou região de entrega.');
+      if(address.cep.length!==8){showValidationError('Informe um CEP válido.',f.cep);return null}
+      if(address.logradouro.length<3){showValidationError('Informe a rua da entrega.',f.street);return null}
+      if(!address.numero){showValidationError('Informe o número do endereço.',f.number);return null}
+      if(address.bairro.length<2){showValidationError('Informe o bairro da entrega.',f.neighborhood);return null}
+      if(typeof regions!=='undefined'&&regions.length&&typeof selectedRegion!=='undefined'&&!selectedRegion){showValidationError('Selecione o bairro ou região de entrega.',byId('delivery-region'));return null}
     }
     return {name,phone,payment};
   }
 
   async function secureSubmit(event){
     event.preventDefault();
-    event.stopImmediatePropagation();
     if(typeof submitting!=='undefined'&&submitting)return;
     const available=await refreshStoreAvailability();
-    if(!available){if(typeof setFeedback==='function')setFeedback('A loja está fechada e não está recebendo pedidos.','error',0);return}
-    if(typeof cart==='undefined'||!cart.length){if(typeof setFeedback==='function')setFeedback('Adicione ao menos um produto ao pedido.','error');return}
+    if(!available){showValidationError('A loja está fechada e não está recebendo pedidos.',byId('submit-order-btn'));return}
+    if(typeof cart==='undefined'||!cart.length){showValidationError('Adicione ao menos um produto ao pedido.',byId('checkout-btn'));return}
 
     const form=event.currentTarget;
     const formData=new FormData(form);
     const orderType=typeof type==='function'?type():'delivery';
     const address=addressPayload();
-    let valid;
-    try{valid=validate(formData,orderType,address)}catch(error){if(typeof setFeedback==='function')setFeedback(error.message,'error',0);return}
+    const valid=validate(formData,orderType,address);
+    if(!valid)return;
 
     const checkout=checkoutToken();
     const payload={
@@ -133,7 +134,7 @@
     };
 
     const button=byId('submit-order-btn');
-    const original=button?.textContent||'Enviar pedido';
+    const original=button?.textContent||'Revisar e enviar pedido';
     if(typeof submitting!=='undefined')submitting=true;
     if(button){button.disabled=true;button.textContent='Validando e enviando...'}
     try{
@@ -151,20 +152,19 @@
       document.dispatchEvent(new CustomEvent('fs:public-order-created',{detail:{slug:payload.slug,codigo:String(orderCode),telefone:valid.phone}}));
     }catch(error){
       console.error('Falha no envio seguro do pedido:',error);
-      if(typeof setFeedback==='function')setFeedback(error?.message||'Não foi possível enviar o pedido. Revise os dados e tente novamente.','error',0);
+      showValidationError(error?.message||'Não foi possível enviar o pedido. Revise os dados e tente novamente.',button);
     }finally{
       if(typeof submitting!=='undefined')submitting=false;
-      const openNow=typeof settings!=='undefined'&&Boolean(settings?.aberto);
-      if(button){button.disabled=!openNow;button.textContent=openNow?original:'Loja fechada — pedidos indisponíveis'}
+      if(button){button.disabled=!settings?.aberto;button.textContent=settings?.aberto?original:'Loja fechada — pedidos indisponíveis'}
     }
   }
 
   function install(){
     const form=byId('checkout-form');
-    if(!form)return;
+    if(!form||form.dataset.fsSecureSubmitBound==='true')return;
+    form.dataset.fsSecureSubmitBound='true';
     form.onsubmit=secureSubmit;
-    form.addEventListener('submit',secureSubmit,true);
-    [0,350,1000,2200].forEach(delay=>setTimeout(refreshStoreAvailability,delay));
+    refreshStoreAvailability();
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshStoreAvailability()});
     window.addEventListener('pageshow',refreshStoreAvailability);
   }
