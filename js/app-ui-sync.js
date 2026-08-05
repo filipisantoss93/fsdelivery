@@ -4,9 +4,14 @@
   window.__fsAppUiSync=true;
 
   const cleanup=[];
+  const timers=[];
   const listen=(target,type,handler,options)=>{
     target?.addEventListener(type,handler,options);
     cleanup.push(()=>target?.removeEventListener(type,handler,options));
+  };
+  const schedule=(handler,delay)=>{
+    const timer=setTimeout(handler,delay);
+    timers.push(timer);
   };
 
   function syncStoreStatus(){
@@ -20,6 +25,11 @@
     const summary=document.getElementById('summary-preparing');
     const home=document.getElementById('home-preparing');
     if(summary&&home)home.textContent=summary.textContent;
+  }
+
+  function syncOperationalSummary(){
+    syncStoreStatus();
+    syncPreparing();
   }
 
   function setupOrderTabs(){
@@ -55,13 +65,14 @@
   }
 
   function setupExplicitSync(){
-    syncStoreStatus();
-    syncPreparing();
+    syncOperationalSummary();
+    [100,350,900,1800,3200].forEach(delay=>schedule(syncOperationalSummary,delay));
     listen(document,'fs:store-status-changed',syncStoreStatus);
     listen(document,'fs:orders-updated',syncPreparing);
     listen(document,'click',event=>{
-      if(event.target.closest?.('#store-status-button'))requestAnimationFrame(syncStoreStatus);
+      if(event.target.closest?.('#store-status-button,[data-page="inicio"],[data-page="pedidos"],[data-go="pedidos"]'))schedule(syncOperationalSummary,0);
     });
+    listen(window,'focus',syncOperationalSummary);
   }
 
   function start(){
@@ -71,5 +82,8 @@
   }
 
   if(document.readyState==='loading')listen(document,'DOMContentLoaded',start,{once:true});else start();
-  window.addEventListener('pagehide',()=>cleanup.splice(0).forEach(dispose=>dispose()),{once:true});
+  window.addEventListener('pagehide',()=>{
+    timers.splice(0).forEach(clearTimeout);
+    cleanup.splice(0).forEach(dispose=>dispose());
+  },{once:true});
 })();
