@@ -1,7 +1,7 @@
 const SUPABASE_URL='https://kvjvhoziqcevkzyszdke.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_NgOVxQYh3jxQ7Go7y2HTLg_rVJuQ3mc';
 const currentPath=location.pathname.toLowerCase();
-const matchesPage=name=>new RegExp(`(^|/)${name.replace('.','\\.')}$$`,'i').test(currentPath);
+const matchesPage=name=>new RegExp(`(^|/)${name.replace('.','\\.')}$`,'i').test(currentPath);
 
 (function normalizarViewport(){
   const viewport=document.querySelector('meta[name="viewport"]')||document.createElement('meta');
