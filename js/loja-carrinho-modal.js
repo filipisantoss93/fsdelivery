@@ -46,6 +46,7 @@
     setVisible(byId('customer-phone')?.closest('.field'), true);
     setVisible(byId('delivery-type')?.closest('.field'), !isTable);
     setVisible(byId('region-field'), isDelivery);
+    setVisible(byId('cep-field'), isDelivery);
     setVisible(byId('address-field'), isDelivery);
     setVisible(payment?.closest('.field'), !isTable);
     setVisible(byId('order-notes')?.closest('.field'), !isTable);
@@ -56,6 +57,8 @@
 
     const address = byId('customer-address');
     if (address) address.required = isDelivery;
+    const cep = byId('customer-cep');
+    if (cep) cep.required = isDelivery;
 
     const title = byId('checkout-title');
     const feedback = byId('checkout-modal')?.querySelector('.feedback');
@@ -67,7 +70,7 @@
       if (feedback) feedback.textContent = 'Informe seus dados e escolha a forma de pagamento para retirada.';
     } else {
       if (title) title.textContent = 'Finalizar pedido';
-      if (feedback) feedback.textContent = 'Selecione sua região, informe o endereço e escolha a forma de pagamento.';
+      if (feedback) feedback.textContent = 'Selecione sua região, informe o CEP, endereço e forma de pagamento.';
     }
   }
 
@@ -149,7 +152,7 @@
     submit?.setAttribute('data-payment-status', 'pending-integration');
     window.FSDeliveryPayment = Object.freeze({
       version: 1,
-      getContext: () => ({orderType:currentType(),method:byId('payment-method')?.value||'',customer:{name:byId('customer-name')?.value.trim()||'',phone:byId('customer-phone')?.value.replace(/\D/g,'')||''},address:byId('customer-address')?.value.trim()||'',totals:{subtotal:subtotal(),deliveryFee:fee(),total:total()}}),
+      getContext: () => ({orderType:currentType(),method:byId('payment-method')?.value||'',customer:{name:byId('customer-name')?.value.trim()||'',phone:byId('customer-phone')?.value.replace(/\D/g,'')||''},address:byId('customer-address')?.value.trim()||'',cep:byId('customer-cep')?.value.replace(/\D/g,'')||'',totals:{subtotal:subtotal(),deliveryFee:fee(),total:total()}}),
       markProcessing: provider => { if (submit) { submit.dataset.paymentProvider = provider || 'app'; submit.dataset.paymentStatus = 'processing'; } },
       markReady: provider => { if (submit) { submit.dataset.paymentProvider = provider || 'app'; submit.dataset.paymentStatus = 'ready'; } },
       markFailed: provider => { if (submit) { submit.dataset.paymentProvider = provider || 'app'; submit.dataset.paymentStatus = 'failed'; } }
@@ -182,4 +185,139 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, {once:true});
   else bind();
+})();
+
+(() => {
+  const byId = id => document.getElementById(id);
+  let requestController = null;
+
+  function setCepStatus(message = '', type = '') {
+    const status = byId('cep-status');
+    if (!status) return;
+    status.textContent = message;
+    status.dataset.type = type;
+    status.style.color = type === 'error' ? '#a52a2a' : type === 'success' ? '#24733f' : '';
+  }
+
+  function formatCep(value) {
+    const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+    return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+  }
+
+  function installCepField() {
+    const addressField = byId('address-field');
+    if (!addressField || byId('cep-field')) return;
+
+    const field = document.createElement('div');
+    field.className = 'field full';
+    field.id = 'cep-field';
+    field.innerHTML = `
+      <label for="customer-cep">CEP</label>
+      <input id="customer-cep" name="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000">
+      <small id="cep-status" aria-live="polite">Digite o CEP para preencher o endereço automaticamente.</small>`;
+    addressField.before(field);
+
+    const addressLabel = addressField.querySelector('label');
+    if (addressLabel) addressLabel.textContent = 'Rua, número e complemento';
+    const address = byId('customer-address');
+    if (address) address.placeholder = 'Rua, número, complemento, bairro e cidade';
+
+    const cep = byId('customer-cep');
+    cep.addEventListener('input', event => {
+      event.target.value = formatCep(event.target.value);
+      const digits = event.target.value.replace(/\D/g, '');
+      if (digits.length < 8) {
+        requestController?.abort();
+        setCepStatus('Digite o CEP para preencher o endereço automaticamente.');
+        return;
+      }
+      lookupCep(digits);
+    });
+    cep.addEventListener('blur', () => {
+      const digits = cep.value.replace(/\D/g, '');
+      if (digits.length === 8) lookupCep(digits);
+    });
+  }
+
+  async function lookupCep(cep) {
+    const input = byId('customer-cep');
+    const address = byId('customer-address');
+    if (!input || !address || input.dataset.lastLookup === cep) return;
+
+    requestController?.abort();
+    requestController = new AbortController();
+    input.dataset.lastLookup = cep;
+    input.setAttribute('aria-busy', 'true');
+    setCepStatus('Consultando CEP...');
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+        signal: requestController.signal,
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) throw new Error('Falha ao consultar o CEP');
+      const data = await response.json();
+      if (data.erro) {
+        input.dataset.lastLookup = '';
+        setCepStatus('CEP não encontrado. Confira o número ou preencha o endereço manualmente.', 'error');
+        return;
+      }
+
+      const parts = [data.logradouro, data.bairro, data.localidade && data.uf ? `${data.localidade} - ${data.uf}` : data.localidade || data.uf].filter(Boolean);
+      address.value = parts.join(', ');
+      address.dataset.cepFilled = 'true';
+      address.focus({ preventScroll: true });
+      const streetEnd = data.logradouro ? data.logradouro.length : address.value.length;
+      if (typeof address.setSelectionRange === 'function') address.setSelectionRange(streetEnd, streetEnd);
+      setCepStatus('Endereço localizado. Complete com número e complemento.', 'success');
+      address.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+      input.dataset.lastLookup = '';
+      setCepStatus('Não foi possível consultar agora. Preencha o endereço manualmente.', 'error');
+    } finally {
+      input.removeAttribute('aria-busy');
+    }
+  }
+
+  function persistCep() {
+    const form = byId('checkout-form');
+    if (!form || form.dataset.cepPersistenceBound) return;
+    form.dataset.cepPersistenceBound = 'true';
+
+    const storageKey = `fsdelivery_cep_${new URLSearchParams(location.search).get('loja') || 'public'}`;
+    const cep = byId('customer-cep');
+    if (cep) cep.value = formatCep(localStorage.getItem(storageKey) || '');
+
+    form.addEventListener('submit', () => {
+      const value = byId('customer-cep')?.value || '';
+      if (value) localStorage.setItem(storageKey, value);
+    }, true);
+  }
+
+  function validateCepOnSubmit() {
+    const form = byId('checkout-form');
+    if (!form || form.dataset.cepValidationBound) return;
+    form.dataset.cepValidationBound = 'true';
+    form.addEventListener('submit', event => {
+      const isDelivery = byId('delivery-type')?.value === 'delivery' && !new URLSearchParams(location.search).get('mesa');
+      if (!isDelivery) return;
+      const input = byId('customer-cep');
+      const digits = input?.value.replace(/\D/g, '') || '';
+      if (digits.length === 8) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setCepStatus('Informe um CEP válido com 8 números.', 'error');
+      input?.focus();
+    }, true);
+  }
+
+  function init() {
+    installCepField();
+    persistCep();
+    validateCepOnSubmit();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
 })();
