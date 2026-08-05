@@ -59,20 +59,26 @@
   }
 
   async function refreshStoreAvailability(){
-    if(typeof settings==='undefined'||!settings)return false;
+    const storeSlug=typeof slug!=='undefined'&&slug?slug:params.get('loja');
+    if(!storeSlug)return false;
     try{
-      const {data,error}=await window.supabaseClient.rpc('loja_disponivel',{p_estabelecimento:settings.id});
+      const {data:store,error:storeError}=await window.supabaseClient.from('estabelecimentos').select('id,aberto').eq('slug',storeSlug).maybeSingle();
+      if(storeError||!store)throw storeError||new Error('Loja não encontrada');
+      const {data:available,error}=await window.supabaseClient.rpc('loja_disponivel',{p_estabelecimento:store.id});
       if(error)throw error;
-      settings.aberto=Boolean(settings.aberto&&data!==false);
+      const isOpen=Boolean(store.aberto&&available!==false);
+      if(typeof settings!=='undefined'&&settings)settings.aberto=isOpen;
+      setClosedState(!isOpen);
+      const status=byId('public-store-status');
+      if(status){status.textContent=isOpen?'Aberto agora':'Fechado agora';status.classList.toggle('is-open',isOpen);status.classList.toggle('is-closed',!isOpen)}
+      if(byId('closed-notice'))byId('closed-notice').hidden=isOpen;
+      return isOpen;
     }catch(error){
       console.warn('Não foi possível confirmar disponibilidade da loja:',error);
-      settings.aberto=false;
+      if(typeof settings!=='undefined'&&settings)settings.aberto=false;
+      setClosedState(true);
+      return false;
     }
-    setClosedState(!settings.aberto);
-    const status=byId('public-store-status');
-    if(status){status.textContent=settings.aberto?'Aberto agora':'Fechado agora';status.classList.toggle('is-open',settings.aberto);status.classList.toggle('is-closed',!settings.aberto)}
-    if(byId('closed-notice'))byId('closed-notice').hidden=settings.aberto;
-    return settings.aberto;
   }
 
   function validate(formData,orderType,address){
@@ -148,7 +154,8 @@
       if(typeof setFeedback==='function')setFeedback(error?.message||'Não foi possível enviar o pedido. Revise os dados e tente novamente.','error',0);
     }finally{
       if(typeof submitting!=='undefined')submitting=false;
-      if(button){button.disabled=!settings?.aberto;button.textContent=settings?.aberto?original:'Loja fechada — pedidos indisponíveis'}
+      const openNow=typeof settings!=='undefined'&&Boolean(settings?.aberto);
+      if(button){button.disabled=!openNow;button.textContent=openNow?original:'Loja fechada — pedidos indisponíveis'}
     }
   }
 
@@ -157,7 +164,7 @@
     if(!form)return;
     form.onsubmit=secureSubmit;
     form.addEventListener('submit',secureSubmit,true);
-    refreshStoreAvailability();
+    [0,350,1000,2200].forEach(delay=>setTimeout(refreshStoreAvailability,delay));
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshStoreAvailability()});
     window.addEventListener('pageshow',refreshStoreAvailability);
   }
