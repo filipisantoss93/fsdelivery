@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#4a210d">
+  <title>Pagamentos on-line — FS Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pagamentos-integracao.css">
+</head>
+<body class="app-body payment-settings-body">
+  <main class="payment-settings-shell">
+    <header class="payment-settings-header">
+      <div>
+        <span class="eyebrow">EFÍ MARKETPLACE</span>
+        <h1>Pagamentos on-line</h1>
+        <p>Conecte a conta recebedora do estabelecimento e prepare o split de cartão e Pix.</p>
+      </div>
+      <a class="btn btn-secondary" href="configuracoes">Voltar às configurações</a>
+    </header>
+
+    <div id="payment-settings-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+    <section class="payment-status-card" aria-labelledby="payment-status-title">
+      <div>
+        <small>Status da integração</small>
+        <h2 id="payment-status-title">Carregando...</h2>
+        <p id="payment-status-description">Consultando os dados do estabelecimento.</p>
+      </div>
+      <span id="payment-status-badge" class="payment-status-badge">—</span>
+    </section>
+
+    <form id="payment-integration-form" class="panel payment-integration-form">
+      <div class="panel-head">
+        <div>
+          <h2>Conta recebedora Efí</h2>
+          <p>O restaurante precisa possuir uma conta Efí apta a receber split.</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="account-type">Tipo de conta</label>
+          <select id="account-type" required>
+            <option value="pj">Pessoa jurídica — CNPJ</option>
+            <option value="pf">Pessoa física — CPF</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="document-number">CPF ou CNPJ</label>
+          <input id="document-number" inputmode="numeric" autocomplete="off" maxlength="18" required>
+        </div>
+        <div class="field full">
+          <label for="payee-code">Payee code da conta Efí</label>
+          <input id="payee-code" autocomplete="off" maxlength="160" placeholder="Código da conta recebedora" required>
+          <small>Não informe senha, client secret, certificado ou dados de cartão.</small>
+        </div>
+      </div>
+
+      <div class="payment-section">
+        <div class="payment-section-head">
+          <div><h3>Divisão da venda</h3><p>A comissão começa desativada e só deve ser ativada após homologação.</p></div>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="commission-percent">Comissão FS (%)</label>
+            <input id="commission-percent" type="number" min="0" max="30" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <label for="fee-mode">Responsável pelas tarifas</label>
+            <select id="fee-mode">
+              <option value="proporcional">Divisão proporcional</option>
+              <option value="estabelecimento">Estabelecimento</option>
+              <option value="plataforma">Portal FS</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-section">
+        <div class="payment-section-head"><div><h3>Meios on-line</h3><p>A ativação comercial continua bloqueada enquanto a conta não estiver validada.</p></div></div>
+        <div class="payment-option-grid">
+          <label class="payment-option-card"><input id="online-card" type="checkbox"><span><b>Cartão on-line</b><small>Tokenização no navegador e cobrança no backend</small></span></label>
+          <label class="payment-option-card"><input id="online-pix" type="checkbox"><span><b>Pix on-line</b><small>QR Code exclusivo e confirmação por webhook</small></span></label>
+          <label class="payment-option-card"><input id="split-enabled" type="checkbox"><span><b>Split automático</b><small>Restaurante e FS recebem suas parcelas automaticamente</small></span></label>
+        </div>
+      </div>
+
+      <label class="payment-confirmation">
+        <input id="security-confirmation" type="checkbox" required>
+        <span>Confirmo que o código pertence à conta Efí do estabelecimento e que nenhuma credencial secreta foi inserida.</span>
+      </label>
+
+      <div class="actions">
+        <button class="btn btn-secondary" id="test-integration" type="button">Verificar configuração</button>
+        <button class="btn btn-primary" id="save-integration" type="submit">Salvar integração</button>
+      </div>
+    </form>
+
+    <section class="panel payment-guidance">
+      <h2>Próximas liberações</h2>
+      <div class="payment-guidance-grid">
+        <article><b>1. Cadastro</b><span>Salvar conta e documento do recebedor.</span></article>
+        <article><b>2. Homologação</b><span>Validar payee code e split com valores de teste.</span></article>
+        <article><b>3. Checkout</b><span>Ativar cartão somente após webhook e estorno testados.</span></article>
+      </div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/pagamentos-integracao.js"></script>
+</body>
+</html>
