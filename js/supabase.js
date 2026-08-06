@@ -4,7 +4,54 @@ const currentPath=location.pathname.toLowerCase();
 const currentPage=(currentPath.split('/').filter(Boolean).pop()||'index').replace(/\.html$/i,'');
 const pageKey=name=>String(name||'').toLowerCase().replace(/\.html$/i,'');
 const matchesPage=name=>currentPage===pageKey(name);
-window.FSDeliveryRoute=Object.freeze({currentPath,currentPage,matchesPage});
+const cleanInternalUrl=value=>{
+  const raw=String(value||'').trim();
+  if(!raw||raw.startsWith('#')||/^(?:mailto:|tel:|javascript:|data:)/i.test(raw))return raw;
+  try{
+    const url=new URL(raw,location.href);
+    if(url.origin!==location.origin)return raw;
+    const cleanPath=url.pathname.replace(/\.html$/i,'');
+    if(/^https?:/i.test(raw))return `${url.origin}${cleanPath}${url.search}${url.hash}`;
+    if(raw.startsWith('/'))return `${cleanPath}${url.search}${url.hash}`;
+    return raw.replace(/\.html(?=([?#]|$))/i,'');
+  }catch{
+    return raw.replace(/\.html(?=([?#]|$))/i,'');
+  }
+};
+window.FSDeliveryRoute=Object.freeze({currentPath,currentPage,matchesPage,cleanUrl:cleanInternalUrl});
+
+(function normalizarNavegacaoInterna(){
+  const normalizeElement=element=>{
+    if(!element)return;
+    if(element.matches?.('a[href]')){
+      const current=element.getAttribute('href');
+      const clean=cleanInternalUrl(current);
+      if(clean&&clean!==current)element.setAttribute('href',clean);
+    }
+    if(element.matches?.('form[action]')){
+      const current=element.getAttribute('action');
+      const clean=cleanInternalUrl(current);
+      if(clean&&clean!==current)element.setAttribute('action',clean);
+    }
+    if(element.hasAttribute?.('data-destination')){
+      const current=element.getAttribute('data-destination');
+      const clean=cleanInternalUrl(current);
+      if(clean&&clean!==current)element.setAttribute('data-destination',clean);
+    }
+    if(element.hasAttribute?.('onclick')){
+      const current=element.getAttribute('onclick')||'';
+      const clean=current.replace(/\.html(?=([?#'"`]|$))/gi,'');
+      if(clean!==current)element.setAttribute('onclick',clean);
+    }
+  };
+  const normalizeTree=()=>{
+    document.querySelectorAll('a[href],form[action],[data-destination],[onclick]').forEach(normalizeElement);
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',normalizeTree,{once:true});
+  else normalizeTree();
+  document.addEventListener('click',event=>normalizeElement(event.target.closest?.('a[href],[data-destination],[onclick]')),true);
+  document.addEventListener('submit',event=>normalizeElement(event.target.closest?.('form[action]')),true);
+})();
 
 (function normalizarViewport(){
   const viewport=document.querySelector('meta[name="viewport"]')||document.createElement('meta');
