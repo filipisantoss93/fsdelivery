@@ -1,5 +1,5 @@
 (()=>{
-  if(!/(^|\/)loja\.html$/i.test(location.pathname))return;
+  if(!(window.FSDeliveryRoute?.matchesPage?.('loja')||/(^|\/)loja(?:\.html)?$/i.test(location.pathname)))return;
   const byId=id=>document.getElementById(id);
   const params=new URLSearchParams(location.search);
   const tableMode=params.has('mesa');
