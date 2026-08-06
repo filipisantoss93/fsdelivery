@@ -150,6 +150,7 @@ if(matchesPage('configuracoes')){
   appendScript('js/public-store-link-config.js','fsPublicStoreLinkConfig');
   appendScript('js/config-bairros-cidade.js','fsConfigBairrosCidade');
   appendScript('js/config-bairros-importacao-segura.js','fsConfigBairrosImportacaoSegura');
+  appendScript('js/config-pagamentos-entry.js','fsConfigPagamentosEntry');
 }
 
 if(matchesPage('app')||matchesPage('configuracoes')||matchesPage('assinatura')){
