@@ -1,6 +1,6 @@
 (()=>{
   'use strict';
-  if(!/(^|\/)loja\.html$/i.test(location.pathname))return;
+  if(!(window.FSDeliveryRoute?.matchesPage?.('loja')||/(^|\/)loja(?:\.html)?$/i.test(location.pathname)))return;
   if(window.__fsLojaPosEnvio)return;
   window.__fsLojaPosEnvio=true;
 
@@ -55,9 +55,7 @@
 
   function snapshotCheckout(){
     lastPhone=normalizePhone(byId('customer-phone')?.value);
-    try{
-      cartSnapshot=Array.isArray(window.cart)?window.cart.map(item=>({...item})):[];
-    }catch{cartSnapshot=[]}
+    try{cartSnapshot=Array.isArray(window.cart)?window.cart.map(item=>({...item})):[]}catch{cartSnapshot=[]}
     const form=byId('checkout-form');
     if(form){
       const data=new FormData(form);
@@ -157,7 +155,7 @@
     message.textContent=`Pedido #${code} enviado com sucesso.`;
     if(link){
       const query=new URLSearchParams({loja:slug,telefone:phone,pedido:code});
-      link.href=`cliente.html?${query.toString()}`;
+      link.href=`cliente?${query.toString()}`;
       link.textContent='Abrir histórico de pedidos';
     }
     try{localStorage.setItem(lastOrderKey,JSON.stringify({codigo:code,telefone:phone,criado_em:new Date().toISOString()}))}catch{}
