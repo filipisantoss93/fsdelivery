@@ -91,6 +91,7 @@ if(matchesPage('app.html')||matchesPage('configuracoes.html')){
 }
 
 if(matchesPage('configuracoes.html')){
+  appendStyle('css/config-bairros-cidade.css','fsConfigBairrosCidade');
   appendScript('js/config-modal-bootstrap.js','fsConfigModalBootstrap');
   appendScript('js/public-store-link-config.js','fsPublicStoreLinkConfig');
   appendScript('js/config-bairros-cidade.js','fsConfigBairrosCidade');
