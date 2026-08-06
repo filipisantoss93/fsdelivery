@@ -19,7 +19,6 @@
   let processedCode='';
   let cartSnapshot=[];
   let checkoutSnapshot={};
-  let pollingTimer=null;
   let currentOrder=null;
 
   const stages=[
@@ -118,11 +117,11 @@
     const payment=currentOrder.forma_pagamento||checkoutSnapshot.pagamento||'Não informado';
     const address=addressLabel(currentOrder);
     tracker.innerHTML=`
-      <div class="fs-order-tracker-head"><small>Pedido #${esc(currentOrder.codigo||code)}</small><h3>Acompanhe seu pedido</h3><p>Esta tela será atualizada automaticamente conforme o restaurante e o entregador avançarem o pedido.</p></div>
+      <div class="fs-order-tracker-head"><small>Pedido #${esc(currentOrder.codigo||code)}</small><h3>Acompanhe seu pedido</h3><p>O status é consultado no envio, quando você volta para esta tela e ao tocar em atualizar.</p></div>
       <div class="fs-order-current${stage.error?' is-error':''}">${esc(stage.label)}</div>
       ${stage.error?'':`<div class="fs-order-timeline">${stages.map((item,index)=>`<div class="fs-order-step ${index<=stage.index?'done':''} ${index===stage.index?'current':''}">${esc(index===2&&currentOrder.tipo!=='entrega'?'Pronto para retirada':item.label)}</div>`).join('')}</div>`}
       <div class="fs-order-summary"><h4>Resumo do pedido</h4>${items.map(item=>`<div class="fs-order-item"><span>${Number(item.quantidade)||1}x ${esc(item.nome)}${item.observacoes?`<small>${esc(item.observacoes)}</small>`:''}</span><b>${money(item.total)}</b></div>`).join('')}<div class="fs-order-summary-row"><span>Pagamento</span><b>${esc(payment)}</b></div>${address?`<div class="fs-order-summary-row"><span>Entrega</span><b>${esc(address)}</b></div>`:''}<div class="fs-order-summary-row fs-order-total"><span>Total</span><b>${money(total)}</b></div></div>
-      <div class="fs-order-refresh"><span>Atualização automática ativa</span><button type="button" id="fs-refresh-order">Atualizar agora</button></div>`;
+      <div class="fs-order-refresh"><span>Consulta sob demanda</span><button type="button" id="fs-refresh-order">Atualizar agora</button></div>`;
     byId('fs-refresh-order').onclick=()=>refreshOrder(code,true);
   }
 
@@ -137,10 +136,10 @@
     }catch(error){console.warn('Falha ao atualizar acompanhamento:',error)}
   }
 
-  function startPolling(code){
-    clearInterval(pollingTimer);
+  function startTracking(code){
     refreshOrder(code);
-    pollingTimer=setInterval(()=>{if(document.visibilityState==='visible')refreshOrder(code)},7000);
+    setTimeout(()=>refreshOrder(code),1500);
+    setTimeout(()=>refreshOrder(code),5000);
   }
 
   function enhanceSuccess(){
@@ -160,7 +159,7 @@
     }
     try{localStorage.setItem(lastOrderKey,JSON.stringify({codigo:code,telefone:phone,criado_em:new Date().toISOString()}))}catch{}
     renderTracker(null,code);
-    startPolling(code);
+    startTracking(code);
     if(code!==processedCode){
       processedCode=code;
       bindCustomerDevice(code,phone);
