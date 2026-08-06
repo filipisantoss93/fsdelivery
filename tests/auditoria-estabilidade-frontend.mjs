@@ -12,6 +12,10 @@ const appHtml=read('app.html');
 const appUi=read('js/app-ui-sync.js');
 
 assert(!/maximum-scale\s*=\s*1|user-scalable\s*=\s*no/i.test(supabase),'supabase.js não pode bloquear zoom do navegador.');
+assert(/const cleanInternalUrl=/.test(supabase),'O carregador central deve possuir normalização de URLs internas.');
+assert(/window\.FSDeliveryRoute=Object\.freeze\(\{[^}]*cleanUrl:cleanInternalUrl/.test(supabase),'O contrato de rota deve expor o gerador de URL limpa.');
+assert(/querySelectorAll\('a\[href\],form\[action\],\[data-destination\],\[onclick\]'\)/.test(supabase),'Links, formulários e comandos legados devem ser normalizados antes do uso.');
+assert(!/MutationObserver/.test(supabase),'A normalização global de URLs não deve adicionar observers ao documento.');
 assert(!/db\.rpc\s*=|supabaseClient\.rpc\s*=/.test(customers),'clientes-enderecos.js não pode sobrescrever o método RPC global.');
 assert(!/document\.documentElement[\s\S]{0,160}MutationObserver|MutationObserver[\s\S]{0,160}document\.documentElement/.test(orderFilters),'Filtros de pedidos não podem observar o documento inteiro.');
 assert(!/document\.createElement\(['"]style['"]\)/.test(orderFilters),'CSS dos filtros deve permanecer na folha de estilos consolidada.');
