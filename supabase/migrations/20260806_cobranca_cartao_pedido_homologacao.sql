@@ -2,7 +2,7 @@
 
 create table if not exists public.cobrancas_pedido_cartao (
   id uuid primary key default gen_random_uuid(),
-  pedido_id bigint not null unique references public.pedidos(id) on delete cascade,
+  pedido_id bigint not null references public.pedidos(id) on delete cascade,
   estabelecimento_id uuid not null references public.estabelecimentos(id) on delete cascade,
   request_key uuid not null unique,
   provedor text not null default 'efi' check (provedor = 'efi'),
@@ -24,8 +24,12 @@ create table if not exists public.cobrancas_pedido_cartao (
 alter table public.cobrancas_pedido_cartao enable row level security;
 revoke all on table public.cobrancas_pedido_cartao from anon, authenticated;
 
+create index if not exists idx_cobrancas_pedido_cartao_pedido
+  on public.cobrancas_pedido_cartao(pedido_id, created_at desc);
 create index if not exists idx_cobrancas_pedido_cartao_estabelecimento
   on public.cobrancas_pedido_cartao(estabelecimento_id, created_at desc);
+create index if not exists pagamento_eventos_pedido_idx
+  on public.pagamento_eventos(pedido_id);
 
 comment on table public.cobrancas_pedido_cartao is
   'Tentativas idempotentes de cartão dos pedidos. Acesso exclusivo das Edge Functions.';
@@ -52,3 +56,6 @@ $$;
 
 revoke all on function public.fsdelivery_mapear_status_efi_pedido(text) from public, anon, authenticated;
 grant execute on function public.fsdelivery_mapear_status_efi_pedido(text) to service_role;
+
+-- Função usada somente pelo trigger de proteção da configuração de pagamentos.
+revoke all on function public.proteger_campos_validacao_pagamento() from public, anon, authenticated;
