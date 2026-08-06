@@ -16,8 +16,9 @@ assert(!/db\.rpc\s*=|supabaseClient\.rpc\s*=/.test(customers),'clientes-endereco
 assert(!/document\.documentElement[\s\S]{0,160}MutationObserver|MutationObserver[\s\S]{0,160}document\.documentElement/.test(orderFilters),'Filtros de pedidos não podem observar o documento inteiro.');
 assert(!/document\.createElement\(['"]style['"]\)/.test(orderFilters),'CSS dos filtros deve permanecer na folha de estilos consolidada.');
 assert(!/setInterval\s*\(/.test(postOrder),'Pós-envio da loja não pode usar polling contínuo.');
-assert(/matchesPage\('loja\.html'\)/.test(supabase),'Carregamento da loja deve ser condicionado à página atual.');
-assert(/matchesPage\('app\.html'\)/.test(supabase),'Carregamento do painel deve ser condicionado à página atual.');
+assert(/matchesPage\('loja'\)/.test(supabase),'Carregamento da loja deve ser condicionado à rota limpa da página atual.');
+assert(/matchesPage\('app'\)/.test(supabase),'Carregamento do painel deve ser condicionado à rota limpa da página atual.');
+assert(/replace\(\/\\\.html\$\/i,''\)/.test(supabase),'O contrato de rota deve continuar aceitando URLs legadas sem expor .html.');
 assert(!/<style[\s>]/i.test(appHtml),'app.html não pode conter CSS operacional inline.');
 assert(!/MutationObserver/.test(appHtml),'app.html não pode conter MutationObserver inline.');
 assert(!/<script>(?!\s*<\/script>)/i.test(appHtml),'app.html não pode conter JavaScript inline.');
