@@ -8,6 +8,7 @@ on:
       - 'css/**'
       - 'app.html'
       - 'loja.html'
+      - 'cliente.html'
       - 'balcao.html'
       - 'garcom.html'
       - 'cozinha.html'
@@ -22,6 +23,7 @@ on:
       - 'css/**'
       - 'app.html'
       - 'loja.html'
+      - 'cliente.html'
       - 'balcao.html'
       - 'garcom.html'
       - 'cozinha.html'
@@ -52,9 +54,11 @@ jobs:
             js/supabase.js
             js/loja-operacional.js
             js/loja-fluxos-pedido.js
+            js/loja-publica-consolidado.js
             js/loja-pos-envio.js
-            js/balcao-fluxos.js
+            js/balcao.js
             js/garcom.js
+            js/garcom-core.js
             js/cozinha.js
             js/caixa.js
             js/entregador-core.js
