@@ -1,6 +1,6 @@
 (()=>{
   'use strict';
-  if(!/(^|\/)app\.html$/i.test(location.pathname))return;
+  if(!(window.FSDeliveryRoute?.matchesPage?.('app')||/(^|\/)app(?:\.html)?$/i.test(location.pathname)))return;
   if(window.__fsOrderTypeFilters)return;
   window.__fsOrderTypeFilters=true;
 
@@ -114,7 +114,6 @@
       document.getElementById('fs-order-modal')?.classList.remove('open');
       document.body.style.overflow='';
       document.dispatchEvent(new CustomEvent('fs:orders:refresh'));
-      location.reload();
     }catch(error){
       alert(error.message||'Não foi possível rejeitar o pedido.');
       button.disabled=false;
