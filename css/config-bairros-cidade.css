@@ -1,0 +1,28 @@
+#region-list{display:grid;gap:12px}
+#region-list .row-card[data-region-row]{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(110px,.6fr) minmax(130px,.7fr) auto auto auto;gap:14px;align-items:end;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface-2)}
+#region-list .row-card[data-region-row] .field{min-width:0}
+#region-list .row-card[data-region-row] .field b{display:block;font-size:16px;line-height:1.3;overflow-wrap:anywhere}
+#region-list .row-card[data-region-row] .field small{display:block;margin-top:4px;color:var(--muted)}
+#region-list .row-card[data-region-row] input[data-region-fee],
+#region-list .row-card[data-region-row] input[data-region-extra]{width:100%;min-width:0}
+#region-list .row-card[data-region-row] .check-row{align-self:center;margin:0;white-space:normal}
+#region-list .row-card[data-region-row] .inline-actions{display:grid;gap:8px;align-self:stretch}
+#region-list .row-card[data-region-row] .inline-actions .btn{min-width:112px}
+
+@media(max-width:760px){
+  #region-list .row-card[data-region-row]{grid-template-columns:1fr 1fr;gap:12px;padding:14px}
+  #region-list .row-card[data-region-row]>.field:first-child{grid-column:1/-1;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  #region-list .row-card[data-region-row]>.field:first-child b{font-size:18px}
+  #region-list .row-card[data-region-row] .check-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;min-height:44px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+  #region-list .row-card[data-region-row] .check-row input{flex:0 0 auto;width:22px;height:22px;margin:0}
+  #region-list .row-card[data-region-row] .inline-actions{grid-column:1/-1;grid-template-columns:1fr 1fr;margin-top:2px}
+  #region-list .row-card[data-region-row] .inline-actions .btn{width:100%;min-width:0}
+}
+
+@media(max-width:430px){
+  #region-list .row-card[data-region-row]{grid-template-columns:1fr}
+  #region-list .row-card[data-region-row]>.field:first-child,
+  #region-list .row-card[data-region-row] .check-row,
+  #region-list .row-card[data-region-row] .inline-actions{grid-column:1}
+  #region-list .row-card[data-region-row] .inline-actions{grid-template-columns:1fr}
+}
