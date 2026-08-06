@@ -94,6 +94,7 @@ if(matchesPage('configuracoes.html')){
   appendScript('js/config-modal-bootstrap.js','fsConfigModalBootstrap');
   appendScript('js/public-store-link-config.js','fsPublicStoreLinkConfig');
   appendScript('js/config-bairros-cidade.js','fsConfigBairrosCidade');
+  appendScript('js/config-bairros-importacao-segura.js','fsConfigBairrosImportacaoSegura');
 }
 
 if(matchesPage('app.html')||matchesPage('configuracoes.html')||matchesPage('assinatura.html')){
