@@ -1,5 +1,5 @@
 (()=>{
-  if(!/(^|\/)app\.html$/i.test(location.pathname))return;
+  if(!(window.FSDeliveryRoute?.matchesPage?.('app')||/(^|\/)app(?:\.html)?$/i.test(location.pathname)))return;
   const db=window.supabaseClient;
   const state={store:null,orders:[],payments:[],events:[],filter:'ativos',selected:null,channel:null,loading:false,mounted:false};
   const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
@@ -31,7 +31,7 @@
     document.body.appendChild(modal);
     modal.onclick=event=>{if(event.target===modal||event.target.closest('[data-fs-close]'))closeModal()};
     el('fs-order-print').onclick=()=>window.print();
-    el('fs-order-cash').onclick=()=>location.href='caixa.html';
+    el('fs-order-cash').onclick=()=>location.href='caixa';
     el('fs-order-action').onclick=()=>{const action=nextAction(state.selected);if(action)runAction(state.selected,action)};
     el('fs-order-cancel').onclick=()=>{if(state.selected)runAction(state.selected,{status:'cancelado',label:'Cancelar pedido'})};
   }
@@ -40,7 +40,7 @@
     const page=el('pedidos');if(!page)return false;
     if(page.dataset.fsOperationalOrders==='true')return true;
     page.dataset.fsOperationalOrders='true';page.innerHTML=markup();state.mounted=true;
-    el('fs-new-order').onclick=()=>location.href='balcao.html';
+    el('fs-new-order').onclick=()=>location.href='balcao';
     ensureModal();renderFilters();render();return true;
   }
 
@@ -107,8 +107,9 @@
     host.querySelectorAll('[data-fs-detail]').forEach(button=>button.onclick=event=>{event.stopPropagation();openOrder(button.dataset.fsDetail)});
     host.querySelectorAll('[data-fs-order]').forEach(node=>node.onclick=event=>{if(!event.target.closest('button'))openOrder(node.dataset.fsOrder)});
     host.querySelectorAll('[data-fs-action]').forEach(button=>button.onclick=event=>{event.stopPropagation();const order=state.orders.find(item=>String(item.id)===button.dataset.fsAction),action=nextAction(order);if(action)runAction(order,action)});
-    host.querySelectorAll('[data-fs-cash]').forEach(button=>button.onclick=event=>{event.stopPropagation();location.href='caixa.html'});
+    host.querySelectorAll('[data-fs-cash]').forEach(button=>button.onclick=event=>{event.stopPropagation();location.href='caixa'});
     updateDashboard();
+    document.dispatchEvent(new CustomEvent('fs:orders:rendered'));
   }
 
   function updateDashboard(){
@@ -131,6 +132,7 @@
     el('fs-order-cash').hidden=!(order.status==='servido'&&saldo>0);
     el('fs-order-cancel').hidden=FSOrderStatus.isFinal(order.status)||order.status==='servido';
     modal.classList.add('open');document.body.style.overflow='hidden';
+    document.dispatchEvent(new CustomEvent('fs:orders:modal-opened'));
   }
 
   function closeModal(){el('fs-order-modal')?.classList.remove('open');document.body.style.overflow='';state.selected=null}
@@ -179,6 +181,7 @@
     observer.observe(document.body,{subtree:true,childList:true});
     setTimeout(()=>{mount();renderFilters();render()},1200);
     const requested=new URLSearchParams(location.hash.split('?')[1]||'').get('pedido');if(requested)setTimeout(()=>openOrder(requested),800);
+    document.addEventListener('fs:orders:refresh',async()=>{await load();renderFilters();render()});
   }
 
   window.FSAdminOrders={openOrder,refresh:async()=>{await load();renderFilters();render()}};
