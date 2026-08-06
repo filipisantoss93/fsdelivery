@@ -18,6 +18,36 @@
     legacy:byId('customer-address')
   });
 
+  const normalizeRegion=value=>String(value||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/\bii\b/g,'2').replace(/\biii\b/g,'3').replace(/\biv\b/g,'4')
+    .replace(/\b(residencial|bairro|jardim|jd|conjunto|cj|loteamento|lot)\b/g,' ')
+    .replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+
+  function resolveRegionFromNeighborhood(){
+    const neighborhood=String(fields().neighborhood?.value||'').trim();
+    if(typeof regions==='undefined'||!Array.isArray(regions)||!regions.length){
+      if(typeof selectedRegion!=='undefined')selectedRegion=null;
+      return null;
+    }
+    const target=normalizeRegion(neighborhood);
+    const match=regions.find(region=>{
+      const candidate=normalizeRegion(region.nome);
+      return candidate===target||candidate.includes(target)||target.includes(candidate);
+    })||null;
+    if(typeof selectedRegion!=='undefined')selectedRegion=match;
+    const select=byId('delivery-region');
+    if(select)select.value=match?.id||'';
+    if(typeof updateTotal==='function')updateTotal();
+    return match;
+  }
+
+  function hideRegionSelector(){
+    const regionField=byId('region-field');
+    if(regionField){regionField.hidden=true;regionField.style.display='none';regionField.setAttribute('aria-hidden','true')}
+  }
+
   function checkoutToken(){
     const key=`fsdelivery_checkout_${params.get('loja')||'public'}_${params.get('mesa')||'online'}`;
     let token=sessionStorage.getItem(key);
@@ -95,7 +125,9 @@
       if(address.logradouro.length<3){showValidationError('Informe a rua da entrega.',f.street);return null}
       if(!address.numero){showValidationError('Informe o número do endereço.',f.number);return null}
       if(address.bairro.length<2){showValidationError('Informe o bairro da entrega.',f.neighborhood);return null}
-      if(typeof regions!=='undefined'&&regions.length&&typeof selectedRegion!=='undefined'&&!selectedRegion){showValidationError('Selecione o bairro ou região de entrega.',byId('delivery-region'));return null}
+      if(typeof regions!=='undefined'&&regions.length&&!resolveRegionFromNeighborhood()){
+        showValidationError('Este bairro ainda não está cadastrado na área de entrega da loja.',f.neighborhood);return null
+      }
     }
     return {name,phone,payment};
   }
@@ -164,9 +196,19 @@
     if(!form||form.dataset.fsSecureSubmitBound==='true')return;
     form.dataset.fsSecureSubmitBound='true';
     form.onsubmit=secureSubmit;
+    hideRegionSelector();
+    const neighborhood=fields().neighborhood;
+    if(neighborhood){
+      neighborhood.addEventListener('input',resolveRegionFromNeighborhood);
+      neighborhood.addEventListener('change',resolveRegionFromNeighborhood);
+      const observer=new MutationObserver(resolveRegionFromNeighborhood);
+      observer.observe(neighborhood,{attributes:true,attributeFilter:['value']});
+    }
+    setTimeout(()=>{hideRegionSelector();resolveRegionFromNeighborhood()},300);
+    setTimeout(()=>{hideRegionSelector();resolveRegionFromNeighborhood()},1000);
     refreshStoreAvailability();
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshStoreAvailability()});
-    window.addEventListener('pageshow',refreshStoreAvailability);
+    window.addEventListener('pageshow',()=>{hideRegionSelector();resolveRegionFromNeighborhood();refreshStoreAvailability()});
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
