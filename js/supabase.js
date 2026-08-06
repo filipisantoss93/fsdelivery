@@ -135,6 +135,10 @@ function appendStyle(href,key){
 
 appendScript('js/pull-to-refresh.js','fsPullRefresh');
 
+if(matchesPage('app')||matchesPage('loja')||matchesPage('cliente')){
+  appendStyle('css/orders.css','fsOrders');
+}
+
 if(matchesPage('app')||matchesPage('configuracoes')){
   appendScript('js/admin-mobile-nav.js','fsAdminMobileNav');
   appendStyle('css/admin-mobile-nav.css','fsAdminMobileNav');
@@ -157,10 +161,6 @@ if(matchesPage('loja')||matchesPage('balcao')||matchesPage('cardapio')||matchesP
   appendScript('js/clientes-enderecos.js','fsClientesEnderecos');
 }
 
-if(matchesPage('balcao')){
-  window.addEventListener('DOMContentLoaded',()=>appendScript('js/balcao-fluxos.js','fsBalcaoFluxos',{defer:false,target:document.body}),{once:true});
-}
-
 if(matchesPage('loja')){
   appendScript('js/loja-fluxos-pedido.js','fsLojaFluxos');
   appendScript('js/loja-pos-envio.js','fsLojaPosEnvio');
@@ -168,7 +168,6 @@ if(matchesPage('loja')){
 }
 
 if(matchesPage('app')){
-  appendStyle('css/app-orders-operational.css','fsAppOrdersOperational');
   appendScript('js/app-orders-operational.js','fsAppOrdersOperational');
   appendScript('js/app-orders-type-filters.js','fsAppOrdersTypeFilters');
 }
