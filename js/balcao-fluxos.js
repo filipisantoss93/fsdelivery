@@ -1,21 +1,29 @@
 (()=>{
   const byId=id=>document.getElementById(id);
   const originalRenderPayments=renderPayments;
+  const requestedOrigin=new URLSearchParams(location.search).get('origem')==='caixa'?'caixa':'balcao';
 
   function clearAddress(){
     ['counter-cep','counter-street','counter-number','counter-neighborhood','counter-city','counter-complement','counter-reference'].forEach(id=>{const node=byId(id);if(node)node.value=''});
   }
 
-  function addressText(){
-    return [
-      byId('counter-street')?.value.trim(),
-      byId('counter-number')?.value.trim(),
-      byId('counter-neighborhood')?.value.trim(),
-      byId('counter-city')?.value.trim(),
-      byId('counter-complement')?.value.trim(),
-      byId('counter-reference')?.value.trim()?`Referência: ${byId('counter-reference').value.trim()}`:'',
-      byId('counter-cep')?.value.trim()?`CEP: ${byId('counter-cep').value.trim()}`:''
+  function addressData(){
+    const cep=byId('counter-cep')?.value.replace(/\D/g,'')||'';
+    const logradouro=byId('counter-street')?.value.trim()||'';
+    const numero=byId('counter-number')?.value.trim()||'';
+    const bairro=byId('counter-neighborhood')?.value.trim()||'';
+    const cidade=byId('counter-city')?.value.trim()||'';
+    const complemento=byId('counter-complement')?.value.trim()||'';
+    const referencia=byId('counter-reference')?.value.trim()||'';
+    const texto=[
+      [logradouro,numero].filter(Boolean).join(', '),
+      bairro,
+      cidade,
+      complemento,
+      referencia?`Referência: ${referencia}`:'',
+      cep?`CEP: ${cep.replace(/(\d{5})(\d{3})/,'$1-$2')}`:''
     ].filter(Boolean).join(', ');
+    return {cep,logradouro,numero,bairro,cidade,estado:'',complemento,referencia,texto};
   }
 
   window.renderPayments=renderPayments=function(){
@@ -63,20 +71,26 @@
     const name=byId('counter-name').value.trim();
     const phone=byId('counter-phone').value.replace(/\D/g,'');
     const tableId=byId('counter-table').value;
+    const address=addressData();
     if(currentType==='local'&&!tableId)return alert('Selecione uma mesa para o pedido local.');
-    if(currentType==='entrega'&&(!byId('counter-street').value.trim()||!byId('counter-number').value.trim()||!byId('counter-neighborhood').value.trim()||!byId('counter-city').value.trim()))return alert('Informe rua, número, bairro e cidade.');
+    if(currentType==='entrega'&&(!address.logradouro||!address.numero||!address.bairro||!address.cidade||address.cep.length!==8))return alert('Informe CEP, rua, número, bairro e cidade.');
     if(['entrega','retirada'].includes(currentType)&&(name.length<2||phone.length<10))return alert('Informe nome e WhatsApp válidos.');
     const selectedTable=byId('counter-table').selectedOptions[0];
-    const notes=[byId('counter-notes').value.trim(),!byId('counter-change-field').hidden&&byId('counter-change').value.trim()?`Troco para R$ ${byId('counter-change').value.trim()}`:''].filter(Boolean).join(' • ');
+    const change=!byId('counter-change-field').hidden?byId('counter-change').value.trim():'';
     const payload={
+      origem:requestedOrigin,
       tipo:currentType==='local'?'mesa':currentType,
       mesa_id:currentType==='local'?tableId:null,
       mesa_token:currentType==='local'?selectedTable?.dataset.token:null,
       nome:name||'Atendimento local',
-      telefone:phone||'local',
-      endereco:currentType==='entrega'?addressText():'',
+      telefone:phone,
+      cep:currentType==='entrega'?address.cep:'',
+      bairro:currentType==='entrega'?address.bairro:'',
+      endereco:currentType==='entrega'?address.texto:'',
+      endereco_dados:currentType==='entrega'?address:{},
       pagamento:byId('counter-payment').value,
-      observacoes:notes,
+      troco_para:change||null,
+      observacoes:byId('counter-notes').value.trim(),
       itens:cart.map(item=>({produto_id:item.productId,quantidade:item.qty,observacoes:item.note}))
     };
     const button=byId('counter-submit'),original=button.textContent;
@@ -89,4 +103,12 @@
     }catch(error){alert(error.message||'Não foi possível criar o pedido.')}
     finally{button.disabled=!canSell;button.textContent=original}
   };
+
+  if(requestedOrigin==='caixa'){
+    document.title='Venda rápida — FS Delivery';
+    const title=document.querySelector('.page-head h1');
+    const subtitle=document.querySelector('.page-head p');
+    if(title)title.textContent='Venda rápida no caixa';
+    if(subtitle)subtitle.textContent='Registre retirada, consumo local ou entrega usando o mesmo contrato de pedidos.';
+  }
 })();

@@ -1,7 +1,10 @@
 const SUPABASE_URL='https://kvjvhoziqcevkzyszdke.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_NgOVxQYh3jxQ7Go7y2HTLg_rVJuQ3mc';
 const currentPath=location.pathname.toLowerCase();
-const matchesPage=name=>new RegExp(`(^|/)${name.replace('.','\\.')}$`,'i').test(currentPath);
+const currentPage=(currentPath.split('/').filter(Boolean).pop()||'index').replace(/\.html$/i,'');
+const pageKey=name=>String(name||'').toLowerCase().replace(/\.html$/i,'');
+const matchesPage=name=>currentPage===pageKey(name);
+window.FSDeliveryRoute=Object.freeze({currentPath,currentPage,matchesPage});
 
 (function normalizarViewport(){
   const viewport=document.querySelector('meta[name="viewport"]')||document.createElement('meta');
@@ -11,17 +14,17 @@ const matchesPage=name=>new RegExp(`(^|/)${name.replace('.','\\.')}$`,'i').test(
 })();
 
 (function direcionarNovoPedidoParaBalcao(){
-  if(!matchesPage('app.html'))return;
+  if(!matchesPage('app'))return;
   document.addEventListener('click',event=>{
     const trigger=event.target.closest?.('a,button');
     if(!trigger)return;
     const label=String(trigger.textContent||'').trim().toLowerCase();
     const destination=`${trigger.getAttribute('href')||''} ${trigger.getAttribute('onclick')||''}`.toLowerCase();
-    const isAdministrativeNewOrder=trigger.id==='new-order-btn'||trigger.id==='fs-new-order'||(label.includes('novo pedido')&&destination.includes('cardapio.html'));
+    const isAdministrativeNewOrder=trigger.id==='new-order-btn'||trigger.id==='fs-new-order'||(label.includes('novo pedido')&&destination.includes('cardapio'));
     if(!isAdministrativeNewOrder)return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    location.href='balcao.html';
+    location.href='balcao';
   },true);
 })();
 
@@ -49,7 +52,7 @@ function appendStyle(href,key){
 }
 
 (async function resolvePublicStoreUrl(){
-  if(!matchesPage('loja.html'))return;
+  if(!matchesPage('loja'))return;
   const params=new URLSearchParams(location.search);
   const rawSlug=String(params.get('loja')||'').trim();
   const slug=['','undefined','null'].includes(rawSlug.toLowerCase())?'':rawSlug;
@@ -85,12 +88,12 @@ function appendStyle(href,key){
 
 appendScript('js/pull-to-refresh.js','fsPullRefresh');
 
-if(matchesPage('app.html')||matchesPage('configuracoes.html')){
+if(matchesPage('app')||matchesPage('configuracoes')){
   appendScript('js/admin-mobile-nav.js','fsAdminMobileNav');
   appendStyle('css/admin-mobile-nav.css','fsAdminMobileNav');
 }
 
-if(matchesPage('configuracoes.html')){
+if(matchesPage('configuracoes')){
   appendStyle('css/config-bairros-cidade.css','fsConfigBairrosCidade');
   appendScript('js/config-modal-bootstrap.js','fsConfigModalBootstrap');
   appendScript('js/public-store-link-config.js','fsPublicStoreLinkConfig');
@@ -98,31 +101,31 @@ if(matchesPage('configuracoes.html')){
   appendScript('js/config-bairros-importacao-segura.js','fsConfigBairrosImportacaoSegura');
 }
 
-if(matchesPage('app.html')||matchesPage('configuracoes.html')||matchesPage('assinatura.html')){
+if(matchesPage('app')||matchesPage('configuracoes')||matchesPage('assinatura')){
   appendScript('js/subscription-entry.js','fsSubscriptionEntry');
   appendScript('js/assinatura-complemento.js','fsSubscriptionGuards');
 }
 
-if(matchesPage('loja.html')||matchesPage('balcao.html')||matchesPage('cardapio.html')||matchesPage('app.html')){
+if(matchesPage('loja')||matchesPage('balcao')||matchesPage('cardapio')||matchesPage('app')){
   appendScript('js/clientes-enderecos.js','fsClientesEnderecos');
 }
 
-if(matchesPage('balcao.html')){
+if(matchesPage('balcao')){
   window.addEventListener('DOMContentLoaded',()=>appendScript('js/balcao-fluxos.js','fsBalcaoFluxos',{defer:false,target:document.body}),{once:true});
 }
 
-if(matchesPage('loja.html')){
+if(matchesPage('loja')){
   appendScript('js/loja-fluxos-pedido.js','fsLojaFluxos');
   appendScript('js/loja-pos-envio.js','fsLojaPosEnvio');
   appendScript('js/loja-publica-consolidado.js','fsLojaPublicaConsolidada');
 }
 
-if(matchesPage('app.html')){
+if(matchesPage('app')){
   appendStyle('css/app-orders-operational.css','fsAppOrdersOperational');
   appendScript('js/app-orders-operational.js','fsAppOrdersOperational');
   appendScript('js/app-orders-type-filters.js','fsAppOrdersTypeFilters');
 }
 
-if(matchesPage('app.html')||matchesPage('balcao.html')||matchesPage('cardapio.html')||matchesPage('caixa.html')||matchesPage('cozinha.html')||matchesPage('entregador.html')){
+if(matchesPage('app')||matchesPage('balcao')||matchesPage('cardapio')||matchesPage('caixa')||matchesPage('cozinha')||matchesPage('entregador')){
   appendStyle('css/mobile-density.css','fsMobileDensity');
 }
