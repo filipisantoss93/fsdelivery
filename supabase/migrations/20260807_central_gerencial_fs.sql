@@ -281,5 +281,4 @@ $$;
 
 revoke all on function public.proteger_campos_validacao_pagamento() from public, anon, authenticated;
 
-after_migration_comment:
 comment on table public.fs_admin_auditoria is 'Auditoria de alterações executadas pela Central Gerencial FS Delivery. Sem acesso direto pela Data API.';
