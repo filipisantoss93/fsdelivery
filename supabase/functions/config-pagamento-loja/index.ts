@@ -3,12 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const CORS={
   "Access-Control-Allow-Origin":"*",
-  "Access-Control-Allow-Headers":"content-type, apikey, x-client-info",
+  "Access-Control-Allow-Headers":"content-type, apikey, x-client-info, authorization",
   "Access-Control-Allow-Methods":"POST, OPTIONS"
 };
 const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...CORS,"Content-Type":"application/json","Cache-Control":"private, max-age=30"}});
 const env=(name:string)=>{const value=Deno.env.get(name);if(!value)throw new Error(`Secret ausente: ${name}`);return value};
-const disabled=(status="nao_configurado")=>({provedor:null,ambiente:"homologacao",status,cartao_online:false,pix_online:false,split:false});
+const disabled=(status="nao_configurado")=>({provedor:null,ambiente:"homologacao",status,cartao_online:false,pix_online:false,split:false,tokenizacao:null});
 
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
@@ -32,13 +32,23 @@ Deno.serve(async(req:Request)=>{
     const enabled=Boolean(data?.conta_validada&&data?.status==="ativo");
     if(!enabled)return json(disabled(data?.status||"nao_configurado"));
 
+    const ambiente=data?.ambiente||"homologacao";
+    const accountIdentifier=String(
+      Deno.env.get("EFI_PAYEE_CODE_HOMOLOGACAO")||
+      Deno.env.get("EFI_ACCOUNT_IDENTIFIER_HOMOLOGACAO")||
+      Deno.env.get("EFI_PAYEE_CODE")||
+      Deno.env.get("EFI_ACCOUNT_IDENTIFIER")||""
+    ).trim();
+    const cardEnabled=Boolean(data?.cartao_online_ativo&&ambiente==="homologacao"&&accountIdentifier);
+
     return json({
       provedor:data?.provedor||null,
-      ambiente:data?.ambiente||"homologacao",
+      ambiente,
       status:data?.status||"ativo",
-      cartao_online:Boolean(data?.cartao_online_ativo),
+      cartao_online:cardEnabled,
       pix_online:Boolean(data?.pix_online_ativo),
-      split:Boolean(data?.split_ativo)
+      split:Boolean(data?.split_ativo),
+      tokenizacao:cardEnabled?{account_identifier:accountIdentifier,environment:"sandbox"}:null
     });
   }catch(error){
     console.error("config-pagamento-loja",error);

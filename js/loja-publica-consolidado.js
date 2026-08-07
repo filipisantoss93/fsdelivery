@@ -50,14 +50,22 @@
         if(address.bairro.length<2)return fail('Informe o bairro da entrega.',f.neighborhood);
         if(typeof regions!=='undefined'&&regions.length&&!resolveRegion())return fail('Este bairro não está cadastrado na área de entrega da loja.',f.neighborhood);
       }
+      const onlineCard=payment==='Cartão on-line';
+      const cardPayment=onlineCard?await window.FSDeliveryOnlineCard?.prepare?.({name,phone}):null;
+      if(onlineCard&&!cardPayment)throw new Error('Não foi possível preparar o pagamento com cartão.');
       const checkout=checkoutToken();
       const payload={slug:typeof slug!=='undefined'?slug:params.get('loja'),nome:name,telefone:phone,tipo:orderType,endereco:orderType==='delivery'?address.texto:null,endereco_dados:orderType==='delivery'?address:null,cep:address.cep,pagamento:payment,troco_para:payment==='Dinheiro'?String(formData.get('change')||'').replace(',','.').trim()||null:null,observacoes:String(formData.get('notes')||'').trim(),mesa_token:typeof tableToken!=='undefined'?tableToken:null,cupom:typeof appliedCoupon!=='undefined'?appliedCoupon:'',checkout_token:checkout.token,itens:cart.map(item=>({produto_id:item.productId,quantidade:item.qty,observacoes:item.note}))};
       const{data:orderCode,error}=await db.rpc('criar_pedido_publico',{payload});if(error)throw error;
-      const proof={slug:String(payload.slug||''),telefone:phone,checkoutToken:checkout.token,codigo:String(orderCode)};
+      let paymentResult=null;
+      if(onlineCard){
+        if(button)button.textContent='Processando cartão...';
+        paymentResult=await window.FSDeliveryOnlineCard.charge({checkoutToken:checkout.token,payment:cardPayment});
+      }
+      const proof={slug:String(payload.slug||''),telefone:phone,checkoutToken:checkout.token,codigo:String(orderCode),pagamento_status:paymentResult?.cobranca?.pagamento_status||null};
       window.__fsLastPublicCheckout=proof;
       document.dispatchEvent(new CustomEvent('fs:public-order-completed',{detail:proof}));
       sessionStorage.removeItem(checkout.key);
-      if(typeof saveCustomer==='function')saveCustomer(formData);if(typeof close==='function')close();if(byId('success-message'))byId('success-message').textContent=`Pedido #${orderCode} enviado com sucesso. Aguarde a confirmação do estabelecimento.`;cart=[];if(typeof saveCart==='function')saveCart();if(typeof renderCart==='function')renderCart();if(typeof open==='function')open('success-modal');
+      if(typeof saveCustomer==='function')saveCustomer(formData);if(typeof close==='function')close();if(byId('success-message'))byId('success-message').textContent=onlineCard?`Pedido #${orderCode} enviado. Pagamento: ${paymentResult?.cobranca?.pagamento_status==='pago'?'confirmado':'em processamento'}. O estabelecimento só poderá avançar após a confirmação.`:`Pedido #${orderCode} enviado com sucesso. Aguarde a confirmação do estabelecimento.`;cart=[];if(typeof saveCart==='function')saveCart();if(typeof renderCart==='function')renderCart();if(typeof open==='function')open('success-modal');
     }catch(error){console.error('Falha ao enviar pedido público:',error);inlineFeedback(error?.message||'Não foi possível enviar o pedido.')}
     finally{sending=false;if(typeof submitting!=='undefined')submitting=false;if(button){button.disabled=!settings?.aberto;button.textContent=settings?.aberto?'Revisar e enviar pedido':'Loja fechada — pedidos indisponíveis'}}
   }
