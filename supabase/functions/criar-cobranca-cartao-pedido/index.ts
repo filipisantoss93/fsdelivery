@@ -33,14 +33,9 @@ function normalizeCustomer(customer:any){
   const cpf=digits(customer?.cpf),phone=digits(customer?.phone_number);
   if(cpf.length!==11)throw new Error("CPF do pagador inválido.");
   if(phone.length<10||phone.length>11)throw new Error("Telefone do pagador inválido.");
-  return {name:requireText(customer?.name,"Nome do pagador"),cpf,email:requireText(customer?.email,"E-mail do pagador"),phone_number:phone,birth:requireText(customer?.birth,"Nascimento do pagador")};
-}
-
-function normalizeBilling(address:any){
-  const zipcode=digits(address?.zipcode),state=String(address?.state||"").trim().toUpperCase();
-  if(zipcode.length!==8)throw new Error("CEP de cobrança inválido.");
-  if(!/^[A-Z]{2}$/.test(state))throw new Error("UF de cobrança inválida.");
-  return {street:requireText(address?.street,"Rua"),number:requireText(address?.number,"Número"),neighborhood:requireText(address?.neighborhood,"Bairro"),zipcode,city:requireText(address?.city,"Cidade"),complement:String(address?.complement||"").trim(),state};
+  const email=requireText(customer?.email,"E-mail do pagador");
+  if(!email.includes("@"))throw new Error("E-mail do pagador inválido.");
+  return {name:requireText(customer?.name,"Nome do pagador"),cpf,email,phone_number:phone};
 }
 
 Deno.serve(async(req:Request)=>{
@@ -55,7 +50,7 @@ Deno.serve(async(req:Request)=>{
     const checkoutToken=String(body?.checkout_token||"").trim();
     const paymentToken=requireText(body?.payment_token,"Token de pagamento");
     const requestKey=String(body?.idempotency_key||"").trim();
-    const installments=Math.max(1,Math.min(12,Number(body?.installments)||1));
+    const installments=1;
     const cardMask=String(body?.cartao_mascara||"").trim()||null;
     if(!/^[0-9a-f-]{36}$/i.test(checkoutToken))return json({erro:"Token do pedido inválido"},400);
     if(!/^[0-9a-f-]{36}$/i.test(requestKey))return json({erro:"Chave de idempotência inválida"},400);
@@ -98,29 +93,30 @@ Deno.serve(async(req:Request)=>{
     if(restaurantPercentage<=0||restaurantPercentage>10000)throw new Error("Divisão da venda inválida.");
 
     const customer=normalizeCustomer(body?.customer||{});
-    const billingAddress=normalizeBilling(body?.billing_address||{});
-    const {data:attempt,error:attemptError}=await admin.from("cobrancas_pedido_cartao").insert({pedido_id:order.id,estabelecimento_id:order.estabelecimento_id,request_key:requestKey,status:"criando",valor_centavos:valueCents,parcelas:installments,cartao_mascara:cardMask}).select("id").single();
+    const {data:attempt,error:attemptError}=await admin.from("cobrancas_pedido_cartao").insert({pedido_id:order.id,estabelecimento_id:order.estabelecimento_id,request_key:requestKey,status:"criando",valor_centavos:valueCents,parcelas:1,cartao_mascara:cardMask}).select("id").single();
     if(attemptError)throw attemptError;
     attemptId=attempt.id;
 
     const notificationUrl=String(Deno.env.get("EFI_PEDIDOS_NOTIFICATION_URL")||`${env("SUPABASE_URL").replace(/\/$/,"")}/functions/v1/webhook-efi-pedidos`);
-    const created=await efiRequest("/v1/charge",{method:"POST",body:JSON.stringify({items:[{name:`Pedido ${order.codigo||order.id}`,value:valueCents,amount:1,marketplace:{mode:Number(integration.modo_tarifa)||2,repasses:[{payee_code:integration.payee_code,percentage:restaurantPercentage}]}}],metadata:{custom_id:`fsdelivery:pedido:${order.id}`,notification_url:notificationUrl}})});
+    const customId=`fsdelivery_pedido_${String(order.id).replace(/[^A-Za-z0-9_-]/g,"_")}`;
+    const created=await efiRequest("/v1/charge",{method:"POST",body:JSON.stringify({items:[{name:`Pedido ${order.codigo||order.id}`,value:valueCents,amount:1,marketplace:{mode:Number(integration.modo_tarifa)||2,repasses:[{payee_code:integration.payee_code,percentage:restaurantPercentage}]}}],metadata:{custom_id:customId,notification_url:notificationUrl}})});
     const chargeId=Number(created?.data?.charge_id),createdStatus=String(created?.data?.status||"new");
     if(!Number.isSafeInteger(chargeId)||chargeId<=0)throw new Error("A Efí não retornou um charge_id válido.");
 
     await admin.from("cobrancas_pedido_cartao").update({efi_charge_id:chargeId,status:createdStatus,payload_criacao:created,updated_at:new Date().toISOString()}).eq("id",attemptId);
     await admin.from("pedidos").update({efi_charge_id:chargeId,pagamento_provedor:"efi",pagamento_status:"aguardando",atualizado_em:new Date().toISOString()}).eq("id",order.id);
 
-    const paid=await efiRequest(`/v1/charge/${chargeId}/pay`,{method:"POST",body:JSON.stringify({payment:{credit_card:{customer,installments,payment_token:paymentToken,billing_address:billingAddress}}})});
+    const paid=await efiRequest(`/v1/charge/${chargeId}/pay`,{method:"POST",body:JSON.stringify({payment:{credit_card:{customer,installments:1,payment_token:paymentToken}}})});
     const status=String(paid?.data?.status||paid?.data?.charge?.status||"waiting").toLowerCase();
     const mapped=status==="paid"?"pago":["identified","approved"].includes(status)?"em_analise":status==="unpaid"?"recusado":status==="canceled"?"cancelado":"aguardando";
     const now=new Date().toISOString();
     await admin.from("cobrancas_pedido_cartao").update({status,payload_pagamento:paid,erro:null,updated_at:now}).eq("id",attemptId);
     await admin.from("pedidos").update({pagamento_status:mapped,pagamento_confirmado_em:mapped==="pago"?now:null,atualizado_em:now}).eq("id",order.id);
-    return json({sucesso:true,cobranca:{pedido_id:order.id,charge_id:chargeId,status,pagamento_status:mapped,valor_centavos:valueCents}});
+    return json({sucesso:true,cobranca:{pedido_id:order.id,charge_id:chargeId,status,pagamento_status:mapped,valor_centavos:valueCents,parcelas:1}});
   }catch(error){
+    const message=error instanceof Error?error.message:"Erro interno";
     console.error("criar-cobranca-cartao-pedido",error);
-    if(attemptId)await admin.from("cobrancas_pedido_cartao").update({status:"erro",erro:error instanceof Error?error.message:"Erro interno",updated_at:new Date().toISOString()}).eq("id",attemptId);
-    return json({erro:error instanceof Error?error.message:"Erro interno"},500);
+    if(attemptId)await admin.from("cobrancas_pedido_cartao").update({status:"erro",erro:message,updated_at:new Date().toISOString()}).eq("id",attemptId);
+    return json({sucesso:false,erro:message});
   }
 });
