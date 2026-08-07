@@ -169,6 +169,10 @@ if(matchesPage('loja')){
   appendScript('js/loja-publica-consolidado.js','fsLojaPublicaConsolidada');
 }
 
+if(matchesPage('zxq-91m7-k4v2')){
+  appendScript('js/admin-payee-validation.js','fsAdminPayeeValidation');
+}
+
 if(matchesPage('app')){
   appendScript('js/app-orders-operational.js','fsAppOrdersOperational');
   appendScript('js/app-orders-type-filters.js','fsAppOrdersTypeFilters');
