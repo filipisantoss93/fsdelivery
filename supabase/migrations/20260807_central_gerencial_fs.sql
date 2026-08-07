@@ -23,7 +23,12 @@ security definer
 set search_path = public, auth
 as $$
   select auth.uid() is not null
-    and lower(coalesce(auth.jwt() ->> 'email','')) = 'filipi.01@live.com';
+    and exists (
+      select 1
+      from auth.users u
+      where u.id = auth.uid()
+        and lower(coalesce(u.email,'')) = 'filipi.01@live.com'
+    );
 $$;
 
 revoke all on function public.fs_admin_autorizado() from public, anon;
@@ -40,13 +45,15 @@ language plpgsql
 security definer
 set search_path = public, auth
 as $$
+declare
+  v_email text;
 begin
   if not public.fs_admin_autorizado() then
     raise exception 'Acesso administrativo negado' using errcode = '42501';
   end if;
-
+  select lower(email) into v_email from auth.users where id=auth.uid();
   insert into public.fs_admin_auditoria(admin_user_id,admin_email,acao,entidade,entidade_id,detalhes)
-  values(auth.uid(),lower(auth.jwt() ->> 'email'),p_acao,p_entidade,p_entidade_id,coalesce(p_detalhes,'{}'::jsonb));
+  values(auth.uid(),v_email,p_acao,p_entidade,p_entidade_id,coalesce(p_detalhes,'{}'::jsonb));
 end;
 $$;
 
@@ -76,84 +83,41 @@ begin
       'pix_recebido_centavos', (select coalesce(sum(valor_centavos),0) from public.cobrancas_pix where status = 'paga'),
       'cartao_recebido_centavos', (select coalesce(sum(valor_centavos),0) from public.cobrancas_cartao where status in ('paga','paid'))
     ),
-    'planos', coalesce((
-      select jsonb_agg(to_jsonb(p) order by p.valor_centavos,p.intervalo_meses)
-      from public.planos_assinatura p
-    ),'[]'::jsonb),
+    'planos', coalesce((select jsonb_agg(to_jsonb(p) order by p.valor_centavos,p.intervalo_meses) from public.planos_assinatura p),'[]'::jsonb),
     'clientes', coalesce((
       select jsonb_agg(jsonb_build_object(
         'usuario_id',e.usuario_id,
         'email',u.email,
         'estabelecimento',to_jsonb(e),
-        'assinatura',(
-          select to_jsonb(a)
-          from public.assinaturas a
-          where a.usuario_id=e.usuario_id
-          order by a.updated_at desc nulls last
-          limit 1
-        ),
-        'plano_assinatura',(
-          select to_jsonb(p)
-          from public.assinaturas a
-          join public.planos_assinatura p on p.id=a.plano_id
-          where a.usuario_id=e.usuario_id
-          order by a.updated_at desc nulls last
-          limit 1
-        ),
-        'integracao_pagamento',(
-          select to_jsonb(i)
-          from public.integracoes_pagamento_estabelecimento i
-          where i.estabelecimento_id=e.id
-          limit 1
-        )
+        'assinatura',(select to_jsonb(a) from public.assinaturas a where a.usuario_id=e.usuario_id order by a.updated_at desc nulls last limit 1),
+        'plano_assinatura',(select to_jsonb(p) from public.assinaturas a join public.planos_assinatura p on p.id=a.plano_id where a.usuario_id=e.usuario_id order by a.updated_at desc nulls last limit 1),
+        'integracao_pagamento',(select to_jsonb(i) from public.integracoes_pagamento_estabelecimento i where i.estabelecimento_id=e.id limit 1)
       ) order by e.nome)
       from public.estabelecimentos e
       left join auth.users u on u.id=e.usuario_id
     ),'[]'::jsonb),
     'cobrancas_pix', coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'tipo','assinatura_pix','dados',to_jsonb(c),'email',u.email,'estabelecimento',e.nome,'plano',p.nome
-      ) order by c.created_at desc)
-      from (
-        select * from public.cobrancas_pix order by created_at desc limit 100
-      ) c
+      select jsonb_agg(jsonb_build_object('tipo','assinatura_pix','dados',to_jsonb(c),'email',u.email,'estabelecimento',e.nome,'plano',p.nome) order by c.created_at desc)
+      from (select * from public.cobrancas_pix order by created_at desc limit 100) c
       left join auth.users u on u.id=c.usuario_id
       left join public.estabelecimentos e on e.usuario_id=c.usuario_id
       left join public.planos_assinatura p on p.id=c.plano_id
     ),'[]'::jsonb),
     'cobrancas_cartao', coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'tipo','assinatura_cartao','dados',to_jsonb(c),'email',u.email,'estabelecimento',e.nome,'plano',p.nome
-      ) order by c.created_at desc)
-      from (
-        select * from public.cobrancas_cartao order by created_at desc limit 100
-      ) c
+      select jsonb_agg(jsonb_build_object('tipo','assinatura_cartao','dados',to_jsonb(c),'email',u.email,'estabelecimento',e.nome,'plano',p.nome) order by c.created_at desc)
+      from (select * from public.cobrancas_cartao order by created_at desc limit 100) c
       left join auth.users u on u.id=c.usuario_id
       left join public.estabelecimentos e on e.usuario_id=c.usuario_id
       left join public.planos_assinatura p on p.id=c.plano_id
     ),'[]'::jsonb),
     'cobrancas_pedidos', coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'tipo','pedido_cartao','dados',to_jsonb(c),'pedido',to_jsonb(p),'estabelecimento',e.nome
-      ) order by c.created_at desc)
-      from (
-        select * from public.cobrancas_pedido_cartao order by created_at desc limit 100
-      ) c
+      select jsonb_agg(jsonb_build_object('tipo','pedido_cartao','dados',to_jsonb(c),'pedido',to_jsonb(p),'estabelecimento',e.nome) order by c.created_at desc)
+      from (select * from public.cobrancas_pedido_cartao order by created_at desc limit 100) c
       left join public.pedidos p on p.id=c.pedido_id
       left join public.estabelecimentos e on e.id=p.estabelecimento_id
     ),'[]'::jsonb),
-    'eventos_pagamento', coalesce((
-      select jsonb_agg(to_jsonb(pe) order by pe.created_at desc)
-      from (
-        select * from public.pagamento_eventos order by created_at desc limit 100
-      ) pe
-    ),'[]'::jsonb),
-    'auditoria', coalesce((
-      select jsonb_agg(to_jsonb(a) order by a.created_at desc)
-      from (
-        select * from public.fs_admin_auditoria order by created_at desc limit 100
-      ) a
-    ),'[]'::jsonb)
+    'eventos_pagamento', coalesce((select jsonb_agg(to_jsonb(pe) order by pe.created_at desc) from (select * from public.pagamento_eventos order by created_at desc limit 100) pe),'[]'::jsonb),
+    'auditoria', coalesce((select jsonb_agg(to_jsonb(a) order by a.created_at desc) from (select * from public.fs_admin_auditoria order by created_at desc limit 100) a),'[]'::jsonb)
   ) into v_result;
 
   return v_result;
@@ -181,27 +145,23 @@ begin
   if not public.fs_admin_autorizado() then
     raise exception 'Acesso administrativo negado' using errcode = '42501';
   end if;
-
-  if p_status not in ('ativa','pendente','vencida','cancelada','falhou') then
-    raise exception 'Status de assinatura inválido';
-  end if;
+  if p_status not in ('ativa','pendente','vencida','cancelada','falhou') then raise exception 'Status de assinatura inválido'; end if;
 
   select * into v_plano from public.planos_assinatura where id=p_plano_id;
   if not found then raise exception 'Plano não encontrado'; end if;
 
-  select * into v_assinatura
-  from public.assinaturas
-  where usuario_id=p_usuario_id
-  order by updated_at desc nulls last
-  limit 1;
+  select * into v_assinatura from public.assinaturas where usuario_id=p_usuario_id order by updated_at desc nulls last limit 1;
+  if not found then raise exception 'O usuário ainda não possui assinatura. Crie a primeira assinatura pelo fluxo de cobrança antes de usar a troca administrativa.'; end if;
 
-  if not found then
-    raise exception 'O usuário ainda não possui assinatura. Crie a primeira assinatura pelo fluxo de cobrança antes de usar a troca administrativa.';
+  if v_assinatura.meio_pagamento is distinct from v_plano.meio_pagamento then
+    raise exception 'Não altere o meio de pagamento de uma assinatura existente por ajuste administrativo. Use o fluxo de contratação correspondente.';
   end if;
 
   update public.assinaturas
   set plano_id=p_plano_id,
       status=p_status,
+      preco_contratado_centavos=v_plano.valor_centavos,
+      periodicidade_meses=v_plano.intervalo_meses,
       acesso_valido_ate=coalesce(p_acesso_valido_ate,acesso_valido_ate),
       updated_at=now()
   where id=v_assinatura.id
@@ -209,14 +169,11 @@ begin
 
   update public.estabelecimentos
   set plano=case when p_status='ativa' then 'premium' else plano end,
-      assinatura_status=p_status
+      assinatura_status=p_status,
+      updated_at=now()
   where usuario_id=p_usuario_id;
 
-  perform public.fs_admin_registrar_evento(
-    'alterar_plano','assinaturas',v_assinatura.id::text,
-    jsonb_build_object('usuario_id',p_usuario_id,'plano_id',p_plano_id,'plano_codigo',v_plano.codigo,'status',p_status,'acesso_valido_ate',p_acesso_valido_ate)
-  );
-
+  perform public.fs_admin_registrar_evento('alterar_plano','assinaturas',v_assinatura.id::text,jsonb_build_object('usuario_id',p_usuario_id,'plano_id',p_plano_id,'plano_codigo',v_plano.codigo,'status',p_status,'acesso_valido_ate',p_acesso_valido_ate,'valor_centavos',v_plano.valor_centavos,'intervalo_meses',v_plano.intervalo_meses));
   return jsonb_build_object('assinatura',to_jsonb(v_assinatura),'plano',to_jsonb(v_plano));
 end;
 $$;
@@ -246,28 +203,16 @@ as $$
 declare
   v_integracao public.integracoes_pagamento_estabelecimento%rowtype;
 begin
-  if not public.fs_admin_autorizado() then
-    raise exception 'Acesso administrativo negado' using errcode = '42501';
-  end if;
+  if not public.fs_admin_autorizado() then raise exception 'Acesso administrativo negado' using errcode = '42501'; end if;
   if p_tipo_pessoa not in ('pf','pj') then raise exception 'Tipo de pessoa inválido'; end if;
   if p_status not in ('pendente','em_analise','ativo','bloqueado','erro') then raise exception 'Status inválido'; end if;
   if p_ambiente not in ('homologacao','producao') then raise exception 'Ambiente inválido'; end if;
   if p_percentual_comissao_bps not between 0 and 3000 then raise exception 'Comissão inválida'; end if;
   if p_modo_tarifa not in (1,2) then raise exception 'Modo de tarifa inválido'; end if;
-  if p_status='ativo' and (not p_conta_validada or nullif(trim(p_payee_code),'') is null) then
-    raise exception 'Integração ativa exige conta validada e payee_code';
-  end if;
+  if p_status='ativo' and (not p_conta_validada or nullif(trim(p_payee_code),'') is null) then raise exception 'Integração ativa exige conta validada e payee_code'; end if;
 
-  insert into public.integracoes_pagamento_estabelecimento(
-    estabelecimento_id,provedor,tipo_pessoa,payee_code,conta_validada,
-    cartao_online_ativo,pix_online_ativo,split_ativo,percentual_comissao_bps,
-    modo_tarifa,ambiente,status,erro_ultima_validacao,validado_em,updated_at
-  ) values (
-    p_estabelecimento_id,'efi',p_tipo_pessoa,nullif(trim(p_payee_code),''),p_conta_validada,
-    p_cartao_online_ativo,p_pix_online_ativo,p_split_ativo,p_percentual_comissao_bps,
-    p_modo_tarifa,p_ambiente,p_status,p_erro_ultima_validacao,
-    case when p_conta_validada then now() else null end,now()
-  )
+  insert into public.integracoes_pagamento_estabelecimento(estabelecimento_id,provedor,tipo_pessoa,payee_code,conta_validada,cartao_online_ativo,pix_online_ativo,split_ativo,percentual_comissao_bps,modo_tarifa,ambiente,status,erro_ultima_validacao,validado_em,updated_at)
+  values(p_estabelecimento_id,'efi',p_tipo_pessoa,nullif(trim(p_payee_code),''),p_conta_validada,p_cartao_online_ativo,p_pix_online_ativo,p_split_ativo,p_percentual_comissao_bps,p_modo_tarifa,p_ambiente,p_status,p_erro_ultima_validacao,case when p_conta_validada then now() else null end,now())
   on conflict (estabelecimento_id) do update set
     tipo_pessoa=excluded.tipo_pessoa,
     payee_code=excluded.payee_code,
@@ -284,11 +229,7 @@ begin
     updated_at=now()
   returning * into v_integracao;
 
-  perform public.fs_admin_registrar_evento(
-    'configurar_integracao','integracoes_pagamento_estabelecimento',v_integracao.id::text,
-    jsonb_build_object('estabelecimento_id',p_estabelecimento_id,'status',p_status,'ambiente',p_ambiente,'conta_validada',p_conta_validada,'cartao',p_cartao_online_ativo,'pix',p_pix_online_ativo,'split',p_split_ativo,'comissao_bps',p_percentual_comissao_bps,'modo_tarifa',p_modo_tarifa)
-  );
-
+  perform public.fs_admin_registrar_evento('configurar_integracao','integracoes_pagamento_estabelecimento',v_integracao.id::text,jsonb_build_object('estabelecimento_id',p_estabelecimento_id,'status',p_status,'ambiente',p_ambiente,'conta_validada',p_conta_validada,'cartao',p_cartao_online_ativo,'pix',p_pix_online_ativo,'split',p_split_ativo,'comissao_bps',p_percentual_comissao_bps,'modo_tarifa',p_modo_tarifa));
   return to_jsonb(v_integracao);
 end;
 $$;
@@ -296,7 +237,8 @@ $$;
 revoke all on function public.fs_admin_configurar_integracao(uuid,text,text,boolean,text,boolean,boolean,boolean,text,integer,smallint,text) from public, anon;
 grant execute on function public.fs_admin_configurar_integracao(uuid,text,text,boolean,text,boolean,boolean,boolean,text,integer,smallint,text) to authenticated;
 
--- Permite que somente a conta administrativa use os campos protegidos de homologação.
+-- Mantém o bloqueio dos campos administrativos para usuários comuns e permite
+-- o fluxo acima somente quando auth.uid() corresponde à conta administrativa.
 create or replace function public.proteger_campos_validacao_pagamento()
 returns trigger
 language plpgsql
@@ -305,8 +247,7 @@ set search_path = public, auth
 as $$
 begin
   new.updated_at := now();
-
-  if auth.role() = 'authenticated' and not public.fs_admin_autorizado() then
+  if auth.uid() is not null and not public.fs_admin_autorizado() then
     if tg_op = 'INSERT' then
       new.conta_validada := false;
       new.cartao_online_ativo := false;
@@ -334,24 +275,11 @@ begin
       end if;
     end if;
   end if;
-
   return new;
 end;
 $$;
 
-create or replace function public.fs_admin_auditoria_lista(p_limite integer default 100)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public, auth
-as $$
-begin
-  if not public.fs_admin_autorizado() then
-    raise exception 'Acesso administrativo negado' using errcode = '42501';
-  end if;
-  return coalesce((select jsonb_agg(to_jsonb(a) order by a.created_at desc) from (select * from public.fs_admin_auditoria order by created_at desc limit greatest(1,least(p_limite,500))) a),'[]'::jsonb);
-end;
-$$;
+revoke all on function public.proteger_campos_validacao_pagamento() from public, anon, authenticated;
 
-revoke all on function public.fs_admin_auditoria_lista(integer) from public, anon;
-grant execute on function public.fs_admin_auditoria_lista(integer) to authenticated;
+after_migration_comment:
+comment on table public.fs_admin_auditoria is 'Auditoria de alterações executadas pela Central Gerencial FS Delivery. Sem acesso direto pela Data API.';
