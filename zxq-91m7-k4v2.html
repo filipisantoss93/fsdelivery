@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+  <meta name="referrer" content="no-referrer">
+  <title>Central Gerencial | FS Delivery</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/zxq-91m7-k4v2.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js" defer></script>
+  <script src="js/zxq-91m7-k4v2.js" defer></script>
+</head>
+<body class="fs-control-body">
+  <div id="admin-lock" class="admin-lock">
+    <div class="admin-lock-card">
+      <div class="admin-brand-mark">FS</div>
+      <h1>Central Gerencial</h1>
+      <p id="admin-lock-message">Validando sessão administrativa…</p>
+      <a id="admin-login-link" class="btn btn-primary" href="auth" hidden>Entrar</a>
+    </div>
+  </div>
+
+  <div id="admin-app" class="admin-shell" hidden>
+    <header class="admin-header">
+      <div>
+        <span class="admin-kicker">FS Delivery</span>
+        <h1>Central Gerencial</h1>
+        <p id="admin-session-label">Ambiente administrativo</p>
+      </div>
+      <div class="admin-header-actions">
+        <span id="admin-last-update" class="admin-muted">—</span>
+        <button id="admin-refresh" class="btn btn-secondary" type="button">Atualizar</button>
+        <button id="admin-signout" class="btn btn-secondary" type="button">Sair</button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <div id="admin-feedback" class="admin-feedback" hidden></div>
+
+      <section class="admin-view is-active" data-view="overview">
+        <div class="admin-section-title">
+          <div><span class="admin-kicker">Visão geral</span><h2>Dashboard financeiro e operacional</h2></div>
+          <select id="admin-period" class="admin-select" aria-label="Período do dashboard">
+            <option value="all">Todo o histórico</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="7">Últimos 7 dias</option>
+          </select>
+        </div>
+        <div id="admin-summary" class="admin-summary-grid"></div>
+        <div class="admin-grid admin-grid-2">
+          <article class="admin-card">
+            <div class="admin-card-head"><h3>Receita por cobrança</h3><span>Assinaturas</span></div>
+            <div id="admin-revenue-breakdown" class="admin-metric-list"></div>
+          </article>
+          <article class="admin-card">
+            <div class="admin-card-head"><h3>Alertas gerenciais</h3><span>Prioridade</span></div>
+            <div id="admin-alerts" class="admin-list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="admin-view" data-view="clients">
+        <div class="admin-section-title">
+          <div><span class="admin-kicker">Clientes</span><h2>Empresas e assinaturas</h2></div>
+          <input id="admin-client-search" class="admin-input" type="search" placeholder="Buscar empresa ou e-mail">
+        </div>
+        <div id="admin-client-list" class="admin-list"></div>
+      </section>
+
+      <section class="admin-view" data-view="payments">
+        <div class="admin-section-title">
+          <div><span class="admin-kicker">Financeiro</span><h2>Pagamentos e cobranças</h2></div>
+          <div class="admin-inline-filters">
+            <select id="admin-payment-type" class="admin-select">
+              <option value="all">Todos</option>
+              <option value="assinatura_pix">PIX assinatura</option>
+              <option value="assinatura_cartao">Cartão assinatura</option>
+              <option value="pedido_cartao">Cartão de pedido</option>
+            </select>
+            <input id="admin-payment-search" class="admin-input" type="search" placeholder="Empresa, e-mail, status ou ID">
+          </div>
+        </div>
+        <div id="admin-payment-list" class="admin-list"></div>
+      </section>
+
+      <section class="admin-view" data-view="integrations">
+        <div class="admin-section-title">
+          <div><span class="admin-kicker">Efí</span><h2>Integrações e payee code</h2></div>
+          <input id="admin-integration-search" class="admin-input" type="search" placeholder="Buscar empresa, payee code ou status">
+        </div>
+        <div class="admin-note">A central armazena apenas configurações não secretas. Client ID, Client Secret e certificados continuam exclusivamente no backend/Secrets do Supabase.</div>
+        <div id="admin-integration-list" class="admin-list"></div>
+      </section>
+
+      <section class="admin-view" data-view="audit">
+        <div class="admin-section-title">
+          <div><span class="admin-kicker">Segurança</span><h2>Auditoria administrativa</h2></div>
+        </div>
+        <div id="admin-audit-list" class="admin-list"></div>
+      </section>
+    </main>
+
+    <nav class="admin-bottom-nav" aria-label="Navegação da central gerencial">
+      <button class="is-active" type="button" data-admin-view="overview"><span>◫</span><small>Visão geral</small></button>
+      <button type="button" data-admin-view="clients"><span>♙</span><small>Clientes</small></button>
+      <button type="button" data-admin-view="payments"><span>R$</span><small>Pagamentos</small></button>
+      <button type="button" data-admin-view="integrations"><span>⚙</span><small>Integrações</small></button>
+      <button type="button" data-admin-view="audit"><span>✓</span><small>Auditoria</small></button>
+    </nav>
+  </div>
+
+  <dialog id="admin-plan-dialog" class="admin-dialog">
+    <form id="admin-plan-form" method="dialog">
+      <header><div><span class="admin-kicker">Assinatura</span><h2>Alterar plano</h2></div><button class="admin-icon-button" value="cancel" aria-label="Fechar">×</button></header>
+      <input id="plan-user-id" type="hidden">
+      <label>Cliente<input id="plan-client-name" class="admin-input" readonly></label>
+      <label>Plano<select id="plan-id" class="admin-select" required></select></label>
+      <label>Status<select id="plan-status" class="admin-select" required><option value="ativa">Ativa</option><option value="pendente">Pendente</option><option value="vencida">Vencida</option><option value="cancelada">Cancelada</option><option value="falhou">Falhou</option></select></label>
+      <label>Acesso válido até <input id="plan-valid-until" class="admin-input" type="datetime-local"></label>
+      <p class="admin-muted">A alteração é registrada na auditoria. Usuários sem uma assinatura prévia devem passar primeiro pelo fluxo normal de contratação.</p>
+      <footer><button class="btn btn-secondary" value="cancel">Cancelar</button><button id="plan-save" class="btn btn-primary" type="submit">Salvar alteração</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="admin-integration-dialog" class="admin-dialog admin-dialog-wide">
+    <form id="admin-integration-form" method="dialog">
+      <header><div><span class="admin-kicker">Efí Marketplace</span><h2>Configurar integração</h2></div><button class="admin-icon-button" value="cancel" aria-label="Fechar">×</button></header>
+      <input id="integration-store-id" type="hidden">
+      <label>Estabelecimento<input id="integration-store-name" class="admin-input" readonly></label>
+      <div class="admin-grid admin-grid-2">
+        <label>Tipo de pessoa<select id="integration-person-type" class="admin-select"><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></label>
+        <label>Payee code<input id="integration-payee" class="admin-input" autocomplete="off" placeholder="Código recebedor Efí"></label>
+        <label>Status<select id="integration-status" class="admin-select"><option value="pendente">Pendente</option><option value="em_analise">Em análise</option><option value="ativo">Ativo</option><option value="bloqueado">Bloqueado</option><option value="erro">Erro</option></select></label>
+        <label>Ambiente<select id="integration-environment" class="admin-select"><option value="homologacao">Homologação</option><option value="producao">Produção</option></select></label>
+        <label>Comissão (%)<input id="integration-commission" class="admin-input" type="number" min="0" max="30" step="0.01"></label>
+        <label>Tarifas<select id="integration-fee-mode" class="admin-select"><option value="1">Modo 1</option><option value="2">Modo 2</option></select></label>
+      </div>
+      <div class="admin-check-grid">
+        <label><input id="integration-validated" type="checkbox"> Conta validada</label>
+        <label><input id="integration-card" type="checkbox"> Cartão on-line ativo</label>
+        <label><input id="integration-pix" type="checkbox"> PIX on-line ativo</label>
+        <label><input id="integration-split" type="checkbox"> Split ativo</label>
+      </div>
+      <label>Erro/observação de validação<textarea id="integration-error" class="admin-input" rows="3"></textarea></label>
+      <div id="integration-production-warning" class="admin-danger-note" hidden>Produção está selecionada. Confirme que credenciais, webhook, recebedor e split já foram homologados antes de salvar.</div>
+      <footer><button class="btn btn-secondary" value="cancel">Cancelar</button><button id="integration-save" class="btn btn-primary" type="submit">Salvar configuração</button></footer>
+    </form>
+  </dialog>
+</body>
+</html>
