@@ -10,6 +10,7 @@
   const feeModeReverse={1:'estabelecimento',2:'proporcional'};
   let store=null;
   let integration=null;
+  let busy=false;
 
   function showFeedback(message,type='success'){
     feedback.hidden=false;
@@ -18,10 +19,12 @@
     feedback.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
 
-  function setBusy(busy){
-    byId('save-integration').disabled=busy;
-    byId('test-integration').disabled=busy;
-    byId('save-integration').textContent=busy?'Salvando...':'Salvar solicitação';
+  function setBusy(value,label='Salvando...'){
+    busy=value;
+    byId('save-integration').disabled=value;
+    byId('test-integration').disabled=value;
+    byId('save-integration').textContent=value?label:'Salvar e validar';
+    byId('test-integration').textContent=value?'Validando...':'Validar na Efí';
   }
 
   function validCpf(value){
@@ -45,10 +48,10 @@
     const error=['erro','bloqueado'].includes(status);
     statusCard.classList.toggle('is-active',active);
     statusCard.classList.toggle('is-error',error);
-    byId('payment-status-title').textContent=active?'Conta homologada':integration?'Solicitação aguardando análise':'Conta Efí ainda não configurada';
+    byId('payment-status-title').textContent=active?'Conta homologada':status==='em_analise'?'Validando conta Efí':integration?'Solicitação aguardando validação':'Conta Efí ainda não configurada';
     byId('payment-status-description').textContent=active
-      ?'Os meios liberados pelo backend podem ser exibidos no checkout.'
-      :integration?.erro_ultima_validacao||'Salve os dados para iniciar a análise da conta recebedora.';
+      ?`Recebedor validado. Cartão ${integration.cartao_online_ativo?'ativo':'inativo'}, split ${integration.split_ativo?'ativo':'inativo'}${integration.pix_online_solicitado&&!integration.pix_online_ativo?'. Pix on-line segue pendente de homologação específica.':''}`
+      :integration?.erro_ultima_validacao||'Salve os dados para validar automaticamente a conta recebedora na Efí.';
     byId('payment-status-badge').textContent=status.replaceAll('_',' ');
   }
 
@@ -64,17 +67,28 @@
     updateStatus();
   }
 
-  function validateForm(){
+  function validateForm({requireDocument=true}={}){
     const type=byId('account-type').value;
     const documentValue=byId('document-number').value;
     const payeeCode=byId('payee-code').value.trim();
     const commission=Number(byId('commission-percent').value||0);
-    const validDocument=type==='pf'?validCpf(documentValue):validCnpj(documentValue);
-    if(!validDocument)throw new Error(`Informe um ${type==='pf'?'CPF':'CNPJ'} válido para conferência local.`);
+    if(requireDocument){
+      const validDocument=type==='pf'?validCpf(documentValue):validCnpj(documentValue);
+      if(!validDocument)throw new Error(`Informe um ${type==='pf'?'CPF':'CNPJ'} válido para conferência local.`);
+      if(!byId('security-confirmation').checked)throw new Error('Confirme a origem segura do payee code.');
+    }
     if(!/^[A-Za-z0-9_-]{8,160}$/.test(payeeCode))throw new Error('Informe um payee code em formato válido.');
     if(!Number.isFinite(commission)||commission<0||commission>30)throw new Error('A comissão deve ficar entre 0% e 30%.');
-    if(!byId('security-confirmation').checked)throw new Error('Confirme a origem segura do payee code.');
+    if(!byId('split-enabled').checked)throw new Error('Ative a solicitação de Split automático para validar o recebedor.');
     return {payeeCode,commission};
+  }
+
+  async function reloadIntegration(){
+    const {data,error}=await db.from('integracoes_pagamento_estabelecimento').select('*').eq('estabelecimento_id',store.id).maybeSingle();
+    if(error)throw error;
+    integration=data||null;
+    fillForm();
+    return integration;
   }
 
   async function load(){
@@ -83,14 +97,35 @@
     const {data:est,error:storeError}=await db.from('estabelecimentos').select('id,nome').eq('usuario_id',session.user.id).maybeSingle();
     if(storeError||!est)throw new Error('Não foi possível localizar o estabelecimento desta conta.');
     store=est;
-    const {data,error}=await db.from('integracoes_pagamento_estabelecimento').select('*').eq('estabelecimento_id',store.id).maybeSingle();
-    if(error)throw error;
-    integration=data||null;
-    fillForm();
+    await reloadIntegration();
+    byId('save-integration').textContent='Salvar e validar';
+    byId('test-integration').textContent='Validar na Efí';
+  }
+
+  async function validateEfi({silentStart=false}={}){
+    if(busy)return null;
+    if(!store)throw new Error('Estabelecimento ainda não carregado.');
+    validateForm({requireDocument:false});
+    setBusy(true,'Validando na Efí...');
+    if(!silentStart)showFeedback('Validando o recebedor na Efí em homologação. Uma cobrança sandbox de R$ 1,00 será criada e cancelada automaticamente.');
+    try{
+      const {data,error}=await db.functions.invoke('validar-payee-efi',{body:{estabelecimento_id:store.id}});
+      if(error)throw error;
+      if(!data?.sucesso)throw new Error(data?.erro||'A Efí não confirmou o recebedor.');
+      await reloadIntegration();
+      showFeedback(data.mensagem||'Conta Efí validada automaticamente em homologação.');
+      return data;
+    }catch(error){
+      await reloadIntegration().catch(()=>null);
+      const message=error?.context?.body?.erro||error?.message||'Não foi possível validar a conta na Efí.';
+      showFeedback(message,'error');
+      throw error;
+    }finally{setBusy(false)}
   }
 
   async function save(event){
     event.preventDefault();
+    if(busy)return;
     setBusy(true);
     try{
       const {payeeCode,commission}=validateForm();
@@ -112,19 +147,21 @@
       byId('document-number').value='';
       byId('security-confirmation').checked=false;
       fillForm();
-      showFeedback('Solicitação salva. A ativação permanece bloqueada até validação pelo backend da plataforma.');
+      setBusy(false);
+      showFeedback('Solicitação salva. Iniciando validação automática na Efí...');
+      await validateEfi({silentStart:true});
     }catch(error){
       console.error(error);
-      showFeedback(error.message||'Não foi possível salvar a integração.','error');
+      if(!feedback.textContent||feedback.hidden)showFeedback(error.message||'Não foi possível salvar ou validar a integração.','error');
     }finally{setBusy(false)}
   }
 
-  function validateLocal(){
-    try{validateForm();showFeedback('Dados locais consistentes. Isso não representa validação da conta pela Efí.');}
-    catch(error){showFeedback(error.message,'error')}
+  async function retryValidation(){
+    try{await validateEfi();}
+    catch(error){console.error(error)}
   }
 
   byId('payment-integration-form').addEventListener('submit',save);
-  byId('test-integration').addEventListener('click',validateLocal);
+  byId('test-integration').addEventListener('click',retryValidation);
   load().catch(error=>{console.error(error);showFeedback(error.message||'Falha ao carregar a integração.','error');updateStatus()});
 })();
