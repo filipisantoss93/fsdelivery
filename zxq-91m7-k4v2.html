@@ -11,14 +11,26 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js" defer></script>
   <script src="js/zxq-91m7-k4v2.js" defer></script>
+  <script src="js/zxq-91m7-k4v2-login.js" defer></script>
 </head>
 <body class="fs-control-body">
   <div id="admin-lock" class="admin-lock">
     <div class="admin-lock-card">
       <div class="admin-brand-mark">FS</div>
       <h1>Central Gerencial</h1>
-      <p id="admin-lock-message">Validando sessão administrativa…</p>
-      <a id="admin-login-link" class="btn btn-primary" href="auth" hidden>Entrar</a>
+      <p id="admin-lock-message">Acesso administrativo restrito.</p>
+      <form id="admin-login-form" class="admin-login-form" autocomplete="on">
+        <label>E-mail
+          <input id="admin-login-email" class="admin-input" type="email" inputmode="email" autocomplete="username" required>
+        </label>
+        <label>Senha
+          <input id="admin-login-password" class="admin-input" type="password" autocomplete="current-password" required>
+        </label>
+        <button id="admin-login-submit" class="btn btn-primary" type="submit">Entrar na Central</button>
+      </form>
+      <div id="admin-login-feedback" class="admin-login-feedback" hidden></div>
+      <p class="admin-login-hint">Esta autenticação é exclusiva da Central Gerencial e não redireciona para a plataforma operacional.</p>
+      <a id="admin-login-link" href="auth" hidden aria-hidden="true" tabindex="-1">Entrar</a>
     </div>
   </div>
 
