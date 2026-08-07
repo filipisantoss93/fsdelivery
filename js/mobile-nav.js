@@ -66,8 +66,8 @@
 
   function kitchenMarkup(){
     return[
-      button('local','Local','class="active" data-kitchen-scope="local" aria-label="Pedidos locais"'),
-      button('online','On-line','data-kitchen-scope="online" aria-label="Pedidos on-line"')
+      button('local','Local','class="active" data-fs-kitchen-scope="local" aria-label="Pedidos locais"'),
+      button('online','On-line','data-fs-kitchen-scope="online" aria-label="Pedidos on-line"')
     ].join('');
   }
 
@@ -147,6 +147,28 @@
     document.querySelectorAll('.fs-mobile-nav [data-fs-nav]').forEach(el=>el.classList.toggle('active',el.dataset.fsNav===active));
   }
 
+  function openWaiterPage(targetPage){
+    document.querySelectorAll('[id^="waiter-page-"]').forEach(section=>section.classList.toggle('active',section.id===`waiter-page-${targetPage}`));
+    document.querySelectorAll('[data-waiter-page]').forEach(button=>button.classList.toggle('active',button.dataset.waiterPage===targetPage));
+    const title=document.getElementById('waiter-page-title');
+    if(title)title.textContent=({mesas:'Mesas',cardapio:'Novo pedido',pedidos:'Pedidos'})[targetPage]||'Atendimento';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function syncWaiterBadge(){
+    const source=document.getElementById('waiter-ready-count');
+    const badge=document.getElementById('waiter-ready-nav-count');
+    if(!source||!badge)return;
+    const update=()=>{
+      const count=Math.max(0,Number(source.textContent)||0);
+      badge.textContent=count>99?'99+':String(count);
+      badge.hidden=count===0;
+    };
+    update();
+    const observer=new MutationObserver(update);
+    observer.observe(source,{childList:true,subtree:true,characterData:true});
+  }
+
   function mount(){
     const kind=profile();
     if(!kind)return;
@@ -163,11 +185,25 @@
     document.documentElement.classList.add('fs-mobile-nav-ready');
     document.body.dataset.fsMobileNavProfile=kind;
     if(kind==='main'){ensureMoreSheet();syncMainActive();}
+    if(kind==='waiter')syncWaiterBadge();
   }
 
   document.addEventListener('click',event=>{
     const mainButton=event.target.closest('.fs-mobile-nav [data-fs-nav]');
     if(mainButton){event.preventDefault();navigateMain(mainButton.dataset.fsNav);return;}
+
+    const waiterButton=event.target.closest('.fs-mobile-nav [data-waiter-page]');
+    if(waiterButton){event.preventDefault();openWaiterPage(waiterButton.dataset.waiterPage);return;}
+
+    const kitchenButton=event.target.closest('.fs-mobile-nav [data-fs-kitchen-scope]');
+    if(kitchenButton){
+      event.preventDefault();
+      const scope=kitchenButton.dataset.fsKitchenScope;
+      const source=document.querySelector(`.kitchen-main-tabs [data-kitchen-scope="${scope}"]`);
+      source?.click();
+      document.querySelectorAll('.fs-mobile-nav [data-fs-kitchen-scope]').forEach(button=>button.classList.toggle('active',button.dataset.fsKitchenScope===scope));
+      return;
+    }
 
     const action=event.target.closest('.fs-mobile-nav [data-fs-action]')?.dataset.fsAction;
     if(action==='delivery-top'){event.preventDefault();window.scrollTo({top:0,behavior:'smooth'});return;}
