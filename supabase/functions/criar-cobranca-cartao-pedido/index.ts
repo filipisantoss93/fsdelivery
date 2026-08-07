@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
-const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"content-type, apikey, x-client-info","Access-Control-Allow-Methods":"POST, OPTIONS"};
+const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"content-type, apikey, x-client-info, authorization","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...CORS,"Content-Type":"application/json","Cache-Control":"no-store"}});
 const env=(name:string)=>{const value=Deno.env.get(name);if(!value)throw new Error(`Secret ausente: ${name}`);return value};
 const digits=(value:unknown)=>String(value||"").replace(/\D/g,"");
@@ -50,23 +50,37 @@ Deno.serve(async(req:Request)=>{
   let attemptId:string|null=null;
   try{
     const body=await req.json().catch(()=>({}));
-    const pedidoId=Number(body?.pedido_id);
+    const pedidoId=Number(body?.pedido_id||0);
+    const slug=String(body?.slug||"").trim().toLowerCase();
     const checkoutToken=String(body?.checkout_token||"").trim();
     const paymentToken=requireText(body?.payment_token,"Token de pagamento");
     const requestKey=String(body?.idempotency_key||"").trim();
     const installments=Math.max(1,Math.min(12,Number(body?.installments)||1));
     const cardMask=String(body?.cartao_mascara||"").trim()||null;
-    if(!Number.isSafeInteger(pedidoId)||pedidoId<=0)return json({erro:"Pedido inválido"},400);
     if(!/^[0-9a-f-]{36}$/i.test(checkoutToken))return json({erro:"Token do pedido inválido"},400);
     if(!/^[0-9a-f-]{36}$/i.test(requestKey))return json({erro:"Chave de idempotência inválida"},400);
 
-    const {data:existing}=await admin.from("cobrancas_pedido_cartao").select("id,efi_charge_id,status,valor_centavos").eq("request_key",requestKey).maybeSingle();
-    if(existing)return json({sucesso:true,reutilizada:true,cobranca:{charge_id:existing.efi_charge_id,status:existing.status,valor_centavos:existing.valor_centavos}});
+    const {data:existing,error:existingError}=await admin.from("cobrancas_pedido_cartao").select("id,efi_charge_id,status,valor_centavos,pedido_id").eq("request_key",requestKey).maybeSingle();
+    if(existingError)throw existingError;
+    if(existing)return json({sucesso:true,reutilizada:true,cobranca:{charge_id:existing.efi_charge_id,status:existing.status,valor_centavos:existing.valor_centavos,pedido_id:existing.pedido_id}});
 
-    const {data:order,error:orderError}=await admin.from("pedidos").select("id,codigo,estabelecimento_id,total,status,pagamento_status,checkout_token,origem").eq("id",pedidoId).eq("checkout_token",checkoutToken).maybeSingle();
+    let estabelecimentoId:string|null=null;
+    if(slug){
+      if(!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(slug))return json({erro:"Loja inválida"},400);
+      const {data:store,error:storeError}=await admin.from("estabelecimentos").select("id").eq("slug",slug).maybeSingle();
+      if(storeError)throw storeError;
+      if(!store)return json({erro:"Loja não encontrada"},404);
+      estabelecimentoId=store.id;
+    }
+
+    let query=admin.from("pedidos").select("id,codigo,estabelecimento_id,total,status,pagamento_status,checkout_token,origem,forma_pagamento").eq("checkout_token",checkoutToken);
+    if(Number.isSafeInteger(pedidoId)&&pedidoId>0)query=query.eq("id",pedidoId);
+    if(estabelecimentoId)query=query.eq("estabelecimento_id",estabelecimentoId);
+    const {data:order,error:orderError}=await query.maybeSingle();
     if(orderError)throw orderError;
     if(!order)return json({erro:"Pedido não encontrado"},404);
     if(order.origem!=="publico")return json({erro:"Pagamento on-line disponível somente para pedidos públicos"},409);
+    if(order.forma_pagamento!=="Cartão on-line")return json({erro:"Pedido não foi criado para pagamento com cartão on-line"},409);
     if(order.pagamento_status==="pago")return json({erro:"Pedido já pago"},409);
     if(["cancelado","finalizado","entregue"].includes(String(order.status)))return json({erro:"Pedido não aceita nova cobrança"},409);
 
@@ -99,11 +113,11 @@ Deno.serve(async(req:Request)=>{
 
     const paid=await efiRequest(`/v1/charge/${chargeId}/pay`,{method:"POST",body:JSON.stringify({payment:{credit_card:{customer,installments,payment_token:paymentToken,billing_address:billingAddress}}})});
     const status=String(paid?.data?.status||paid?.data?.charge?.status||"waiting").toLowerCase();
-    const mapped=status==="paid"?"pago":["identified","approved"].includes(status)?"em_analise":["unpaid","canceled"].includes(status)?"recusado":"aguardando";
+    const mapped=status==="paid"?"pago":["identified","approved"].includes(status)?"em_analise":status==="unpaid"?"recusado":status==="canceled"?"cancelado":"aguardando";
     const now=new Date().toISOString();
     await admin.from("cobrancas_pedido_cartao").update({status,payload_pagamento:paid,erro:null,updated_at:now}).eq("id",attemptId);
     await admin.from("pedidos").update({pagamento_status:mapped,pagamento_confirmado_em:mapped==="pago"?now:null,atualizado_em:now}).eq("id",order.id);
-    return json({sucesso:true,cobranca:{charge_id:chargeId,status,pagamento_status:mapped,valor_centavos:valueCents}});
+    return json({sucesso:true,cobranca:{pedido_id:order.id,charge_id:chargeId,status,pagamento_status:mapped,valor_centavos:valueCents}});
   }catch(error){
     console.error("criar-cobranca-cartao-pedido",error);
     if(attemptId)await admin.from("cobrancas_pedido_cartao").update({status:"erro",erro:error instanceof Error?error.message:"Erro interno",updated_at:new Date().toISOString()}).eq("id",attemptId);
