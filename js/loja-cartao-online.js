@@ -27,7 +27,8 @@
       .fs-card-online{display:grid;gap:12px;margin-top:4px;padding:14px;border:1px solid var(--store-line,var(--border));border-radius:14px;background:var(--surface-2)}
       .fs-card-online[hidden]{display:none!important}.fs-card-online h3{margin:0;font-size:16px}.fs-card-online p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
       .fs-card-online-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fs-card-online-grid .full{grid-column:1/-1}
-      @media(max-width:560px){.fs-card-online-grid{grid-template-columns:1fr}.fs-card-online-grid .full{grid-column:auto}}
+      .fs-card-online-note{font-size:11px!important}
+      @media(max-width:560px){.fs-card-online-grid{grid-template-columns:1fr 1fr}.fs-card-online-grid .full{grid-column:1/-1}}
     `;document.head.appendChild(style);
   }
 
@@ -37,25 +38,17 @@
     if(byId('card-online-fields'))return true;
     installStyles();
     const host=document.createElement('section');host.id='card-online-fields';host.className='field full fs-card-online';host.hidden=true;
-    host.innerHTML=`<h3>Cartão on-line</h3><p>Ambiente de homologação. Os dados do cartão são tokenizados pela Efí e não são armazenados pelo FS Delivery.</p><div class="fs-card-online-grid">
-      <div class="field full"><label for="card-number">Número do cartão</label><input id="card-number" inputmode="numeric" autocomplete="cc-number" maxlength="23"></div>
-      <div class="field"><label for="card-exp-month">Mês</label><input id="card-exp-month" inputmode="numeric" autocomplete="cc-exp-month" maxlength="2" placeholder="MM"></div>
-      <div class="field"><label for="card-exp-year">Ano</label><input id="card-exp-year" inputmode="numeric" autocomplete="cc-exp-year" maxlength="4" placeholder="AAAA"></div>
-      <div class="field"><label for="card-cvv">CVV</label><input id="card-cvv" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4"></div>
-      <div class="field"><label for="card-installments">Parcelas</label><select id="card-installments"><option value="1">1x</option></select></div>
-      <div class="field full"><label for="card-holder">Nome do titular</label><input id="card-holder" autocomplete="cc-name"></div>
-      <div class="field"><label for="card-cpf">CPF do titular</label><input id="card-cpf" inputmode="numeric" maxlength="14"></div>
-      <div class="field"><label for="card-birth">Nascimento</label><input id="card-birth" type="date"></div>
+    host.innerHTML=`<h3>Cartão on-line</h3><p>Pagamento à vista. Os dados do cartão são tokenizados pela Efí e não são armazenados pelo FS Delivery.</p><div class="fs-card-online-grid">
+      <div class="field full"><label for="card-number">Número do cartão</label><input id="card-number" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="0000 0000 0000 0000"></div>
+      <div class="field"><label for="card-expiry">Validade</label><input id="card-expiry" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/AA"></div>
+      <div class="field"><label for="card-cvv">CVV</label><input id="card-cvv" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="123"></div>
+      <div class="field full"><label for="card-holder">Nome no cartão</label><input id="card-holder" autocomplete="cc-name"></div>
+      <div class="field full"><label for="card-cpf">CPF do titular</label><input id="card-cpf" inputmode="numeric" autocomplete="off" maxlength="14"></div>
       <div class="field full"><label for="card-email">E-mail</label><input id="card-email" type="email" autocomplete="email"></div>
-      <div class="field"><label for="billing-cep">CEP de cobrança</label><input id="billing-cep" inputmode="numeric" maxlength="9"></div>
-      <div class="field"><label for="billing-state">UF</label><input id="billing-state" maxlength="2" placeholder="SP"></div>
-      <div class="field full"><label for="billing-street">Rua</label><input id="billing-street"></div>
-      <div class="field"><label for="billing-number">Número</label><input id="billing-number"></div>
-      <div class="field"><label for="billing-neighborhood">Bairro</label><input id="billing-neighborhood"></div>
-      <div class="field"><label for="billing-city">Cidade</label><input id="billing-city"></div>
-      <div class="field"><label for="billing-complement">Complemento</label><input id="billing-complement"></div>
-    </div>`;
+    </div><p class="fs-card-online-note">A cobrança é realizada em 1x. Nome e telefone do comprador são reaproveitados dos dados do pedido.</p>`;
     select.closest('.field')?.insertAdjacentElement('afterend',host);
+    const expiry=byId('card-expiry');
+    expiry?.addEventListener('input',()=>{const raw=digits(expiry.value).slice(0,4);expiry.value=raw.length>2?`${raw.slice(0,2)}/${raw.slice(2)}`:raw});
     const sync=()=>{const online=select.value==='Cartão on-line';host.hidden=!online;const change=byId('change-field');if(change&&online)change.hidden=true};
     select.addEventListener('change',sync);sync();
     return true;
@@ -78,19 +71,18 @@
     await ensureReady();
     if(!isSelected())return null;
     if(!config?.cartao_online||!config?.tokenizacao?.account_identifier||!window.EfiPay?.CreditCard)throw new Error('Cartão on-line indisponível para esta loja.');
-    const number=digits(val('card-number')),cvv=digits(val('card-cvv')),expirationMonth=digits(val('card-exp-month')).padStart(2,'0'),expirationYear=digits(val('card-exp-year')),holderName=val('card-holder')||name,holderDocument=digits(val('card-cpf'));
+    const number=digits(val('card-number')),cvv=digits(val('card-cvv')),expiry=digits(val('card-expiry')),holderName=val('card-holder')||name,holderDocument=digits(val('card-cpf')),email=val('card-email');
+    const expirationMonth=expiry.slice(0,2),expirationYear=expiry.length===4?`20${expiry.slice(2)}`:'';
     if(number.length<13||number.length>19)throw new Error('Informe um número de cartão válido.');
     if(cvv.length<3)throw new Error('Informe o CVV do cartão.');
-    if(!/^(0[1-9]|1[0-2])$/.test(expirationMonth)||expirationYear.length!==4)throw new Error('Informe a validade do cartão.');
+    if(expiry.length!==4||!/^(0[1-9]|1[0-2])$/.test(expirationMonth))throw new Error('Informe a validade no formato MM/AA.');
     if(holderName.length<3||holderDocument.length!==11)throw new Error('Informe nome e CPF do titular.');
-    const birth=val('card-birth'),email=val('card-email');if(!birth||!email.includes('@'))throw new Error('Informe nascimento e e-mail do pagador.');
-    const billing={zipcode:digits(val('billing-cep')),street:val('billing-street'),number:val('billing-number'),neighborhood:val('billing-neighborhood'),city:val('billing-city'),complement:val('billing-complement'),state:val('billing-state').toUpperCase()};
-    if(billing.zipcode.length!==8||!billing.street||!billing.number||!billing.neighborhood||!billing.city||!/^[A-Z]{2}$/.test(billing.state))throw new Error('Preencha o endereço de cobrança completo.');
+    if(!email.includes('@')||email.length<5)throw new Error('Informe um e-mail válido.');
     const blocked=await window.EfiPay.CreditCard.isScriptBlocked();if(blocked)throw new Error('O navegador está bloqueando a validação de segurança do cartão. Desative o bloqueio e tente novamente.');
     const brand=await window.EfiPay.CreditCard.setCardNumber(number).verifyCardBrand();if(!brand||['undefined','unsupported'].includes(String(brand)))throw new Error('Bandeira do cartão não suportada.');
     const token=await window.EfiPay.CreditCard.setAccount(config.tokenizacao.account_identifier).setEnvironment('sandbox').setCreditCardData({brand,number,cvv,expirationMonth,expirationYear,holderName,holderDocument,reuse:false}).getPaymentToken();
     if(!token?.payment_token)throw new Error('Não foi possível tokenizar o cartão.');
-    return {payment_token:token.payment_token,cartao_mascara:token.card_mask||null,installments:Number(val('card-installments'))||1,customer:{name,cpf:holderDocument,email,phone_number:digits(phone),birth},billing_address:billing};
+    return {payment_token:token.payment_token,cartao_mascara:token.card_mask||null,customer:{name,cpf:holderDocument,email,phone_number:digits(phone)}};
   }
 
   async function charge({checkoutToken,payment}){
@@ -98,6 +90,7 @@
     const key=`fsdelivery_card_attempt_${checkoutToken}`;let requestKey=sessionStorage.getItem(key);if(!requestKey){requestKey=crypto.randomUUID();sessionStorage.setItem(key,requestKey)}
     const {data,error}=await db.functions.invoke('criar-cobranca-cartao-pedido',{body:{slug,checkout_token:checkoutToken,idempotency_key:requestKey,...payment}});
     if(error)throw error;
+    if(data?.erro)throw new Error(data.erro);
     const status=data?.cobranca?.pagamento_status;
     if(['recusado','cancelado','estornado','chargeback'].includes(status)){sessionStorage.removeItem(key);throw new Error(status==='recusado'?'Pagamento não autorizado. Revise o cartão ou tente outro.':'O pagamento não pôde ser concluído.');}
     if(data?.sucesso)sessionStorage.removeItem(key);
