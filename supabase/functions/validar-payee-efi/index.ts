@@ -94,6 +94,7 @@ Deno.serve(async(req:Request)=>{
     const restaurantPercentage=10000-commissionBps;
     const mode=[1,2].includes(Number(integration.modo_tarifa))?Number(integration.modo_tarifa):2;
     const token=await authorize();
+    const customId=`fsdelivery_validacao_payee_${String(integration.id).replace(/[^A-Za-z0-9_-]/g,"_")}_${Date.now()}`;
     const created=await efi(token,"/v1/charge",{
       method:"POST",
       body:JSON.stringify({
@@ -103,7 +104,7 @@ Deno.serve(async(req:Request)=>{
           amount:1,
           marketplace:{mode,repasses:[{payee_code:payeeCode,percentage:restaurantPercentage}]}
         }],
-        metadata:{custom_id:`fsdelivery:validacao-payee:${integration.id}:${Date.now()}`}
+        metadata:{custom_id:customId}
       })
     });
 
@@ -135,7 +136,7 @@ Deno.serve(async(req:Request)=>{
     if(updateError)throw updateError;
 
     const {error:auditError}=await admin.from("validacoes_payee_efi").insert({
-      integracao_id:integration.id,estabelecimento_id:estabelecimentoId,solicitado_por:userId,sucesso:true,efi_charge_id:chargeId,efi_status:String(created?.data?.status||"new"),cancelado,detalhes:{modo_tarifa:mode,percentual_recebedor:restaurantPercentage,pix_solicitado:Boolean(integration.pix_online_solicitado),cancel_error:cancelError}
+      integracao_id:integration.id,estabelecimento_id:estabelecimentoId,solicitado_por:userId,sucesso:true,efi_charge_id:chargeId,efi_status:String(created?.data?.status||"new"),cancelado,detalhes:{modo_tarifa:mode,percentual_recebedor:restaurantPercentage,pix_solicitado:Boolean(integration.pix_online_solicitado),cancel_error:cancelError,custom_id:customId}
     });
     if(auditError)console.warn("validar-payee-efi audit",auditError);
 
@@ -155,6 +156,6 @@ Deno.serve(async(req:Request)=>{
       const {error:auditError}=await admin.from("validacoes_payee_efi").insert({integracao_id:integrationId,estabelecimento_id:estabelecimentoId,solicitado_por:userId,sucesso:false,erro:message});
       if(auditError)console.warn("validar-payee-efi audit-error",auditError);
     }
-    return json({erro:message},422);
+    return json({sucesso:false,erro:message});
   }
 });
