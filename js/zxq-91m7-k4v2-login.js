@@ -3,6 +3,8 @@
   const $=id=>document.getElementById(id);
   let db=null;
   let opening=false;
+  let authorizedSession=false;
+  let uiGuard=null;
 
   function setMessage(message,type='info'){
     const box=$('admin-login-feedback');
@@ -10,6 +12,30 @@
     box.textContent=message||'';
     box.className=`admin-login-feedback ${type}`;
     box.hidden=!message;
+  }
+
+  function syncAuthorizedUi(){
+    if(!authorizedSession)return;
+    const lock=$('admin-lock');
+    const app=$('admin-app');
+    if(lock&&!lock.hidden)lock.hidden=true;
+    if(app&&app.hidden)app.hidden=false;
+  }
+
+  function startUiGuard(){
+    if(uiGuard)uiGuard.disconnect();
+    const lock=$('admin-lock');
+    const app=$('admin-app');
+    if(!lock||!app)return;
+    uiGuard=new MutationObserver(()=>syncAuthorizedUi());
+    uiGuard.observe(lock,{attributes:true,attributeFilter:['hidden']});
+    uiGuard.observe(app,{attributes:true,attributeFilter:['hidden']});
+    syncAuthorizedUi();
+  }
+
+  function stopUiGuard(){
+    authorizedSession=false;
+    if(uiGuard){uiGuard.disconnect();uiGuard=null}
   }
 
   async function openCentralWithoutReload(){
@@ -20,16 +46,20 @@
     if(error||!session)throw error||new Error('A sessão administrativa não ficou disponível após o login.');
     if(String(session.user?.email||'').toLowerCase()!==ADMIN_EMAIL)throw new Error('Acesso administrativo negado.');
 
-    // O JS principal já executou antes do login e encerrou ao não encontrar sessão.
-    // Reexecutá-lo na mesma página permite usar a sessão recém-criada sem depender
-    // de persistência/reload do navegador, que era a causa do login ficar preso.
+    authorizedSession=true;
+    startUiGuard();
+
     const previous=document.querySelector('script[data-admin-runtime-restart]');
     if(previous)previous.remove();
     const script=document.createElement('script');
     script.src=`js/zxq-91m7-k4v2.js?session=${Date.now()}`;
     script.dataset.adminRuntimeRestart='true';
-    script.onload=()=>{opening=false};
+    script.onload=()=>{
+      syncAuthorizedUi();
+      opening=false;
+    };
     script.onerror=()=>{
+      stopUiGuard();
       opening=false;
       setMessage('A sessão foi criada, mas a Central Gerencial não conseguiu iniciar. Atualize a página e tente novamente.','error');
     };
@@ -66,6 +96,7 @@
       }
       await openCentralWithoutReload();
     }catch(error){
+      stopUiGuard();
       opening=false;
       const text=/invalid login credentials/i.test(error?.message||'')?'E-mail ou senha inválidos.':(error?.message||'Não foi possível autenticar.');
       setMessage(text,'error');
@@ -83,6 +114,7 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     trigger.disabled=true;
+    stopUiGuard();
     try{await db.auth.signOut({scope:'local'});}catch(error){console.error(error)}
     location.replace(location.pathname);
   }
@@ -95,16 +127,23 @@
     const email=$('admin-login-email');
     if(email&&!email.value)email.value=ADMIN_EMAIL;
 
-    // Se já houver sessão válida, não exige novo login e evita depender do reload.
     if(db){
       const {data:{session}}=await db.auth.getSession();
       if(session&&String(session.user?.email||'').toLowerCase()===ADMIN_EMAIL){
         try{
           const {data:allowed}=await db.rpc('fs_admin_autorizado');
-          if(allowed&&$('admin-app')?.hidden)await openCentralWithoutReload();
+          if(allowed){
+            authorizedSession=true;
+            startUiGuard();
+            if($('admin-app')?.hidden)await openCentralWithoutReload();
+          }
         }catch(error){console.error('Falha ao restaurar sessão administrativa:',error)}
       }
     }
+
+    db?.auth?.onAuthStateChange?.((event,session)=>{
+      if(event==='SIGNED_OUT'||!session)stopUiGuard();
+    });
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>start().catch(console.error),{once:true});
