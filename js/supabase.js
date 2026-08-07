@@ -139,9 +139,9 @@ if(matchesPage('app')||matchesPage('loja')||matchesPage('cliente')){
   appendStyle('css/orders.css','fsOrders');
 }
 
-if(matchesPage('app')||matchesPage('configuracoes')){
-  appendScript('js/admin-mobile-nav.js','fsAdminMobileNav');
-  appendStyle('css/admin-mobile-nav.css','fsAdminMobileNav');
+if(['app','caixa','mesas-operacao','configuracoes','balcao','pagamentos','cardapio','cozinha','entregador'].some(matchesPage)){
+  appendScript('js/mobile-nav.js','fsMobileNav');
+  appendStyle('css/mobile-nav.css','fsMobileNav');
 }
 
 if(matchesPage('configuracoes')){
