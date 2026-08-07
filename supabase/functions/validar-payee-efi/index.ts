@@ -20,7 +20,10 @@ async function authorize(){
   });
   const payload=await response.json().catch(()=>({}));
   const token=payload?.access_token||payload?.data?.access_token;
-  if(!response.ok||!token)throw new Error(payload?.error_description||payload?.error||payload?.message||"Falha ao autenticar na Efí em homologação");
+  if(!response.ok||!token){
+    const raw=payload?.error_description||payload?.error||payload?.message||"Falha ao autenticar na Efí em homologação";
+    throw new Error(typeof raw==="string"?raw:JSON.stringify(raw));
+  }
   return String(token);
 }
 
@@ -31,8 +34,8 @@ async function efi(token:string,path:string,options:RequestInit={}){
   });
   const payload=await response.json().catch(()=>({}));
   if(!response.ok||(payload?.code&&Number(payload.code)>=400)){
-    const message=payload?.error_description||payload?.error||payload?.message||payload?.data?.message||payload?.data?.error_description||"A Efí recusou a validação do recebedor";
-    throw new Error(typeof message==="string"?message:JSON.stringify(message));
+    const raw=payload?.error_description||payload?.error||payload?.message||payload?.data?.message||payload?.data?.error_description||"A Efí recusou a validação do recebedor";
+    throw new Error(typeof raw==="string"?raw:JSON.stringify(raw));
   }
   return payload;
 }
@@ -62,8 +65,14 @@ Deno.serve(async(req:Request)=>{
     if(storeError)throw storeError;
     if(!store)return json({erro:"Estabelecimento não encontrado"},404);
 
-    const {data:isAdmin}=await userClient.rpc("fs_admin_autorizado").catch(()=>({data:false}));
-    if(store.usuario_id!==userId&&isAdmin!==true)return json({erro:"Sem permissão para validar esta integração"},403);
+    let isAdmin=false;
+    try{
+      const {data:adminAllowed}=await userClient.rpc("fs_admin_autorizado");
+      isAdmin=adminAllowed===true;
+    }catch(error){
+      console.warn("validar-payee-efi admin-check",error);
+    }
+    if(store.usuario_id!==userId&&!isAdmin)return json({erro:"Sem permissão para validar esta integração"},403);
 
     const {data:integration,error:integrationError}=await admin.from("integracoes_pagamento_estabelecimento")
       .select("id,estabelecimento_id,payee_code,ambiente,status,tipo_pessoa,cartao_online_solicitado,pix_online_solicitado,split_solicitado,percentual_comissao_bps,modo_tarifa")
@@ -78,7 +87,7 @@ Deno.serve(async(req:Request)=>{
     if(!integration.split_solicitado)return json({erro:"Solicite Split automático antes de validar o recebedor"},409);
 
     await admin.from("integracoes_pagamento_estabelecimento").update({
-      status:"em_analise",conta_validada:false,cartao_online_ativo:false,split_ativo:false,updated_at:new Date().toISOString(),erro_ultima_validacao:null
+      status:"em_analise",conta_validada:false,cartao_online_ativo:false,pix_online_ativo:false,split_ativo:false,updated_at:new Date().toISOString(),erro_ultima_validacao:null
     }).eq("id",integration.id);
 
     const commissionBps=Math.max(0,Math.min(3000,Number(integration.percentual_comissao_bps)||0));
@@ -125,9 +134,10 @@ Deno.serve(async(req:Request)=>{
     }).eq("id",integration.id).select("id,status,conta_validada,cartao_online_ativo,pix_online_ativo,split_ativo,validado_em,erro_ultima_validacao").single();
     if(updateError)throw updateError;
 
-    await admin.from("validacoes_payee_efi").insert({
+    const {error:auditError}=await admin.from("validacoes_payee_efi").insert({
       integracao_id:integration.id,estabelecimento_id:estabelecimentoId,solicitado_por:userId,sucesso:true,efi_charge_id:chargeId,efi_status:String(created?.data?.status||"new"),cancelado,detalhes:{modo_tarifa:mode,percentual_recebedor:restaurantPercentage,pix_solicitado:Boolean(integration.pix_online_solicitado),cancel_error:cancelError}
     });
+    if(auditError)console.warn("validar-payee-efi audit",auditError);
 
     return json({
       sucesso:true,
@@ -142,7 +152,8 @@ Deno.serve(async(req:Request)=>{
       await admin.from("integracoes_pagamento_estabelecimento").update({
         conta_validada:false,status:"erro",cartao_online_ativo:false,pix_online_ativo:false,split_ativo:false,validado_em:null,erro_ultima_validacao:message,updated_at:new Date().toISOString()
       }).eq("id",integrationId);
-      await admin.from("validacoes_payee_efi").insert({integracao_id:integrationId,estabelecimento_id:estabelecimentoId,solicitado_por:userId,sucesso:false,erro:message}).catch(()=>null);
+      const {error:auditError}=await admin.from("validacoes_payee_efi").insert({integracao_id:integrationId,estabelecimento_id:estabelecimentoId,solicitado_por:userId,sucesso:false,erro:message});
+      if(auditError)console.warn("validar-payee-efi audit-error",auditError);
     }
     return json({erro:message},422);
   }
