@@ -24,8 +24,8 @@ async function getNotification(token:string){
 const mapStatus=(status:string)=>{
   switch(status.toLowerCase()){
     case "new":case "waiting":return "aguardando";
-    case "identified":case "approved":return "em_analise";
-    case "paid":return "pago";
+    case "identified":return "em_analise";
+    case "approved":case "paid":return "pago";
     case "unpaid":return "recusado";
     case "canceled":return "cancelado";
     case "refunded":return "estornado";
@@ -67,7 +67,9 @@ Deno.serve(async(req:Request)=>{
 
     const mapped=mapStatus(status),now=new Date().toISOString();
     await admin.from("cobrancas_pedido_cartao").update({status,payload_pagamento:payload,erro:null,updated_at:now}).eq("id",attempt.id);
-    await admin.from("pedidos").update({pagamento_status:mapped,pagamento_provedor:"efi",pagamento_confirmado_em:mapped==="pago"?now:null,atualizado_em:now}).eq("id",attempt.pedido_id);
+    const pedidoUpdate:any={pagamento_status:mapped,pagamento_provedor:"efi",pagamento_confirmado_em:mapped==="pago"?now:null,atualizado_em:now};
+    if(["recusado","cancelado"].includes(mapped))pedidoUpdate.status="cancelado";
+    await admin.from("pedidos").update(pedidoUpdate).eq("id",attempt.pedido_id);
     await admin.from("pagamento_eventos").update({processado_em:now,erro_processamento:null}).eq("provedor","efi").eq("evento_id",eventId);
     return json({ok:true});
   }catch(error){
