@@ -38,6 +38,15 @@ function normalizeCustomer(customer:any){
   return {name:requireText(customer?.name,"Nome do pagador"),cpf,email,phone_number:phone};
 }
 
+const mapSandboxStatus=(status:string)=>{
+  const normalized=String(status||"").toLowerCase();
+  if(["paid","approved"].includes(normalized))return "pago";
+  if(normalized==="identified")return "em_analise";
+  if(normalized==="unpaid")return "recusado";
+  if(normalized==="canceled")return "cancelado";
+  return "aguardando";
+};
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
   if(req.method!=="POST")return json({erro:"Método não permitido"},405);
@@ -57,7 +66,10 @@ Deno.serve(async(req:Request)=>{
 
     const {data:existing,error:existingError}=await admin.from("cobrancas_pedido_cartao").select("id,efi_charge_id,status,valor_centavos,pedido_id").eq("request_key",requestKey).maybeSingle();
     if(existingError)throw existingError;
-    if(existing)return json({sucesso:true,reutilizada:true,cobranca:{charge_id:existing.efi_charge_id,status:existing.status,valor_centavos:existing.valor_centavos,pedido_id:existing.pedido_id}});
+    if(existing){
+      const pagamentoStatus=mapSandboxStatus(existing.status);
+      return json({sucesso:true,reutilizada:true,cobranca:{charge_id:existing.efi_charge_id,status:existing.status,pagamento_status:pagamentoStatus,valor_centavos:existing.valor_centavos,pedido_id:existing.pedido_id}});
+    }
 
     let estabelecimentoId:string|null=null;
     if(slug){
@@ -108,11 +120,13 @@ Deno.serve(async(req:Request)=>{
 
     const paid=await efiRequest(`/v1/charge/${chargeId}/pay`,{method:"POST",body:JSON.stringify({payment:{credit_card:{customer,installments:1,payment_token:paymentToken}}})});
     const status=String(paid?.data?.status||paid?.data?.charge?.status||"waiting").toLowerCase();
-    const mapped=status==="paid"?"pago":["identified","approved"].includes(status)?"em_analise":status==="unpaid"?"recusado":status==="canceled"?"cancelado":"aguardando";
+    const mapped=mapSandboxStatus(status);
     const now=new Date().toISOString();
     await admin.from("cobrancas_pedido_cartao").update({status,payload_pagamento:paid,erro:null,updated_at:now}).eq("id",attemptId);
-    await admin.from("pedidos").update({pagamento_status:mapped,pagamento_confirmado_em:mapped==="pago"?now:null,atualizado_em:now}).eq("id",order.id);
-    return json({sucesso:true,cobranca:{pedido_id:order.id,charge_id:chargeId,status,pagamento_status:mapped,valor_centavos:valueCents,parcelas:1}});
+    const pedidoUpdate:any={pagamento_status:mapped,pagamento_confirmado_em:mapped==="pago"?now:null,atualizado_em:now};
+    if(["recusado","cancelado"].includes(mapped))pedidoUpdate.status="cancelado";
+    await admin.from("pedidos").update(pedidoUpdate).eq("id",order.id);
+    return json({sucesso:true,cobranca:{pedido_id:order.id,charge_id:chargeId,status,pagamento_status:mapped,valor_centavos:valueCents,parcelas:1,ambiente:"homologacao"}});
   }catch(error){
     const message=error instanceof Error?error.message:"Erro interno";
     console.error("criar-cobranca-cartao-pedido",error);
