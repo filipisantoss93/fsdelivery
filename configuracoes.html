@@ -10,30 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
-  <style>
-    .config-groups{display:grid;gap:18px}
-    .config-group{padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--surface)}
-    .config-group-head{margin-bottom:12px}.config-group-head h2{margin:0 0 4px;font-size:17px}.config-group-head p{margin:0;color:var(--muted);font-size:13px}
-    .config-group .config-shortcuts{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
-    .config-group .config-shortcut{min-height:auto;padding:14px;border-radius:10px;background:transparent}
-    .config-group .config-shortcut:hover{background:var(--surface-2)}
-    .config-body .mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
-    .operational-links{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
-    .operational-links-head h3{margin:0 0 4px;font-size:15px}.operational-links-head p{margin:0;color:var(--muted);font-size:13px}
-    .operational-links-grid{display:grid;gap:10px}
-    .operational-link-card{display:grid;grid-template-columns:minmax(150px,.7fr) minmax(220px,1.3fr) auto;gap:12px;align-items:center;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
-    .operational-link-card strong,.operational-link-card small{display:block}.operational-link-card small{margin-top:3px;color:var(--muted)}
-    .operational-link-card input{width:100%;min-width:0}
-    .operational-link-actions{flex-wrap:nowrap}
-    .branding-upload{display:grid;gap:10px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2)}
-    .branding-upload-preview{display:grid;place-items:center;min-height:120px;overflow:hidden;border:1px dashed var(--border);border-radius:10px;background:var(--surface)}
-    .branding-upload-preview img{display:none;width:100%;height:100%;max-height:220px;object-fit:cover}
-    .branding-upload-preview.logo img{width:112px;height:112px;border-radius:20px;object-fit:contain}
-    .branding-upload-preview.has-image img{display:block}.branding-upload-preview.has-image span{display:none}
-    .branding-upload small{display:block;color:var(--muted);line-height:1.45}
-    @media(max-width:900px){.operational-link-card{grid-template-columns:1fr}.operational-link-actions{flex-wrap:wrap}}
-    @media(max-width:760px){.config-group{padding:14px}.config-group .config-shortcuts{grid-template-columns:1fr}.operational-link-actions .btn{flex:1 1 120px}}
-  </style>
+  <link rel="stylesheet" href="css/configuracoes.css">
 </head>
 <body class="app-body config-body">
   <aside class="sidebar">
@@ -118,7 +95,7 @@
     <button class="active" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-5L9 6.1a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L5 11a7 7 0 0 0 0 2l-2.1 1.5 2 3.4 2.4-1a8 8 0 0 0 1.7 1l.5 3.1h5l.5-3.1a8 8 0 0 0 1.7-1l2.4 1 2-3.4L19 13a7 7 0 0 0 .1-1z"/></svg><span>Config</span></button>
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/vendor/supabase-2.112.2.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/configuracoes.js"></script>
 </body>

@@ -43,18 +43,9 @@
     <button type="button" onclick="location.href='configuracoes.html'"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1V21h-4v-.09a1.7 1.7 0 0 0-.4-1 1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1-.4H3v-4h.09a1.7 1.7 0 0 0 1-.4 1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1V3h4v.09a1.7 1.7 0 0 0 .4 1 1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.2.37.54.72 1 .9.3.12.64.18 1 .18H21v4h-.09a1.7 1.7 0 0 0-1 .4c-.22.14-.4.32-.51.52z"/></svg><span>Mais</span></button>
   </nav>
   <div class="modal" id="table-order-modal"><div class="modal-card"><div class="modal-head"><h2 id="table-order-title">Pedido da mesa</h2><button class="icon-btn" data-close>×</button></div><div id="table-order-detail"></div><div class="actions"><button class="btn btn-secondary" data-close>Fechar</button><button class="btn btn-primary" id="open-order-panel">Abrir em pedidos</button></div></div></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/vendor/supabase-2.112.2.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/mesas-operacao.js"></script>
-  <script>
-    (()=>{
-      const filter=document.getElementById('table-status-filter');
-      const grid=document.getElementById('operational-tables-grid');
-      if(!filter||!grid)return;
-      const apply=()=>{const value=filter.value;[...grid.children].forEach(card=>{if(card.classList.contains('empty-state'))return;const text=(card.textContent||'').toLowerCase();const free=text.includes('livre')||text.includes('disponível');const matches=!value||(value==='livre'&&free)||(value==='ocupada'&&!free);card.hidden=!matches})};
-      filter.addEventListener('change',apply);
-      new MutationObserver(apply).observe(grid,{childList:true,subtree:true});
-    })();
-  </script>
+  <script src="js/mesas-operacao-filtro.js"></script>
 </body>
 </html>

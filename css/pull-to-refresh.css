@@ -1,0 +1,8 @@
+.fs-pull-refresh{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;z-index:9999;display:flex;align-items:center;gap:8px;min-height:38px;padding:8px 13px;border:1px solid var(--line,#3b2d22);border-radius:999px;background:var(--surface,#211913);box-shadow:0 10px 28px rgba(0,0,0,.28);color:var(--text,#fffaf3);font:700 12px/1 Inter,system-ui,-apple-system,sans-serif;opacity:0;transform:translate(-50%,-54px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
+.fs-pull-refresh.is-visible{opacity:1}
+.fs-pull-refresh__icon{display:grid;place-items:center;width:18px;height:18px;font-size:17px;line-height:1;transform:rotate(0deg)}
+.fs-pull-refresh.is-ready .fs-pull-refresh__icon{transform:rotate(180deg)}
+.fs-pull-refresh.is-refreshing .fs-pull-refresh__icon{animation:fs-pull-spin .7s linear infinite}
+.store-body .fs-pull-refresh{border-color:var(--store-line,#e8ddd2);background:var(--store-surface,#fff);color:var(--store-text,#2a1b10)}
+@keyframes fs-pull-spin{to{transform:rotate(360deg)}}
+@media (min-width:900px) and (hover:hover){.fs-pull-refresh{display:none}}

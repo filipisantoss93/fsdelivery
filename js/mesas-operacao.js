@@ -1,22 +1,11 @@
 const db=window.supabaseClient;
-const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
-const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+const{money,escapeHtml,byId}=window.FSRuntime;
 let store,tables=[],orders=[],payments=[],selectedOrder=null,Status=null,channel=null;
-const byId=id=>document.getElementById(id);
-
-async function ensureStatus(){
-  if(window.FSOrderStatus)return window.FSOrderStatus;
-  await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='js/pedido-status.js';script.onload=resolve;script.onerror=reject;document.head.appendChild(script)});
-  return window.FSOrderStatus;
-}
 
 async function init(){
-  Status=await ensureStatus();
-  const{data:{session}}=await db.auth.getSession();
-  if(!session){location.replace('auth.html');return}
-  const{data:est,error}=await db.from('estabelecimentos').select('*').eq('usuario_id',session.user.id).single();
-  if(error||!est){alert('Não foi possível carregar o estabelecimento.');return}
-  store=est;
+  Status=await window.FSRuntime.ensureGlobal('FSOrderStatus','js/pedido-status.js');
+  const context=await window.FSRuntime.requireOwnedStore();if(!context)return;
+  store=context.store;
   bindActions();
   await loadData();
   channel=db.channel(`mesas-operacao-${store.id}`)

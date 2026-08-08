@@ -1,7 +1,5 @@
 const db=window.supabaseClient;
-const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
-const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
-const el=id=>document.getElementById(id);
+const{money,escapeHtml,byId:el}=window.FSRuntime;
 let store,orders=[],tables=[],payments=[],selected=null,Status=null;
 
 async function ensureNotifications(){
@@ -11,20 +9,11 @@ async function ensureNotifications(){
   return window.FSOperationalNotifications;
 }
 
-async function ensureStatus(){
-  if(window.FSOrderStatus)return window.FSOrderStatus;
-  await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='js/pedido-status.js';script.onload=resolve;script.onerror=reject;document.head.appendChild(script)});
-  return window.FSOrderStatus;
-}
-
 async function init(){
-  Status=await ensureStatus();
+  Status=await window.FSRuntime.ensureGlobal('FSOrderStatus','js/pedido-status.js');
   await ensureNotifications();
-  const{data:{session}}=await db.auth.getSession();
-  if(!session)return location.replace('auth.html');
-  const{data:establishment,error}=await db.from('estabelecimentos').select('*').eq('usuario_id',session.user.id).single();
-  if(error||!establishment)return alert('Não foi possível carregar o estabelecimento.');
-  store=establishment;
+  const context=await window.FSRuntime.requireOwnedStore();if(!context)return;
+  store=context.store;
   bind();
   await load();
   render();
@@ -57,8 +46,7 @@ function tableLabel(table){return table?.nome||`Mesa ${table?.numero??table?.ide
 function typeLabel(type){return Status.typeLabel(type)}
 
 function bind(){
-  document.querySelectorAll('[data-close]').forEach(button=>button.onclick=close);
-  document.querySelectorAll('.modal').forEach(modal=>modal.onclick=event=>{if(event.target===modal)close()});
+  window.FSRuntime.bindModalDismiss(close);
   el('order-filter').onchange=renderOrders;
   el('charge-order').onclick=()=>{
     if(!selected)return;

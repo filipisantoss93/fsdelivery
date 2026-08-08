@@ -82,11 +82,14 @@
       if(typeof saveCustomer==='function')saveCustomer(formData);
       if(typeof close==='function')close();
       if(byId('success-message')){
-        if(onlineCard&&paymentStatus==='pago')byId('success-message').textContent=`Pedido #${orderCode} realizado. Pagamento aprovado em homologação. Aguarde a confirmação do estabelecimento.`;
-        else if(onlineCard)byId('success-message').textContent=`Pedido #${orderCode} criado. Pagamento ${paymentStatus==='em_analise'?'em análise':'em processamento'}. O estabelecimento só poderá avançar após a confirmação.`;
+        if(onlineCard&&paymentStatus==='pago')byId('success-message').textContent=`Pedido #${orderCode} realizado. Pagamento confirmado e liquidado. Aguarde a confirmação do estabelecimento.`;
+        else if(onlineCard&&paymentStatus==='autorizado')byId('success-message').textContent=`Pedido #${orderCode} realizado. Pagamento autorizado e pedido liberado para o estabelecimento.`;
+        else if(onlineCard)byId('success-message').textContent=`Pedido #${orderCode} criado. Pagamento ${paymentStatus==='em_analise'?'em análise':'em processamento'}. O pedido será liberado após a autorização.`;
         else byId('success-message').textContent=`Pedido #${orderCode} enviado com sucesso. Aguarde a confirmação do estabelecimento.`;
       }
-      cart=[];if(typeof saveCart==='function')saveCart();if(typeof renderCart==='function')renderCart();if(typeof open==='function')open('success-modal');
+      cart=[];if(typeof saveCart==='function')saveCart();
+      try{if(typeof renderCart==='function')renderCart()}catch(uiError){console.warn('Pedido confirmado; falha ao atualizar o carrinho:',uiError)}
+      if(typeof open==='function')open('success-modal');else byId('success-modal')?.classList.add('open');
     }catch(error){
       console.error('Falha ao enviar pedido público:',error);
       const raw=error?.message||'Não foi possível enviar o pedido.';

@@ -8,12 +8,8 @@ const paymentCatalog=['PIX','Cartão de crédito','Cartão de débito','Dinheiro
 let session,user,store,orders=[],team=[],operational={},hours=[],regions=[];
 
 async function init(){
-  const {data:{session:s}}=await db.auth.getSession();
-  if(!s){location.replace('auth.html');return}
-  session=s;user=s.user;
-  const {data:est,error}=await db.from('estabelecimentos').select('*').eq('usuario_id',user.id).single();
-  if(error||!est){alert('Não foi possível carregar o estabelecimento.');return}
-  store=est;
+  const context=await window.FSRuntime.requireOwnedStore();if(!context)return;
+  ({session,user,store}=context);
   const [ordersResult,teamResult,opResult,hoursResult,regionsResult]=await Promise.all([
     db.from('pedidos').select('id,status,total,created_at').eq('estabelecimento_id',store.id).order('created_at',{ascending:false}),
     db.from('equipe_operacional').select('*').eq('estabelecimento_id',store.id).order('created_at',{ascending:false}),

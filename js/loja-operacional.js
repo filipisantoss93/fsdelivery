@@ -46,16 +46,14 @@ async function init(){
     if(!est)return showFatal('Loja não encontrada.');
     settings=est;
 
-    const [{data:cfg,error:cfgError},{data:regs,error:regionsError},{data:open,error:openError}]=await Promise.all([
-      db.from('configuracoes_operacionais').select('*').eq('estabelecimento_id',est.id).maybeSingle(),
-      db.from('taxas_entrega_regioes').select('*').eq('estabelecimento_id',est.id).eq('ativo',true).order('nome'),
+    const [{data:publicContext,error:contextError},{data:open,error:openError}]=await Promise.all([
+      db.rpc('contexto_publico_loja',{p_slug:slug}),
       db.rpc('loja_disponivel',{p_estabelecimento:est.id})
     ]);
-    if(cfgError)console.warn(cfgError);
-    if(regionsError)console.warn(regionsError);
-    if(openError)console.warn(openError);
-    operational=cfg||{};
-    regions=regs||[];
+    if(contextError)throw contextError;
+    if(openError)throw openError;
+    operational=publicContext?.operacional||{};
+    regions=Array.isArray(publicContext?.regioes)?publicContext.regioes:[];
     settings.aberto=Boolean(settings.aberto&&open!==false);
 
     if(tableToken){
@@ -151,8 +149,7 @@ function configureContext(){
 }
 
 function bind(){
-  document.querySelectorAll('[data-close]').forEach(button=>button.onclick=close);
-  document.querySelectorAll('.modal').forEach(modal=>modal.onclick=event=>{if(event.target===modal)close()});
+  window.FSRuntime.bindModalDismiss(close);
   $('checkout-btn').onclick=checkout;
   $('mobile-cart').onclick=checkout;
   $('delivery-type').onchange=()=>{selectedRegion=null;$('delivery-region').value='';updateTotal()};
@@ -235,8 +232,10 @@ function change(id,delta){const item=cart.find(entry=>entry.cartId===id);if(!ite
 function updateTotal(){
   if(!settings)return;
   const delivery=type()==='delivery';
-  $('address-field').style.display=delivery?'grid':'none';
-  $('region-field').style.display=delivery&&regions.length?'grid':'none';
+  const addressField=$('address-field');
+  const regionField=$('region-field');
+  if(addressField)addressField.style.display=delivery?'grid':'none';
+  if(regionField)regionField.style.display=delivery&&regions.length?'grid':'none';
   $('cart-subtotal').textContent=money(subtotal());
   $('cart-delivery-fee').textContent=money(fee());
   $('cart-total').textContent=money(total());

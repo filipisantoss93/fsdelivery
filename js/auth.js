@@ -10,7 +10,7 @@
     if(message.includes('invalid login'))return 'E-mail ou senha inválidos.';
     if(message.includes('email not confirmed'))return 'Confirme seu e-mail antes de entrar.';
     if(message.includes('already registered')||message.includes('already been registered'))return 'Já existe uma conta com este e-mail.';
-    if(message.includes('password'))return 'A senha deve ter pelo menos 6 caracteres.';
+    if(message.includes('password'))return 'A senha deve ter pelo menos 8 caracteres e não pode constar em vazamentos conhecidos.';
     if(message.includes('rate limit'))return 'Muitas tentativas. Aguarde alguns minutos.';
     return error?.message||'Não foi possível concluir a operação.';
   };
@@ -57,6 +57,7 @@
   $('#register-form').onsubmit=async e=>{
     e.preventDefault();
     const form=e.currentTarget,f=new FormData(form);
+    if(String(f.get('password')).length<8)return show('A senha deve ter pelo menos 8 caracteres.','error');
     if(f.get('password')!==f.get('confirmPassword'))return show('As senhas não coincidem.','error');
     loading(form,true);
     const redirectTo=new URL('auth.html',location.href).href;
@@ -84,6 +85,7 @@
 
   $('#reset-form').onsubmit=async e=>{
     e.preventDefault();const form=e.currentTarget,f=new FormData(form);
+    if(String(f.get('password')).length<8)return show('A senha deve ter pelo menos 8 caracteres.','error');
     if(f.get('password')!==f.get('confirmPassword'))return show('As senhas não coincidem.','error');
     loading(form,true);
     const {error}=await db.auth.updateUser({password:String(f.get('password'))});

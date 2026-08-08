@@ -176,13 +176,19 @@
     const response=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:`data=${encodeURIComponent(query)}`});
     if(!response.ok)throw new Error('O serviço de bairros está indisponível. Tente novamente mais tarde.');
     const json=await response.json();
-    return [...new Set((json.elements||[]).map(item=>item.tags?.name).filter(Boolean).map(name=>name.trim()))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    const unique=new Map();
+    for(const element of json.elements||[]){
+      const name=String(element.tags?.name||'').trim();
+      const key=normalize(name);
+      if(name&&key&&!unique.has(key))unique.set(key,name);
+    }
+    return [...unique.values()].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   }
 
   async function importCityNeighborhoods(){
-    if(typeof store==='undefined'||!store)return;
-    const city=store.cidade||byId('restaurant-city')?.value.trim();
-    const state=(store.estado||byId('restaurant-state')?.value.trim()).toUpperCase();
+    if(typeof store==='undefined'||!store?.id)return;
+    const city=String(store.cidade||byId('restaurant-city')?.value||'').trim();
+    const state=String(store.estado||byId('restaurant-state')?.value||'').trim().toUpperCase();
     if(!city||!state)return feedback('city-neighborhoods-feedback','Cadastre e salve o CEP da loja antes de buscar bairros.',true);
     const button=byId('import-city-neighborhoods');
     button.disabled=true;button.textContent='Buscando bairros...';
@@ -190,17 +196,32 @@
     try{
       const names=await queryNeighborhoods(city,state);
       if(!names.length)throw new Error('Nenhum bairro foi encontrado automaticamente. Você ainda pode cadastrar manualmente.');
-      const existing=new Set((typeof regions!=='undefined'?regions:[]).map(item=>normalize(item.nome)));
+      const {data:current,error:currentError}=await db.from('taxas_entrega_regioes').select('*').eq('estabelecimento_id',store.id).order('nome');
+      if(currentError)throw currentError;
+      const existing=new Set((current||[]).map(item=>normalize(item.nome)));
       const missing=names.filter(name=>!existing.has(normalize(name)));
-      if(!missing.length)return feedback('city-neighborhoods-feedback','Todos os bairros encontrados já estão cadastrados.');
+      if(!missing.length){
+        if(typeof regions!=='undefined')regions=current||[];
+        renderEditableRegions();
+        return feedback('city-neighborhoods-feedback','Todos os bairros encontrados já estão cadastrados.');
+      }
       const defaultFee=byId('default-free-delivery')?.checked?0:decimal(byId('delivery-fee-config')?.value);
-      const payload=missing.map(nome=>({estabelecimento_id:store.id,nome,taxa:defaultFee,prazo_adicional:0,ativo:false,origem:'cidade',cidade:city,estado:state}));
-      const {data,error}=await db.from('taxas_entrega_regioes').insert(payload).select();
-      if(error)throw error;
-      if(typeof regions!=='undefined')regions.push(...(data||[]));
+      let inserted=0,skipped=0;
+      for(const nome of missing){
+        const {error}=await db.from('taxas_entrega_regioes').insert({estabelecimento_id:store.id,nome,taxa:defaultFee,prazo_adicional:0,ativo:false,origem:'cidade',cidade:city,estado:state});
+        if(error){
+          if(error.code==='23505'){skipped++;continue}
+          throw error;
+        }
+        inserted++;
+      }
+      const {data:updated,error:updatedError}=await db.from('taxas_entrega_regioes').select('*').eq('estabelecimento_id',store.id).order('nome');
+      if(updatedError)throw updatedError;
+      if(typeof regions!=='undefined')regions=updated||[];
       renderEditableRegions();
-      feedback('city-neighborhoods-feedback',`${data?.length||0} bairros importados. Eles entram desativados; ative e ajuste as taxas desejadas.`);
-    }catch(error){feedback('city-neighborhoods-feedback',error.message||'Não foi possível importar os bairros.',true)}
+      const detail=skipped?` ${skipped} duplicado(s) foram ignorados.`:'';
+      feedback('city-neighborhoods-feedback',`${inserted} bairros importados.${detail} Eles entram desativados; ative e ajuste as taxas desejadas.`);
+    }catch(error){console.error('Falha ao importar bairros:',error);feedback('city-neighborhoods-feedback',error.message||'Não foi possível importar os bairros.',true)}
     finally{button.disabled=false;button.textContent='Buscar bairros da cidade'}
   }
 

@@ -2,18 +2,10 @@
   if(!(window.FSDeliveryRoute?.matchesPage?.('app')||/(^|\/)app(?:\.html)?$/i.test(location.pathname)))return;
   const db=window.supabaseClient;
   const state={store:null,orders:[],payments:[],events:[],filter:'ativos',selected:null,channel:null,loading:false,mounted:false};
-  const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
-  const esc=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
-  const el=id=>document.getElementById(id);
+  const{money,escapeHtml:esc,byId:el}=window.FSRuntime;
   const filters=[
     ['ativos','Todos ativos'],['aguardando_aprovacao','Aguardando aprovação'],['confirmado','Fila da cozinha'],['preparo','Em preparo'],['pronto','Prontos'],['servido','Servidos'],['saiu_entrega','Em rota'],['finalizado','Finalizados'],['cancelado','Cancelados']
   ];
-
-  async function ensureStatus(){
-    if(window.FSOrderStatus)return window.FSOrderStatus;
-    await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='js/pedido-status.js';script.onload=resolve;script.onerror=reject;document.head.appendChild(script)});
-    return window.FSOrderStatus;
-  }
 
   function overrideLegacy(){
     try{window.setupOrdersUI=()=>{};window.renderOrders=()=>{};window.advanceOrder=id=>openOrder(id)}catch{}
@@ -172,10 +164,9 @@
   }
 
   async function boot(){
-    await ensureStatus();overrideLegacy();
-    const{data:{session}}=await db.auth.getSession();if(!session)return;
-    const{data:store,error}=await db.from('estabelecimentos').select('id,nome').eq('usuario_id',session.user.id).single();if(error||!store)return;
-    state.store=store;
+    await window.FSRuntime.ensureGlobal('FSOrderStatus','js/pedido-status.js');overrideLegacy();
+    const context=await window.FSRuntime.requireOwnedStore();if(!context)return;
+    state.store=context.store;
     mount();await load();renderFilters();render();subscribe();
     const observer=new MutationObserver(()=>{const page=el('pedidos');if(page&&!page.querySelector('.fs-orders-shell')){page.dataset.fsOperationalOrders='';mount();renderFilters();render()}});
     observer.observe(document.body,{subtree:true,childList:true});

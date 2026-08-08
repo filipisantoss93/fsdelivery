@@ -78,6 +78,39 @@ window.FSDeliveryRoute=Object.freeze({currentPath,currentPage,matchesPage,cleanU
 const authLock=async(_name,_acquireTimeout,fn)=>await fn();
 window.supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,lock:authLock}});
 
+const runtimeDependencies=new Map();
+window.FSRuntime=Object.freeze({
+  money(value){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0)},
+  escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))},
+  byId(id){return document.getElementById(id)},
+  async ensureGlobal(name,src){
+    if(window[name])return window[name];
+    if(!runtimeDependencies.has(name)){
+      runtimeDependencies.set(name,new Promise((resolve,reject)=>{
+        const existing=document.querySelector(`script[src="${src}"]`);
+        const script=existing||document.createElement('script');
+        const finish=()=>window[name]?resolve(window[name]):reject(new Error(`Dependência ${name} indisponível.`));
+        script.addEventListener('load',finish,{once:true});
+        script.addEventListener('error',()=>reject(new Error(`Falha ao carregar ${src}.`)),{once:true});
+        if(!existing){script.src=src;document.head.appendChild(script)}
+        else if(window[name])finish();
+      }).finally(()=>runtimeDependencies.delete(name)));
+    }
+    return runtimeDependencies.get(name);
+  },
+  async requireOwnedStore(){
+    const{data:{session}}=await window.supabaseClient.auth.getSession();
+    if(!session){location.replace('auth.html');return null}
+    const{data:store,error}=await window.supabaseClient.from('estabelecimentos').select('*').eq('usuario_id',session.user.id).single();
+    if(error||!store){alert('Não foi possível carregar o estabelecimento.');return null}
+    return{session,user:session.user,store};
+  },
+  bindModalDismiss(close){
+    document.querySelectorAll('[data-close]').forEach(button=>{button.onclick=close});
+    document.querySelectorAll('.modal').forEach(modal=>{modal.onclick=event=>{if(event.target===modal)close()}});
+  }
+});
+
 function appendScript(src,key,{defer=true,target=document.head}={}){
   const selector=`script[data-${key.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`)}]`;
   if(document.querySelector(selector)||document.querySelector(`script[src="${src}"]`))return;
@@ -133,6 +166,7 @@ function appendStyle(href,key){
   document.documentElement.classList.remove('fs-store-resolving');
 })();
 
+appendStyle('css/pull-to-refresh.css','fsPullRefresh');
 appendScript('js/pull-to-refresh.js','fsPullRefresh');
 
 if(matchesPage('app')||matchesPage('loja')||matchesPage('cliente')){
@@ -149,7 +183,6 @@ if(matchesPage('configuracoes')){
   appendScript('js/config-modal-bootstrap.js','fsConfigModalBootstrap');
   appendScript('js/public-store-link-config.js','fsPublicStoreLinkConfig');
   appendScript('js/config-bairros-cidade.js','fsConfigBairrosCidade');
-  appendScript('js/config-bairros-importacao-segura.js','fsConfigBairrosImportacaoSegura');
   appendScript('js/config-pagamentos-entry.js','fsConfigPagamentosEntry');
 }
 

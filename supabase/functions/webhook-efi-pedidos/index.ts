@@ -1,79 +1,138 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
-const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
-const env=(name:string)=>{const value=Deno.env.get(name);if(!value)throw new Error(`Secret ausente: ${name}`);return value};
-const billingBaseUrl="https://cobrancas-h.api.efipay.com.br";
+const HEADERS = {
+  "Content-Type": "application/json",
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+};
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: HEADERS });
+const env = (name: string) => {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`Secret ausente: ${name}`);
+  return value;
+};
+const envFirst = (names: string[]) => {
+  for (const name of names) {
+    const value = String(Deno.env.get(name) || "").trim();
+    if (value) return value;
+  }
+  throw new Error("Credenciais Efí indisponíveis para o ambiente selecionado.");
+};
+const normalizeEnvironment = (value: unknown) =>
+  String(value || "homologacao").toLowerCase().startsWith("prod") ? "producao" : "homologacao";
 
-async function efiAccessToken(){
-  const response=await fetch(`${billingBaseUrl}/v1/authorize`,{method:"POST",headers:{Authorization:`Basic ${btoa(`${env("EFI_CLIENT_ID_HOMOLOGACAO")}:${env("EFI_CLIENT_SECRET_HOMOLOGACAO")}`)}`,"Content-Type":"application/json"},body:JSON.stringify({grant_type:"client_credentials"})});
-  const payload=await response.json().catch(()=>({}));
-  const token=payload?.access_token||payload?.data?.access_token;
-  if(!response.ok||!token)throw new Error(payload?.error_description||payload?.error||payload?.message||"Falha na autorização Efí");
+function billingConfig(req: Request) {
+  const ambiente = normalizeEnvironment(new URL(req.url).searchParams.get("ambiente"));
+  if (ambiente === "producao") {
+    return {
+      ambiente,
+      baseUrl: "https://cobrancas.api.efipay.com.br",
+      clientId: envFirst(["EFI_CLIENT_ID_PRODUCAO", "EFI_CLIENT_ID"]),
+      clientSecret: envFirst(["EFI_CLIENT_SECRET_PRODUCAO", "EFI_CLIENT_SECRET"]),
+    };
+  }
+  return {
+    ambiente,
+    baseUrl: "https://cobrancas-h.api.efipay.com.br",
+    clientId: envFirst(["EFI_CLIENT_ID_HOMOLOGACAO"]),
+    clientSecret: envFirst(["EFI_CLIENT_SECRET_HOMOLOGACAO"]),
+  };
+}
+
+async function notificationToken(req: Request) {
+  const contentType = req.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const body = await req.json().catch(() => ({}));
+    return String(body?.notification || body?.token || "").trim();
+  }
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const params = new URLSearchParams(await req.text());
+    return String(params.get("notification") || params.get("token") || "").trim();
+  }
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData().catch(() => null);
+    return String(form?.get("notification") || form?.get("token") || "").trim();
+  }
+  const raw = (await req.text().catch(() => "")).trim();
+  if (!raw) return "";
+  try {
+    const body = JSON.parse(raw);
+    return String(body?.notification || body?.token || "").trim();
+  } catch {
+    const params = new URLSearchParams(raw);
+    return String(params.get("notification") || params.get("token") || raw).trim();
+  }
+}
+
+async function accessToken(config: ReturnType<typeof billingConfig>) {
+  const response = await fetch(`${config.baseUrl}/v1/authorize`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${config.clientId}:${config.clientSecret}`)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ grant_type: "client_credentials" }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  const token = payload?.access_token || payload?.data?.access_token;
+  if (!response.ok || !token) throw new Error("Falha na autorização Efí");
   return String(token);
 }
 
-async function getNotification(token:string){
-  const accessToken=await efiAccessToken();
-  const response=await fetch(`${billingBaseUrl}/v1/notification/${encodeURIComponent(token)}`,{headers:{Authorization:`Bearer ${accessToken}`}});
-  const payload=await response.json().catch(()=>({}));
-  if(!response.ok)throw new Error(payload?.error_description||payload?.error||payload?.message||"Falha ao consultar notificação Efí");
+async function getNotification(config: ReturnType<typeof billingConfig>, token: string) {
+  const authorization = await accessToken(config);
+  const response = await fetch(`${config.baseUrl}/v1/notification/${encodeURIComponent(token)}`, {
+    headers: { Authorization: `Bearer ${authorization}`, "Content-Type": "application/json" },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !Array.isArray(payload?.data)) throw new Error("Notificação Efí inválida");
   return payload;
 }
 
-const mapStatus=(status:string)=>{
-  switch(status.toLowerCase()){
-    case "new":case "waiting":return "aguardando";
-    case "identified":return "em_analise";
-    case "approved":case "paid":return "pago";
-    case "unpaid":return "recusado";
-    case "canceled":return "cancelado";
-    case "refunded":return "estornado";
-    case "contested":return "chargeback";
-    default:return "em_analise";
-  }
-};
+Deno.serve(async (req: Request) => {
+  if (req.method !== "POST") return json({ ok: false }, 405);
+  if (Number(req.headers.get("content-length") || 0) > 65536) return json({ ok: false }, 413);
 
-Deno.serve(async(req:Request)=>{
-  if(req.method!=="POST")return json({ok:false},405);
-  const admin=createClient(env("SUPABASE_URL"),env("SUPABASE_SERVICE_ROLE_KEY"));
-  try{
-    const contentType=req.headers.get("content-type")||"";
-    let notification="";
-    if(contentType.includes("application/json")){
-      const body=await req.json().catch(()=>({}));
-      notification=String(body?.notification||"").trim();
-    }else{
-      const form=await req.formData().catch(()=>null);
-      notification=String(form?.get("notification")||"").trim();
+  try {
+    const token = await notificationToken(req);
+    if (!/^[0-9a-z-]{20,120}$/i.test(token)) return json({ ok: true, ignorado: true });
+    const config = billingConfig(req);
+    const payload = await getNotification(config, token);
+    const events = [...payload.data]
+      .slice(-100)
+      .sort((a, b) => Number(a?.id || 0) - Number(b?.id || 0));
+    const admin = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    let processed = 0;
+    let ignored = 0;
+
+    for (const event of events) {
+      const chargeId = Number(event?.identifiers?.charge_id);
+      const status = String(event?.status?.current || event?.status || "").trim().toLowerCase();
+      if (!Number.isSafeInteger(chargeId) || chargeId <= 0 || !status) {
+        ignored++;
+        continue;
+      }
+      const providerEventId = String(event?.id || `${status}:${event?.created_at || "sem-data"}`);
+      const eventId = `notification:${config.ambiente}:${token}:${providerEventId}`;
+      const { data, error } = await admin.rpc("fsdelivery_aplicar_evento_pagamento_pedido", {
+        p_evento_id: eventId,
+        p_charge_id: chargeId,
+        p_status_efi: status,
+        p_payload: event,
+        p_ambiente: config.ambiente,
+      });
+      if (error) throw error;
+      if (data?.ignorado) ignored++;
+      else processed++;
     }
-    if(!/^[0-9a-z-]{20,120}$/i.test(notification))return json({ok:true});
-
-    const payload=await getNotification(notification);
-    const history=Array.isArray(payload?.data)?payload.data:[];
-    const latest=history.at(-1);
-    const chargeId=Number(latest?.identifiers?.charge_id);
-    const status=String(latest?.status?.current||latest?.status||"").toLowerCase();
-    if(!Number.isSafeInteger(chargeId)||chargeId<=0||!status)return json({ok:true});
-
-    const {data:attempt,error:attemptError}=await admin.from("cobrancas_pedido_cartao").select("id,pedido_id,estabelecimento_id").eq("efi_charge_id",chargeId).maybeSingle();
-    if(attemptError)throw attemptError;
-    if(!attempt)return json({ok:true});
-
-    const eventId=`${notification}:${status}:${String(latest?.created_at||"")}`;
-    const {error:eventError}=await admin.from("pagamento_eventos").insert({provedor:"efi",evento_id:eventId,pedido_id:attempt.pedido_id,efi_charge_id:chargeId,tipo:status,payload});
-    if(eventError&&eventError.code!=="23505")throw eventError;
-    if(eventError?.code==="23505")return json({ok:true,duplicado:true});
-
-    const mapped=mapStatus(status),now=new Date().toISOString();
-    await admin.from("cobrancas_pedido_cartao").update({status,payload_pagamento:payload,erro:null,updated_at:now}).eq("id",attempt.id);
-    const pedidoUpdate:any={pagamento_status:mapped,pagamento_provedor:"efi",pagamento_confirmado_em:mapped==="pago"?now:null,atualizado_em:now};
-    if(["recusado","cancelado"].includes(mapped))pedidoUpdate.status="cancelado";
-    await admin.from("pedidos").update(pedidoUpdate).eq("id",attempt.pedido_id);
-    await admin.from("pagamento_eventos").update({processado_em:now,erro_processamento:null}).eq("provedor","efi").eq("evento_id",eventId);
-    return json({ok:true});
-  }catch(error){
-    console.error("webhook-efi-pedidos",error);
-    return json({ok:false},500);
+    return json({ ok: true, processados: processed, ignorados: ignored });
+  } catch (error) {
+    console.error("webhook-efi-pedidos", error);
+    return json({ ok: false }, 500);
   }
 });

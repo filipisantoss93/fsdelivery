@@ -7,12 +7,8 @@ const decimalValue=value=>Number(String(value||'').replace(/\./g,'').replace(','
 const normalizeStatus=value=>{const status=String(value||'novo').toLowerCase().trim().replace(/[\s-]+/g,'_');if(['novo','pendente','recebido','aguardando'].includes(status))return'novo';if(['preparo','em_preparo','preparando','producao'].includes(status))return'preparo';if(['pronto','saiu','saiu_para_entrega','em_entrega','despachado'].includes(status))return'pronto';if(['entregue','finalizado','concluido','concluído'].includes(status))return'entregue';if(['cancelado','cancelada'].includes(status))return'cancelado';return status};
 
 async function init(){
-  const {data:{session:s}}=await db.auth.getSession();
-  if(!s){location.replace('auth.html');return}
-  session=s;user=s.user;
-  const {data:est,error}=await db.from('estabelecimentos').select('*').eq('usuario_id',user.id).single();
-  if(error||!est){alert('Não foi possível carregar o estabelecimento.');return}
-  store=est;
+  const context=await window.FSRuntime.requireOwnedStore();if(!context)return;
+  ({session,user,store}=context);
   setupOrdersUI();
   await loadData();
   bindNavigation();bindModals();bindActions();setupAccount();setupLabels();render();subscribeOrders();

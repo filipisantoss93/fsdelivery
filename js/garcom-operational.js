@@ -1,6 +1,5 @@
 (()=>{
  const Status=window.FSOrderStatus;
- if(!document.getElementById('waiter-served-style')){const style=document.createElement('style');style.id='waiter-served-style';style.textContent='.waiter-payment-note{margin-top:10px;padding:10px 12px;border:1px solid #e2bf72;border-radius:9px;background:#fff8e7;color:#6c4b00;font-size:13px;font-weight:700}';document.head.appendChild(style)}
  const normalize=status=>Status.normalize(status);
  if(typeof activeStatuses!=='undefined'){
    ['aguardando_aprovacao','servido'].forEach(status=>{if(!activeStatuses.includes(status))activeStatuses.push(status)});

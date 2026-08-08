@@ -121,7 +121,7 @@
               <div class="field full"><label for="card-number">Número do cartão</label><input id="card-number" inputmode="numeric" autocomplete="cc-number" maxlength="23" required></div>
               <div class="field"><label for="card-expiration-month">Mês</label><input id="card-expiration-month" inputmode="numeric" autocomplete="cc-exp-month" maxlength="2" placeholder="MM" required></div>
               <div class="field"><label for="card-expiration-year">Ano</label><input id="card-expiration-year" inputmode="numeric" autocomplete="cc-exp-year" maxlength="4" placeholder="AAAA" required></div>
-              <div class="field"><label for="card-cvv">CVV</label><input id="card-cvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" required></div>
+              <div class="field"><label for="card-cvv">CVV</label><input id="card-cvv" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" required></div>
               <div class="field"><label for="card-holder-document">CPF do titular</label><input id="card-holder-document" inputmode="numeric" maxlength="14" required></div>
             </div>
           </div>
@@ -164,9 +164,9 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/vendor/supabase-2.112.2.js"></script>
   <script src="js/supabase.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/payment-token-efi/dist/payment-token-efi-umd.min.js"></script>
+  <script src="js/vendor/payment-token-efi-3.4.1.min.js"></script>
   <script src="js/assinatura.js"></script>
 </body>
 </html>

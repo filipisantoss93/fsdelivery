@@ -2,25 +2,6 @@
   const byId = id => document.getElementById(id);
   const params = new URLSearchParams(location.search);
 
-  function installStyles() {
-    if (byId('public-store-layout-fixes')) return;
-    const style = document.createElement('style');
-    style.id = 'public-store-layout-fixes';
-    style.textContent = `
-      .store-summary-compact{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;gap:0}
-      .store-summary-item{display:flex;align-items:center;justify-content:flex-start;gap:12px;min-width:0;min-height:72px;padding:12px 16px;color:inherit;text-decoration:none}
-      .store-summary-item>div{min-width:0}.store-summary-item small,.store-summary-item b{display:block}.store-summary-item b{overflow-wrap:anywhere}
-      .store-summary-divider{align-self:center;width:1px;height:42px;background:var(--border)}
-      .store-summary-icon.whatsapp{display:grid!important;background:#e8f7ee;color:#128c4a}.store-whatsapp{border-radius:12px}
-      #checkout-modal .modal-card{max-height:90vh;overflow-y:auto}#checkout-modal .form-grid{display:grid!important}
-      #checkout-modal input,#checkout-modal select,#checkout-modal textarea{width:100%}
-      #cep-status[data-type="success"]{color:#24733f}#cep-status[data-type="error"]{color:#a52a2a}
-      @media(max-width:760px){.store-summary-compact{grid-template-columns:repeat(3,minmax(0,1fr))}.store-summary-divider{display:none}.store-summary-item{min-height:86px;padding:12px 10px;flex-direction:column;justify-content:center;gap:7px;text-align:center}.store-summary-item .store-summary-icon{display:grid}.store-summary-item small{font-size:10px}.store-summary-item b{font-size:14px;line-height:1.2}}
-      @media(max-width:420px){.store-summary-compact{gap:6px}.store-summary-item{padding:10px 6px}.store-summary-item .store-summary-icon{width:36px;height:36px;flex-basis:36px;border-radius:10px}.store-summary-item .store-summary-icon svg{width:20px;height:20px}}
-    `;
-    document.head.appendChild(style);
-  }
-
   function currentType() {
     if (params.get('mesa')) return 'mesa';
     return byId('delivery-type')?.value || 'delivery';
@@ -313,7 +294,6 @@
   }
 
   function bind() {
-    installStyles();
     ensureCartModal();
     installCepField();
     installPaymentAdapter();

@@ -16,27 +16,25 @@
       const existing=document.querySelector('script[data-fs-efi-token]');
       if(existing){existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>reject(new Error('Falha ao carregar tokenização Efí.')),{once:true});return}
       const script=document.createElement('script');
-      script.src='https://cdn.jsdelivr.net/gh/efipay/js-payment-token-efi/dist/payment-token-efi-umd.min.js';
+      script.src='js/vendor/payment-token-efi-3.4.1.min.js';
       script.async=true;script.dataset.fsEfiToken='true';script.onload=()=>resolve();script.onerror=()=>reject(new Error('Falha ao carregar tokenização Efí.'));document.head.appendChild(script);
     });
   }
 
-  function installStyles(){
-    if(byId('fs-card-online-style'))return;
-    const style=document.createElement('style');style.id='fs-card-online-style';style.textContent=`
-      .fs-card-online{display:grid;gap:12px;margin-top:4px;padding:14px;border:1px solid var(--store-line,var(--border));border-radius:14px;background:var(--surface-2)}
-      .fs-card-online[hidden]{display:none!important}.fs-card-online h3{margin:0;font-size:16px}.fs-card-online p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
-      .fs-card-online-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fs-card-online-grid .full{grid-column:1/-1}
-      .fs-card-online-note{font-size:11px!important}
-      @media(max-width:560px){.fs-card-online-grid{grid-template-columns:1fr 1fr}.fs-card-online-grid .full{grid-column:1/-1}}
-    `;document.head.appendChild(style);
-  }
-
   function installPanel(){
     const select=byId('payment-method');if(!select||!config?.cartao_online||!config?.tokenizacao?.account_identifier)return false;
+    if(!select.dataset.fsOnlineCardObserved){
+      select.dataset.fsOnlineCardObserved='true';
+      new MutationObserver(()=>queueMicrotask(installPanel)).observe(select,{childList:true});
+    }
     if(![...select.options].some(option=>option.value==='Cartão on-line'))select.add(new Option('Cartão on-line','Cartão on-line'));
-    if(byId('card-online-fields'))return true;
-    installStyles();
+    const installed=byId('card-online-fields');
+    if(installed){
+      const online=select.value==='Cartão on-line';
+      installed.hidden=!online;
+      const change=byId('change-field');if(change&&online)change.hidden=true;
+      return true;
+    }
     const host=document.createElement('section');host.id='card-online-fields';host.className='field full fs-card-online';host.hidden=true;
     host.innerHTML=`<h3>Cartão on-line</h3><p>Pagamento à vista. Os dados do cartão são tokenizados pela Efí e não são armazenados pelo FS Delivery.</p><div class="fs-card-online-grid">
       <div class="field full"><label for="card-number">Número do cartão</label><input id="card-number" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="0000 0000 0000 0000"></div>
@@ -80,7 +78,7 @@
     if(!email.includes('@')||email.length<5)throw new Error('Informe um e-mail válido.');
     const blocked=await window.EfiPay.CreditCard.isScriptBlocked();if(blocked)throw new Error('O navegador está bloqueando a validação de segurança do cartão. Desative o bloqueio e tente novamente.');
     const brand=await window.EfiPay.CreditCard.setCardNumber(number).verifyCardBrand();if(!brand||['undefined','unsupported'].includes(String(brand)))throw new Error('Bandeira do cartão não suportada.');
-    const token=await window.EfiPay.CreditCard.setAccount(config.tokenizacao.account_identifier).setEnvironment('sandbox').setCreditCardData({brand,number,cvv,expirationMonth,expirationYear,holderName,holderDocument,reuse:false}).getPaymentToken();
+    const token=await window.EfiPay.CreditCard.setAccount(config.tokenizacao.account_identifier).setEnvironment(config.tokenizacao.environment).setCreditCardData({brand,number,cvv,expirationMonth,expirationYear,holderName,holderDocument,reuse:false}).getPaymentToken();
     if(!token?.payment_token)throw new Error('Não foi possível tokenizar o cartão.');
     return {payment_token:token.payment_token,cartao_mascara:token.card_mask||null,customer:{name,cpf:holderDocument,email,phone_number:digits(phone)}};
   }
@@ -90,11 +88,11 @@
     const key=`fsdelivery_card_attempt_${checkoutToken}`;let requestKey=sessionStorage.getItem(key);if(!requestKey){requestKey=crypto.randomUUID();sessionStorage.setItem(key,requestKey)}
     const {data,error}=await db.functions.invoke('criar-cobranca-cartao-pedido',{body:{slug,checkout_token:checkoutToken,idempotency_key:requestKey,...payment}});
     if(error)throw error;
-    if(data?.erro)throw new Error(data.erro);
     const status=data?.cobranca?.pagamento_status;
-    if(['recusado','cancelado','estornado','chargeback'].includes(status)){sessionStorage.removeItem(key);throw new Error(status==='recusado'?'Pagamento não autorizado. Revise o cartão ou tente outro.':'O pagamento não pôde ser concluído.');}
-    if(data?.sucesso)sessionStorage.removeItem(key);
-    return data;
+    if(data?.sucesso){sessionStorage.removeItem(key);return data}
+    if(['recusado','cancelado','estornado','chargeback'].includes(status))sessionStorage.removeItem(key);
+    if(data?.erro)throw new Error(data.erro);
+    throw new Error('Não foi possível confirmar o pagamento. Tente novamente.');
   }
 
   window.FSDeliveryOnlineCard=Object.freeze({ensureReady,isSelected,prepare,charge});

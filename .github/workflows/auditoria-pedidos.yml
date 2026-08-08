@@ -6,30 +6,18 @@ on:
     paths:
       - 'js/**'
       - 'css/**'
-      - 'app.html'
-      - 'loja.html'
-      - 'cliente.html'
-      - 'balcao.html'
-      - 'garcom.html'
-      - 'cozinha.html'
-      - 'caixa.html'
-      - 'entregador.html'
+      - '*.html'
       - 'supabase/migrations/**'
+      - 'supabase/functions/**'
       - 'tests/**'
       - '.github/workflows/auditoria-pedidos.yml'
   pull_request:
     paths:
       - 'js/**'
       - 'css/**'
-      - 'app.html'
-      - 'loja.html'
-      - 'cliente.html'
-      - 'balcao.html'
-      - 'garcom.html'
-      - 'cozinha.html'
-      - 'caixa.html'
-      - 'entregador.html'
+      - '*.html'
       - 'supabase/migrations/**'
+      - 'supabase/functions/**'
       - 'tests/**'
       - '.github/workflows/auditoria-pedidos.yml'
 
@@ -82,3 +70,12 @@ jobs:
 
       - name: Validar estabilidade do frontend
         run: node tests/auditoria-estabilidade-frontend.mjs
+
+      - name: Auditar plataforma, assets e pagamentos
+        run: node tests/auditoria-plataforma.mjs
+
+      - name: Verificar sintaxe de todos os scripts do frontend
+        run: find js -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Bloquear duplicidades relevantes de CSS e JavaScript
+        run: npx --yes jscpd@4.0.5 --min-lines 10 --min-tokens 70 --threshold 0 --ignore 'js/vendor/**' --reporters console --format 'javascript,css,html' js css *.html

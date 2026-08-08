@@ -4,16 +4,13 @@ let tables=[];
 const qrInstances=new Map();
 
 const bellSvg=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h14M7 16c0-5 2-8 5-8s5 3 5 8M10 7h4M12 4v3M4 19h16" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const escapeHtml=value=>String(value??'').replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+const escapeHtml=window.FSRuntime.escapeHtml;
 const publicTableUrl=table=>`${location.origin}/mesa.html?loja=${encodeURIComponent(store.slug)}&mesa=${encodeURIComponent(table.numero)}&token=${encodeURIComponent(table.codigo_qr)}`;
 const nextAvailableNumber=()=>{let number=1;const used=new Set(tables.map(table=>Number(table.numero)));while(used.has(number))number++;return number};
 
 async function init(){
-  const {data:{session}}=await db.auth.getSession();
-  if(!session){location.replace('auth.html');return}
-  const {data:est,error}=await db.from('estabelecimentos').select('*').eq('usuario_id',session.user.id).single();
-  if(error||!est){alert('Não foi possível carregar o estabelecimento.');return}
-  store=est;
+  const context=await window.FSRuntime.requireOwnedStore();if(!context)return;
+  store=context.store;
   bindActions();
   await loadTables();
 }

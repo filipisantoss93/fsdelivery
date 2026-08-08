@@ -1,0 +1,9 @@
+.waiter-menu-body .sidebar .nav button{display:flex;align-items:center;gap:11px}
+.waiter-menu-body .sidebar .nav button svg{flex:0 0 20px;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.waiter-nav-badge{position:absolute;top:4px;left:calc(50% + 8px);display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border:2px solid #120d09;border-radius:999px;background:var(--primary);color:#fff;font-size:10px;font-weight:800;line-height:1}
+.waiter-nav-badge[hidden]{display:none}
+
+@media(max-width:760px){
+  .waiter-menu-body .mobile-nav{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .waiter-menu-body .mobile-nav button{position:relative}
+}

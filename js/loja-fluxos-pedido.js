@@ -5,27 +5,6 @@
   const tableMode=params.has('mesa');
   let confirmedSubmission=false;
 
-  function installStyles(){
-    if(byId('fs-public-order-audit-style'))return;
-    const style=document.createElement('style');
-    style.id='fs-public-order-audit-style';
-    style.textContent=`
-      .fs-order-mode-hint{margin:0 0 12px;padding:11px 13px;border:1px solid var(--store-line);border-radius:11px;background:var(--surface-2);color:var(--store-muted);font-size:13px}
-      .fs-fee-row[hidden]{display:none!important}
-      @media(max-width:760px){
-        .store-modal{align-items:end;padding:0}
-        .store-modal .modal-card{width:100%;max-height:calc(100dvh - 88px);padding:18px 18px calc(18px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;overscroll-behavior:contain}
-        .store-modal .modal-head{margin-bottom:12px}
-        .store-modal .modal-head h2{font-size:27px}
-        .store-modal .row-card{min-height:54px;padding:11px 13px}
-        .store-modal .cart-total{padding:14px 0;margin-top:8px}
-        .store-modal .btn-block{min-height:52px}
-        .cart-item{padding:10px 0}
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
   function markFeeRows(){
     ['cart-delivery-fee','checkout-delivery-fee'].forEach(id=>{
       const value=byId(id);if(!value)return;
@@ -40,7 +19,7 @@
     if(!type||!form||!addressField)return false;
     if(form.dataset.fsPublicOrderAudit==='true')return true;
     form.dataset.fsPublicOrderAudit='true';
-    installStyles();markFeeRows();
+    markFeeRows();
 
     const submit=byId('submit-order-btn');
     if(submit)submit.textContent='Revisar e enviar pedido';

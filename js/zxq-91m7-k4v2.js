@@ -5,8 +5,8 @@
   const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(value)||0)/100);
   const dateTime=value=>value?new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
   const dateOnly=value=>value?new Date(value).toLocaleDateString('pt-BR'):'—';
-  const statusClass=status=>['ativa','ativo','paga','paid','pago','processado'].includes(String(status))?'ok':['pendente','em_analise','aguardando','waiting'].includes(String(status))?'warn':['erro','falhou','recusado','vencida','cancelada','bloqueado','chargeback','estornado'].includes(String(status))?'danger':'info';
-  const statusLabel=value=>({ativa:'Ativa',ativo:'Ativo',pendente:'Pendente',em_analise:'Em análise',vencida:'Vencida',cancelada:'Cancelada',falhou:'Falhou',paga:'Paga',paid:'Paga',pago:'Pago',aguardando:'Aguardando',waiting:'Aguardando',recusado:'Recusado',bloqueado:'Bloqueado',erro:'Erro',chargeback:'Chargeback',estornado:'Estornado',nao_iniciado:'Não iniciado'}[value]||String(value||'—').replaceAll('_',' '));
+  const statusClass=status=>['ativa','ativo','paga','paid','pago','approved','autorizado','processado'].includes(String(status))?'ok':['pendente','em_analise','aguardando','waiting'].includes(String(status))?'warn':['erro','falhou','recusado','vencida','cancelada','bloqueado','chargeback','estornado'].includes(String(status))?'danger':'info';
+  const statusLabel=value=>({ativa:'Ativa',ativo:'Ativo',pendente:'Pendente',em_analise:'Em análise',vencida:'Vencida',cancelada:'Cancelada',falhou:'Falhou',paga:'Paga',paid:'Paga',pago:'Pago',approved:'Autorizado',autorizado:'Autorizado',aguardando:'Aguardando',waiting:'Aguardando',recusado:'Recusado',bloqueado:'Bloqueado',erro:'Erro',chargeback:'Chargeback',estornado:'Estornado',nao_iniciado:'Não iniciado'}[value]||String(value||'—').replaceAll('_',' '));
   let db=null;
   let session=null;
   let data={resumo:{},planos:[],clientes:[],cobrancas_pix:[],cobrancas_cartao:[],cobrancas_pedidos:[],eventos_pagamento:[],auditoria:[]};
@@ -112,7 +112,7 @@
       const label=item.tipo==='assinatura_pix'?'PIX assinatura':item.tipo==='assinatura_cartao'?'Cartão assinatura':'Cartão pedido';
       return `<article class="admin-list-item">
         <div class="admin-list-row"><div class="admin-list-main"><strong>${esc(item.estabelecimento||item.email||label)}</strong><small>${esc(label)} • ${esc(item.plano||'')} • ${esc(dateTime(paymentDate(item)))}</small></div><div class="admin-list-actions"><strong>${money(value)}</strong><span class="admin-pill ${statusClass(status)}">${esc(statusLabel(status))}</span></div></div>
-        <div class="admin-kv"><div><small>ID</small><strong class="admin-code">${esc(d.id||'—')}</strong></div><div><small>Charge Efí</small><strong class="admin-code">${esc(d.efi_charge_id||item.pedido?.efi_charge_id||'—')}</strong></div><div><small>Pedido</small><strong>${esc(d.pedido_id||item.pedido?.id||'—')}</strong></div><div><small>Pago em</small><strong>${esc(dateTime(d.pago_em||item.pedido?.pagamento_confirmado_em))}</strong></div></div>
+        <div class="admin-kv"><div><small>ID</small><strong class="admin-code">${esc(d.id||'—')}</strong></div><div><small>Charge Efí</small><strong class="admin-code">${esc(d.efi_charge_id||item.pedido?.efi_charge_id||'—')}</strong></div><div><small>Pedido</small><strong>${esc(d.pedido_id||item.pedido?.id||'—')}</strong></div><div><small>Confirmação em</small><strong>${esc(dateTime(d.pago_em||item.pedido?.pagamento_confirmado_em||item.pedido?.pagamento_autorizado_em||d.updated_at))}</strong></div></div>
       </article>`;
     }).join(''):'<div class="admin-empty">Nenhuma cobrança encontrada.</div>';
   }

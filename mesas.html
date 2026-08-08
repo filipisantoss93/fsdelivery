@@ -10,11 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app-polish.css">
-  <style>
-    .tables-shell{margin-left:var(--sidebar);min-height:100vh}.tables-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.table-admin-card{padding:16px}.table-admin-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.table-admin-head h2{margin:0;font-size:18px}.table-admin-head small{color:var(--muted)}.qr-plate{width:100%;max-width:360px;margin:auto;padding:12px;border:2px solid var(--primary);border-radius:20px;background:#fff;color:#17110d;box-shadow:0 12px 30px rgba(0,0,0,.22)}.qr-table-title{width:max-content;max-width:90%;margin:-13px auto 10px;padding:9px 22px;border:2px solid var(--primary);border-radius:14px;background:#fff;font-size:24px;font-weight:900}.qr-instruction{text-align:center;font-size:14px;font-weight:900;letter-spacing:.03em;margin:8px 0 10px}.qr-box{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:1;border:3px solid #17110d;border-radius:14px;overflow:hidden;background:#fff}.qr-code{width:100%;height:100%;display:grid;place-items:center}.qr-code canvas,.qr-code img{width:100%!important;height:100%!important;image-rendering:pixelated}.qr-error{padding:20px;text-align:center;color:#b42318;font-weight:800}.qr-bell{position:absolute;display:grid;place-items:center;width:17%;aspect-ratio:1;border:3px solid var(--primary);border-radius:50%;background:#fff;color:var(--primary);pointer-events:none}.qr-bell svg{width:66%;height:66%;stroke:#17110d;fill:var(--primary);stroke-width:1.8}.qr-brand{text-align:center;margin-top:10px;font-size:20px;font-weight:900;font-style:italic}.qr-brand span{color:var(--primary)}.qr-tagline{text-align:center;color:#4d4036;font-size:10px;letter-spacing:.08em}.qr-wave{height:12px;margin:10px -12px -12px;border-radius:0 0 17px 17px;background:linear-gradient(135deg,var(--primary),var(--primary-2))}.table-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.table-actions .btn{flex:1;min-width:95px}.table-form{display:grid;grid-template-columns:100px 1fr auto;gap:10px;align-items:end}.table-form .field{min-width:0}.qr-empty{grid-column:1/-1}.print-only{display:none}@media(max-width:1050px){.tables-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.tables-shell{margin-left:0}.sidebar{display:none}.tables-grid{grid-template-columns:1fr}.table-form{grid-template-columns:1fr}.content{padding:20px}}@media print{body{background:#fff}.sidebar,.topbar,.page-head,.table-actions,.table-form{display:none!important}.tables-shell{margin:0}.content{padding:0}.tables-grid{grid-template-columns:repeat(2,1fr);gap:12mm}.table-admin-card{border:0;background:#fff;padding:0;break-inside:avoid}.table-admin-head{display:none}.qr-plate{box-shadow:none;max-width:none}.print-hidden{display:none!important}}
-  </style>
+  <link rel="stylesheet" href="css/mesas.css">
 </head>
-<body class="app-body">
+<body class="app-body tables-admin-body">
   <aside class="sidebar">
     <a class="brand" href="index.html"><span class="brand-mark">FS</span><span>Delivery</span></a>
     <nav class="nav">
@@ -40,7 +38,7 @@
       <section class="tables-grid" id="tables-grid"><div class="empty-state qr-empty">Carregando mesas...</div></section>
     </div>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="js/vendor/supabase-2.112.2.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="js/supabase.js"></script>
   <script src="js/mesas.js"></script>

@@ -75,6 +75,10 @@
 ## 8. Confirmação de pedido on-line
 
 - Confirmar que pedido público não entra automaticamente na cozinha.
+- Em cartão on-line, confirmar `approved → autorizado` e `paid/settled → pago`.
+- Confirmar que `autorizado` permite ao estabelecimento aceitar o pedido sem marcar a cobrança como liquidada.
+- Confirmar que webhooks atrasados `new` ou `waiting` não regridem `autorizado` ou `pago`.
+- Confirmar que eventos de homologação não alteram cobranças de produção, e vice-versa.
 - Aceitar pedido e validar transição para `confirmado`.
 - Rejeitar outro pedido e validar motivo/status.
 - Confirmar bloqueio de cobrança antes da aceitação.
@@ -126,7 +130,7 @@ O módulo pode ser considerado homologado quando todos os fluxos abaixo funciona
 - Mesa: mesa e itens, sem endereço.
 - Retirada: cliente e pagamento, sem mesa/endereço.
 - Entrega: cliente, endereço, pagamento e taxa, sem mesa.
-- On-line: sempre aguarda confirmação do restaurante.
+- On-line: sempre aguarda confirmação do restaurante; cartão exige antes autorização da operadora.
 - Interno: entra confirmado conforme o fluxo operacional.
 
 Registrar qualquer falha com página, modalidade, pedido, horário, captura de tela e mensagem do console.
