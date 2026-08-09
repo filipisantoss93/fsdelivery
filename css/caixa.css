@@ -1,0 +1,7 @@
+#cash-session-summary{margin-bottom:18px}
+.cash-session-breakdown{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:12px}
+.cash-session-breakdown span{padding:6px 9px;border-radius:999px;background:var(--surface-2);font-weight:700}
+.cash-alert{margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:11px;font-weight:650}
+.cash-alert.success{border-color:rgba(37,138,70,.35);background:#eef9f1;color:#174d28}
+.cash-alert.warning{border-color:#e9c785;background:#fff8e8;color:#72520c}
+@media(max-width:760px){.cash-session-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.cash-session-breakdown span{text-align:center}}

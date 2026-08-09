@@ -17,7 +17,7 @@ async function init(){
 async function loadData(){
   const[tablesResult,ordersResult,paymentsResult]=await Promise.all([
     db.from('mesas').select('*').eq('estabelecimento_id',store.id).eq('ativo',true).order('numero'),
-    db.from('pedidos').select('id,codigo,mesa_id,status,total,created_at,clientes(nome,telefone),itens_pedido(*)').eq('estabelecimento_id',store.id).eq('tipo','mesa').in('status',['aguardando_aprovacao','novo','confirmado','preparo','pronto','servido','saiu_entrega']).order('created_at',{ascending:false}),
+    db.from('pedidos').select('id,codigo,mesa_id,status,total,pagamento_status,created_at,clientes(nome,telefone),itens_pedido(*)').eq('estabelecimento_id',store.id).eq('tipo','mesa').in('status',['aguardando_aprovacao','novo','confirmado','preparo','pronto','servido','saiu_entrega']).order('created_at',{ascending:false}),
     db.from('pagamentos').select('pedido_id,valor').eq('estabelecimento_id',store.id)
   ]);
   const error=tablesResult.error||ordersResult.error||paymentsResult.error;
@@ -28,8 +28,8 @@ async function loadData(){
   render();
 }
 
-function paid(orderId){return payments.filter(item=>String(item.pedido_id)===String(orderId)).reduce((sum,item)=>sum+Number(item.valor||0),0)}
-function balance(order){return Math.max(Number(order.total||0)-paid(order.id),0)}
+function paid(order){const manual=payments.filter(item=>String(item.pedido_id)===String(order.id)).reduce((sum,item)=>sum+Number(item.valor||0),0);return Math.max(manual,['autorizado','pago'].includes(order.pagamento_status)?Number(order.total||0):0)}
+function balance(order){return Math.max(Number(order.total||0)-paid(order),0)}
 
 function render(){
   const activeByTable=new Map();

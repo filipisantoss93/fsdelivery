@@ -47,8 +47,8 @@
     host.querySelectorAll('[data-fs-filter]').forEach(button=>button.onclick=()=>{state.filter=button.dataset.fsFilter;renderFilters();render()});
   }
 
-  function paid(orderId){return state.payments.filter(item=>String(item.pedido_id)===String(orderId)).reduce((sum,item)=>sum+Number(item.valor||0),0)}
-  function balance(order){return Math.max(Number(order.total||0)-paid(order.id),0)}
+  function paid(order){const manual=state.payments.filter(item=>String(item.pedido_id)===String(order.id)).reduce((sum,item)=>sum+Number(item.valor||0),0);return Math.max(manual,['autorizado','pago'].includes(order.pagamento_status)?Number(order.total||0):0)}
+  function balance(order){return Math.max(Number(order.total||0)-paid(order),0)}
   function tableName(order){return order.mesas?.nome||order.mesas?.identificacao||order.mesas?.numero?order.mesas?.nome||`Mesa ${order.mesas?.numero??order.mesas?.identificacao??''}`:null}
   function address(order){
     if(order.tipo!=='entrega')return '';
@@ -76,7 +76,7 @@
     if(status==='confirmado')return{status:'preparo',label:'Iniciar preparo'};
     if(status==='preparo')return{status:'pronto',label:'Marcar pronto'};
     if(status==='pronto'&&['mesa','local'].includes(type))return{status:'servido',label:'Marcar servido'};
-    if(status==='pronto'&&type==='retirada')return{status:'finalizado',label:'Confirmar retirada'};
+    if(status==='pronto'&&type==='retirada'&&balance(order)<=0)return{status:'finalizado',label:'Confirmar retirada'};
     if(status==='pronto'&&type==='entrega')return{status:'saiu_entrega',label:'Iniciar entrega'};
     if(status==='saiu_entrega'&&type==='entrega')return{status:'finalizado',label:'Confirmar entrega'};
     return null;
@@ -90,7 +90,8 @@
   function card(order){
     const action=nextAction(order),saldo=balance(order),itemCount=(order.itens_pedido||[]).reduce((sum,item)=>sum+Number(item.quantidade||0),0);
     const payment=saldo>0?`<small class="is-pending">${money(saldo)} pendente</small>`:'<small class="is-paid">Pago</small>';
-    return `<article class="fs-order-card status-${esc(order.status)}" data-fs-order="${esc(order.id)}"><div class="fs-order-card-top"><div><div class="fs-order-number"><strong>#${esc(order.codigo||order.numero||order.id)}</strong><span class="status ${FSOrderStatus.css(order.status)}">${esc(FSOrderStatus.label(order.status,order.tipo))}</span></div><span class="fs-order-reference">${esc(reference(order))}</span><small>${esc(subtitle(order))}</small></div><div class="fs-order-total"><b>${money(order.total)}</b>${payment}</div></div><div class="fs-order-card-middle"><div class="fs-order-meta"><span>${esc(FSOrderStatus.typeLabel(order.tipo))}</span><span>${new Date(order.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span><span>${elapsed(order.created_at)}</span><span>${itemCount} ${itemCount===1?'item':'itens'}</span></div></div><div class="fs-order-items">${(order.itens_pedido||[]).slice(0,4).map(item=>`<span class="fs-order-item-chip">${Number(item.quantidade)}x ${esc(item.nome_produto)}</span>`).join('')}${(order.itens_pedido||[]).length>4?`<span class="fs-order-item-chip">+${order.itens_pedido.length-4}</span>`:''}</div>${order.status==='servido'&&saldo>0?`<div class="fs-order-payment-warning">Mesa servida e ainda ocupada. Saldo pendente: ${money(saldo)}.</div>`:''}<div class="fs-order-card-foot"><button class="btn btn-secondary" type="button" data-fs-detail="${esc(order.id)}">Ver detalhes</button><div class="fs-order-actions">${order.status==='servido'&&saldo>0?'<button class="btn btn-secondary" type="button" data-fs-cash>Abrir caixa</button>':''}${action?`<button class="btn btn-primary" type="button" data-fs-action="${esc(order.id)}">${esc(action.label)}</button>`:''}</div></div></article>`;
+    const needsCash=saldo>0&&(order.status==='servido'||(order.status==='pronto'&&order.tipo==='retirada'));
+    return `<article class="fs-order-card status-${esc(order.status)}" data-fs-order="${esc(order.id)}"><div class="fs-order-card-top"><div><div class="fs-order-number"><strong>#${esc(order.codigo||order.numero||order.id)}</strong><span class="status ${FSOrderStatus.css(order.status)}">${esc(FSOrderStatus.label(order.status,order.tipo))}</span></div><span class="fs-order-reference">${esc(reference(order))}</span><small>${esc(subtitle(order))}</small></div><div class="fs-order-total"><b>${money(order.total)}</b>${payment}</div></div><div class="fs-order-card-middle"><div class="fs-order-meta"><span>${esc(FSOrderStatus.typeLabel(order.tipo))}</span><span>${new Date(order.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span><span>${elapsed(order.created_at)}</span><span>${itemCount} ${itemCount===1?'item':'itens'}</span></div></div><div class="fs-order-items">${(order.itens_pedido||[]).slice(0,4).map(item=>`<span class="fs-order-item-chip">${Number(item.quantidade)}x ${esc(item.nome_produto)}</span>`).join('')}${(order.itens_pedido||[]).length>4?`<span class="fs-order-item-chip">+${order.itens_pedido.length-4}</span>`:''}</div>${order.status==='servido'&&saldo>0?`<div class="fs-order-payment-warning">Mesa servida e ainda ocupada. Saldo pendente: ${money(saldo)}.</div>`:''}<div class="fs-order-card-foot"><button class="btn btn-secondary" type="button" data-fs-detail="${esc(order.id)}">Ver detalhes</button><div class="fs-order-actions">${needsCash?'<button class="btn btn-secondary" type="button" data-fs-cash>Abrir caixa</button>':''}${action?`<button class="btn btn-primary" type="button" data-fs-action="${esc(order.id)}">${esc(action.label)}</button>`:''}</div></div></article>`;
   }
 
   function render(){
@@ -121,7 +122,7 @@
     el('fs-order-modal-title').textContent=`Pedido #${order.codigo||order.numero||order.id}`;
     el('fs-order-modal-detail').innerHTML=`<div class="fs-order-detail-grid"><div class="row-card"><div><small>Atendimento</small><b>${esc(FSOrderStatus.typeLabel(order.tipo))}</b></div></div><div class="row-card"><div><small>Status</small><b>${esc(FSOrderStatus.label(order.status,order.tipo))}</b></div></div><div class="row-card"><div><small>Cliente ou mesa</small><b>${esc(reference(order))}</b></div></div><div class="row-card"><div><small>Pagamento</small><b>${saldo>0?money(saldo)+' pendente':'Pago'}</b></div></div></div>${order.tipo==='entrega'?`<div class="row-card"><div><small>Endereço</small><b>${esc(address(order))}</b></div></div>`:''}<div class="product-list">${(order.itens_pedido||[]).map(item=>`<div class="row-card"><div><b>${Number(item.quantidade)}x ${esc(item.nome_produto)}</b><small>${esc(item.observacoes||'Sem observações')}</small></div><b>${money(Number(item.total)||Number(item.valor_unitario)*Number(item.quantidade))}</b></div>`).join('')}</div><div class="cart-total"><span>Total</span><strong>${money(order.total)}</strong></div>${order.status==='servido'&&saldo>0?`<div class="fs-order-payment-warning">A mesa permanece ocupada até o pagamento integral de ${money(saldo)}.</div>`:''}<h3>Linha do tempo</h3><div class="fs-order-timeline">${timeline(order)}</div>`;
     const actionButton=el('fs-order-action');actionButton.hidden=!action;if(action)actionButton.textContent=action.label;
-    el('fs-order-cash').hidden=!(order.status==='servido'&&saldo>0);
+    el('fs-order-cash').hidden=!(saldo>0&&(order.status==='servido'||(order.status==='pronto'&&order.tipo==='retirada')));
     el('fs-order-cancel').hidden=FSOrderStatus.isFinal(order.status)||order.status==='servido';
     modal.classList.add('open');document.body.style.overflow='hidden';
     document.dispatchEvent(new CustomEvent('fs:orders:modal-opened'));
@@ -144,7 +145,7 @@
     if(state.loading||!state.store)return;state.loading=true;
     try{
       const[ordersResult,paymentsResult,eventsResult]=await Promise.all([
-        db.from('pedidos').select('id,numero,codigo,status,tipo,total,forma_pagamento,endereco_entrega,observacoes,created_at,mesa_id,clientes(nome,telefone),mesas(numero,identificacao,nome),itens_pedido(quantidade,nome_produto,observacoes,total,valor_unitario)').eq('estabelecimento_id',state.store.id).order('created_at',{ascending:false}).limit(300),
+        db.from('pedidos').select('id,numero,codigo,status,tipo,total,forma_pagamento,pagamento_status,endereco_entrega,observacoes,created_at,mesa_id,clientes(nome,telefone),mesas(numero,identificacao,nome),itens_pedido(quantidade,nome_produto,observacoes,total,valor_unitario)').eq('estabelecimento_id',state.store.id).order('created_at',{ascending:false}).limit(300),
         db.from('pagamentos').select('pedido_id,valor,forma_pagamento,created_at').eq('estabelecimento_id',state.store.id),
         db.from('pedido_eventos').select('pedido_id,status_anterior,status_novo,origem,created_at').eq('estabelecimento_id',state.store.id).order('created_at',{ascending:true}).limit(1500)
       ]);
