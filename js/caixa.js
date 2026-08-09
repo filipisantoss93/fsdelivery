@@ -233,7 +233,12 @@ async function pay(event){
   const balance=selectedOrders.reduce((sum,order)=>sum+balanceForOrder(order),0);
   if(!Number.isFinite(amount)||amount<=0)return alert('Informe um valor válido.');
   if(amount>balance)return alert(`O valor excede o saldo restante de ${money(balance)}.`);
-  const submit=form.querySelector('button[type="submit"]'),previousText=submit.textContent;
+  const submit=form.querySelector('button[type="submit"]');
+  if(!submit){
+    console.error('Botão de confirmação do pagamento não encontrado.');
+    return alert('Não foi possível iniciar a cobrança. Atualize a página e tente novamente.');
+  }
+  const previousText=submit.textContent;
   submit.disabled=true;submit.textContent='Registrando...';
   const payload={
     estabelecimento_id:store.id,
@@ -244,10 +249,24 @@ async function pay(event){
     referencia:String(data.get('reference')||'').trim()||null,
     observacoes:String(data.get('notes')||'').trim()||null
   };
-  const{data:result,error}=await db.rpc('registrar_pagamento_caixa',{payload});
-  submit.disabled=false;submit.textContent=previousText;
-  if(error)return alert(error.message);
-  closeModals();form.reset();selected=null;selectedOrders=[];await refresh();
+  let result;
+  try{
+    const response=await db.rpc('registrar_pagamento_caixa',{payload});
+    if(response.error)throw response.error;
+    result=response.data;
+  }catch(error){
+    console.error('Falha ao registrar pagamento no caixa:',error);
+    return alert(error?.message||'Não foi possível confirmar o pagamento. Tente novamente.');
+  }finally{
+    submit.disabled=false;submit.textContent=previousText;
+  }
+  closeModals();form.reset();selected=null;selectedOrders=[];
+  try{
+    await refresh();
+  }catch(error){
+    console.error('Pagamento registrado, mas o caixa não foi atualizado:',error);
+    return alert('Pagamento registrado com sucesso. Atualize a página para visualizar o atendimento.');
+  }
   if(result?.finalizados>0)return alert(`Pagamento registrado. ${result.finalizados} atendimento(s) finalizado(s).`);
   if(result?.quitado)return alert('Pagamento integral registrado. O atendimento seguirá aberto até a conclusão operacional.');
   alert(`Pagamento registrado. Saldo restante: ${money(result?.saldo)}.`);

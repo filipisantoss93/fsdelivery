@@ -20,8 +20,10 @@ try{await access(new URL('js/caixa-sessao.js',root));check(false,'Controlador le
 check(html.includes('id="cash-session-toggle"'),'Caixa deve oferecer abertura e fechamento da sessão.');
 check(html.includes('id="cash-session-summary"'),'Caixa deve exibir resumo financeiro da sessão.');
 check(html.includes('id="finalize-order"'),'Caixa deve oferecer finalização explícita de atendimentos quitados.');
+check(/<button[^>]*type="submit"[^>]*>Confirmar pagamento<\/button>/.test(html),'Confirmação do pagamento deve possuir botão submit explícito.');
 check(cash.includes("ONLINE_PAID=new Set(['autorizado','pago'])"),'Caixa deve reconhecer pagamento on-line autorizado ou pago.');
 check(cash.includes('pedido_ids:selectedOrders.map'),'Conta de mesa deve enviar todos os pedidos selecionados.');
+check(cash.includes("if(!submit){"),'Cobrança deve tratar a ausência do botão de envio sem interromper silenciosamente o fluxo.');
 check(cash.includes("db.rpc('obter_resumo_caixa'"),'Resumo do caixa deve vir do contrato transacional do banco.');
 check(cash.includes('cashSummary.valor_esperado'),'Fechamento deve usar somente o dinheiro esperado na gaveta.');
 check(counter.includes("db.rpc('registrar_venda_rapida_caixa'"),'Venda rápida deve usar RPC atômica própria.');
