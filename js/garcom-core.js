@@ -116,6 +116,7 @@ async function loadData() {
 async function init() {
   try {
     if (!await resolveAccess()) return;
+    buildMobileNavigation();
     bindTabs();
     bindActions();
     await loadData();
@@ -127,6 +128,21 @@ async function init() {
     el('waiter-store-status').className = 'status cancelado';
     el('waiter-products').innerHTML = '<div class="empty-state">Não foi possível carregar a operação do garçom.</div>';
   }
+}
+
+function buildMobileNavigation() {
+  const mobile = el('waiter-mobile-nav');
+  const desktop = document.querySelector('.sidebar .nav');
+  if (!mobile || !desktop || mobile.children.length) return;
+  desktop.querySelectorAll('[data-waiter-page]').forEach(button => mobile.appendChild(button.cloneNode(true)));
+  const ordersButton = mobile.querySelector('[data-waiter-page="pedidos"]');
+  if (!ordersButton) return;
+  const badge = document.createElement('b');
+  badge.className = 'waiter-nav-badge';
+  badge.id = 'waiter-ready-nav-count';
+  badge.hidden = true;
+  badge.textContent = '0';
+  ordersButton.appendChild(badge);
 }
 
 function renderAll() {
@@ -192,6 +208,12 @@ function renderMetrics() {
   el('waiter-busy-count').textContent = busyTableIds.size;
   el('waiter-preparing-count').textContent = orders.filter(order => order.status === 'preparo').length;
   el('waiter-ready-count').textContent = orders.filter(order => order.status === 'pronto').length;
+  const readyNav = el('waiter-ready-nav-count');
+  if (readyNav) {
+    const ready = orders.filter(order => order.status === 'pronto').length;
+    readyNav.textContent = ready > 9 ? '9+' : String(ready);
+    readyNav.hidden = ready === 0;
+  }
 }
 
 function tableLabel(table) { return table.nome || `Mesa ${String(table.numero || '').padStart(2, '0')}`; }

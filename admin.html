@@ -19,8 +19,8 @@
       <button data-admin-page="financeiro">Financeiro</button>
     </nav>
     <div class="sidebar-footer">
-      <small style="color:var(--muted)">Acesso administrativo</small>
-      <a class="btn btn-secondary" style="width:100%;margin-top:12px" href="app.html">Voltar ao painel</a>
+      <small>Acesso administrativo</small>
+      <a class="btn btn-secondary btn-block" href="app.html">Voltar ao painel</a>
     </div>
   </aside>
 
@@ -42,7 +42,7 @@
           <div class="metric"><small>Faturamento total</small><strong id="admin-revenue">R$ 0,00</strong></div>
         </div>
         <div class="grid-2">
-          <div class="panel"><div class="panel-head"><div><h2>Estabelecimentos recentes</h2><p style="color:var(--muted);margin:5px 0 0">Últimos cadastros da plataforma.</p></div></div><div id="admin-recent-stores" class="order-list"></div></div>
+          <div class="panel"><div class="panel-head"><div><h2>Estabelecimentos recentes</h2><p>Últimos cadastros da plataforma.</p></div></div><div id="admin-recent-stores" class="order-list"></div></div>
           <div class="panel"><div class="panel-head"><h2>Resumo operacional</h2></div><div class="row-card"><span>Lojas abertas</span><b id="admin-open-stores">0</b></div><div class="row-card"><span>Produtos ativos</span><b id="admin-active-products">0</b></div><div class="row-card"><span>Clientes cadastrados</span><b id="admin-customers">0</b></div><div class="row-card"><span>Ticket médio</span><b id="admin-ticket">R$ 0,00</b></div></div>
         </div>
       </section>
@@ -50,7 +50,7 @@
       <section id="estabelecimentos" class="page">
         <div class="page-head"><div><h1>Estabelecimentos</h1><p>Consulte contas, planos e atividade da plataforma.</p></div></div>
         <div class="toolbar"><input class="search" id="admin-store-search" placeholder="Buscar por nome, slug, categoria ou telefone"><select class="search" id="admin-store-filter"><option value="">Todos</option><option value="aberta">Lojas abertas</option><option value="fechada">Lojas fechadas</option><option value="ativa">Assinatura ativa</option></select></div>
-        <div class="panel"><div style="overflow:auto"><table class="table"><thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Plano</th><th>Status</th><th>Cadastro</th></tr></thead><tbody id="admin-store-table"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div></div>
+        <div class="panel"><div class="table-scroll"><table class="table"><thead><tr><th>Estabelecimento</th><th>Categoria</th><th>Plano</th><th>Status</th><th>Cadastro</th></tr></thead><tbody id="admin-store-table"><tr><td colspan="5">Carregando...</td></tr></tbody></table></div></div>
       </section>
 
       <section id="financeiro" class="page">
@@ -61,7 +61,7 @@
           <div class="metric"><small>Em aberto</small><strong id="admin-finance-pending">R$ 0,00</strong></div>
           <div class="metric"><small>MRR contratado</small><strong id="admin-mrr">R$ 0,00</strong></div>
         </div>
-        <div class="panel"><div class="panel-head"><h2>Assinaturas</h2></div><div style="overflow:auto"><table class="table"><thead><tr><th>Estabelecimento</th><th>Status</th><th>Valor</th><th>Próxima cobrança</th></tr></thead><tbody id="admin-subscription-table"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div></div>
+        <div class="panel"><div class="panel-head"><h2>Assinaturas</h2></div><div class="table-scroll"><table class="table"><thead><tr><th>Estabelecimento</th><th>Status</th><th>Valor</th><th>Próxima cobrança</th></tr></thead><tbody id="admin-subscription-table"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div></div>
       </section>
     </div>
   </main>

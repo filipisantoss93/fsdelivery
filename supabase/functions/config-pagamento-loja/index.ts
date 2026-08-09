@@ -20,8 +20,8 @@ const normalizeEnvironment = (value: unknown) =>
   String(value || "homologacao").toLowerCase().startsWith("prod") ? "producao" : "homologacao";
 const accountIdentifier = (ambiente: string) => {
   const names = ambiente === "producao"
-    ? ["EFI_ACCOUNT_IDENTIFIER_PRODUCAO", "EFI_PAYEE_CODE_PRODUCAO", "EFI_ACCOUNT_IDENTIFIER", "EFI_PAYEE_CODE"]
-    : ["EFI_ACCOUNT_IDENTIFIER_HOMOLOGACAO", "EFI_PAYEE_CODE_HOMOLOGACAO", "EFI_ACCOUNT_IDENTIFIER", "EFI_PAYEE_CODE"];
+    ? ["EFI_ACCOUNT_IDENTIFIER_PRODUCAO", "EFI_PAYEE_CODE_PRODUCAO"]
+    : ["EFI_ACCOUNT_IDENTIFIER_HOMOLOGACAO", "EFI_PAYEE_CODE_HOMOLOGACAO"];
   for (const name of names) {
     const value = String(Deno.env.get(name) || "").trim();
     if (value) return value;

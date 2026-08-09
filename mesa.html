@@ -11,11 +11,11 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="auth-body">
-  <main style="min-height:100vh;display:grid;place-items:center;padding:24px">
-    <section class="panel" style="width:min(480px,100%);text-align:center">
-      <div class="brand" style="justify-content:center;margin-bottom:18px"><span class="brand-mark">FS</span><span>Delivery</span></div>
-      <h1 style="font-size:24px;margin:0 0 8px">Validando sua mesa</h1>
-      <p id="mesa-status" style="color:var(--muted);margin:0">Aguarde um instante...</p>
+  <main class="table-validation-shell">
+    <section class="panel table-validation-card">
+      <div class="brand table-validation-brand"><span class="brand-mark">FS</span><span>Delivery</span></div>
+      <h1 class="table-validation-title">Validando sua mesa</h1>
+      <p id="mesa-status" class="table-validation-status">Aguarde um instante...</p>
     </section>
   </main>
   <script src="js/vendor/supabase-2.112.2.js"></script>

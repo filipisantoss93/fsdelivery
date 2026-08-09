@@ -6,6 +6,7 @@
   const db=window.supabaseClient;
   const byId=id=>document.getElementById(id);
   const digits=value=>String(value||'').replace(/\D/g,'');
+  const normalizePhone=value=>window.FSCustomerOrderAccess?.normalizePhone?.(value)||digits(value);
   const params=new URLSearchParams(location.search);
   const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\bii\b/g,'2').replace(/\biii\b/g,'3').replace(/\biv\b/g,'4').replace(/\b(residencial|bairro|jardim|jd|conjunto|cj|loteamento|lot)\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
   let sending=false;
@@ -48,10 +49,10 @@
     try{
       if(!await available())throw new Error('A loja está fechada e não está recebendo pedidos.');
       if(typeof cart==='undefined'||!Array.isArray(cart)||!cart.length)throw new Error('Adicione ao menos um produto ao pedido.');
-      const formData=new FormData(form),orderType=typeof type==='function'?type():'delivery',name=String(formData.get('name')||'').trim(),phone=digits(formData.get('phone')),payment=String(formData.get('payment')||'').trim(),address=addressData(),f=fields();
+      const formData=new FormData(form),orderType=typeof type==='function'?type():'delivery',name=String(formData.get('name')||'').trim(),phone=normalizePhone(formData.get('phone')),payment=String(formData.get('payment')||'').trim(),address=addressData(),f=fields();
       selectedPayment=payment;
       if(name.length<2)return fail('Informe seu nome.',byId('customer-name'));
-      if(phone.length<10||phone.length>13)return fail('Informe um WhatsApp válido.',byId('customer-phone'));
+      if(phone.length<10||phone.length>11)return fail('Informe um WhatsApp válido.',byId('customer-phone'));
       if(orderType!=='mesa'&&!payment)return fail('Selecione a forma de pagamento.',byId('payment-method'));
       if(orderType==='delivery'){
         if(address.cep.length!==8)return fail('Informe um CEP válido.',f.cep);
@@ -77,7 +78,6 @@
       const paymentStatus=paymentResult?.cobranca?.pagamento_status||null;
       const proof={slug:String(payload.slug||''),telefone:phone,checkoutToken:checkout.token,codigo:String(orderCode),pagamento_status:paymentStatus};
       window.__fsLastPublicCheckout=proof;
-      document.dispatchEvent(new CustomEvent('fs:public-order-completed',{detail:proof}));
       sessionStorage.removeItem(checkout.key);
       if(typeof saveCustomer==='function')saveCustomer(formData);
       if(typeof close==='function')close();
@@ -90,6 +90,7 @@
       cart=[];if(typeof saveCart==='function')saveCart();
       try{if(typeof renderCart==='function')renderCart()}catch(uiError){console.warn('Pedido confirmado; falha ao atualizar o carrinho:',uiError)}
       if(typeof open==='function')open('success-modal');else byId('success-modal')?.classList.add('open');
+      document.dispatchEvent(new CustomEvent('fs:public-order-completed',{detail:proof}));
     }catch(error){
       console.error('Falha ao enviar pedido público:',error);
       const raw=error?.message||'Não foi possível enviar o pedido.';

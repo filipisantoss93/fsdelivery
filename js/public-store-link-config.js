@@ -83,7 +83,7 @@
     if(!formGrid)return;
     const field=document.createElement('div');
     field.className='field full';
-    field.innerHTML=`<label for="restaurant-slug">Endereço personalizado da loja</label><div class="copy-field"><span style="align-self:center;color:var(--muted);white-space:nowrap">/loja.html?loja=</span><input id="restaurant-slug" maxlength="60" autocomplete="off" placeholder="nome-da-loja" value="${escapeHtml(currentSlug)}"><button class="btn btn-secondary" id="save-restaurant-slug" type="button">Salvar endereço</button></div><small id="restaurant-slug-preview" style="display:block;margin-top:7px;color:var(--muted)"></small>`;
+    field.innerHTML=`<label for="restaurant-slug">Endereço personalizado da loja</label><div class="copy-field"><span class="store-url-prefix">/loja.html?loja=</span><input id="restaurant-slug" maxlength="60" autocomplete="off" placeholder="nome-da-loja" value="${escapeHtml(currentSlug)}"><button class="btn btn-secondary" id="save-restaurant-slug" type="button">Salvar endereço</button></div><small id="restaurant-slug-preview" class="store-url-preview"></small>`;
     nameInput.closest('.field')?.after(field);
     const input=document.getElementById('restaurant-slug');
     input.addEventListener('input',()=>{

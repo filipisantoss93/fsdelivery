@@ -30,7 +30,7 @@ const requireText = (value: unknown, label: string) => {
   return text;
 };
 const normalizeEnvironment = (value: unknown) =>
-  String(value || "production").toLowerCase().startsWith("prod") ? "producao" : "homologacao";
+  String(value || "homologacao").toLowerCase().startsWith("prod") ? "producao" : "homologacao";
 
 type BillingConfig = {
   ambiente: "homologacao" | "producao";
@@ -45,15 +45,15 @@ function billingConfig(): BillingConfig {
     return {
       ambiente,
       baseUrl: "https://cobrancas.api.efipay.com.br",
-      clientId: envFirst(["EFI_CLIENT_ID_PRODUCAO", "EFI_CLIENT_ID"]),
-      clientSecret: envFirst(["EFI_CLIENT_SECRET_PRODUCAO", "EFI_CLIENT_SECRET"]),
+      clientId: envFirst(["EFI_CLIENT_ID_PRODUCAO"]),
+      clientSecret: envFirst(["EFI_CLIENT_SECRET_PRODUCAO"]),
     };
   }
   return {
     ambiente,
     baseUrl: "https://cobrancas-h.api.efipay.com.br",
-    clientId: envFirst(["EFI_CLIENT_ID_HOMOLOGACAO", "EFI_CLIENT_ID"]),
-    clientSecret: envFirst(["EFI_CLIENT_SECRET_HOMOLOGACAO", "EFI_CLIENT_SECRET"]),
+    clientId: envFirst(["EFI_CLIENT_ID_HOMOLOGACAO"]),
+    clientSecret: envFirst(["EFI_CLIENT_SECRET_HOMOLOGACAO"]),
   };
 }
 

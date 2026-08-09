@@ -5,9 +5,16 @@
 
   const db=window.supabaseClient;
   if(!db)return;
-  const digits=value=>String(value||'').replace(/\D/g,'');
+  const rawDigits=value=>String(value||'').replace(/\D/g,'');
+  const normalizePhone=value=>{
+    if(window.FSCustomerOrderAccess?.normalizePhone)return window.FSCustomerOrderAccess.normalizePhone(value);
+    const raw=rawDigits(value);
+    if((raw.length===12||raw.length===13)&&raw.startsWith('55'))return raw.slice(2);
+    if((raw.length===11||raw.length===12)&&raw.startsWith('0'))return raw.slice(1);
+    return raw;
+  };
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  const page=location.pathname.split('/').pop().toLowerCase();
+  const page=location.pathname.split('/').pop().toLowerCase().replace(/\.html$/i,'');
   const initialized=new Set();
 
   function createAddressSelector(anchor,id,label='Endereços salvos'){
@@ -44,7 +51,7 @@
     select.onchange=()=>onSelect(items.find(item=>String(item.id)===select.value)||null);
   }
 
-  function publicTokenKey(slug,phone){return `fsdelivery_customer_token_${slug}_${digits(phone)}`}
+  function publicTokenKey(slug,phone){return window.FSCustomerOrderAccess?.keys?.token?.(slug,phone)||`fsdelivery_customer_token_${slug}_${normalizePhone(phone)}`}
 
   async function setupPublicStore(){
     if(initialized.has('store'))return true;
@@ -58,7 +65,7 @@
     let requestId=0;
 
     async function loadAddresses(){
-      const normalized=digits(phone.value);
+      const normalized=normalizePhone(phone.value);
       const currentRequest=++requestId;
       if(normalized.length<10){selector.hidden=true;return}
       const token=localStorage.getItem(publicTokenKey(slug,normalized));
@@ -71,7 +78,7 @@
 
     phone.addEventListener('blur',loadAddresses);
     phone.addEventListener('change',loadAddresses);
-    if(digits(phone.value).length>=10)loadAddresses();
+    if(normalizePhone(phone.value).length>=10)loadAddresses();
     return true;
   }
 
@@ -84,7 +91,7 @@
   }
 
   async function findInternalAddresses(storeId,phoneValue){
-    const normalized=digits(phoneValue);
+    const normalized=normalizePhone(phoneValue);
     if(!storeId||normalized.length<10)return [];
     const {data:clients,error}=await db.from('clientes').select('id').eq('estabelecimento_id',storeId).eq('telefone_normalizado',normalized).limit(1);
     if(error||!clients?.length)return [];
@@ -149,17 +156,17 @@
   }
 
   function initializePage(){
-    if(page==='loja.html')setupPublicStore();
-    if(page==='balcao.html')setupCounter();
-    if(page==='cardapio.html')setupWaiter();
-    if(page==='app.html'&&document.getElementById('clientes')?.classList.contains('active'))setupCustomersPage();
+    if(page==='loja')setupPublicStore();
+    if(page==='balcao')setupCounter();
+    if(page==='cardapio')setupWaiter();
+    if(page==='app'&&document.getElementById('clientes')?.classList.contains('active'))setupCustomersPage();
   }
 
   document.addEventListener('click',event=>{
-    if(page==='app.html'&&event.target.closest?.('[data-page="clientes"]'))requestAnimationFrame(setupCustomersPage);
+    if(page==='app'&&event.target.closest?.('[data-page="clientes"]'))requestAnimationFrame(setupCustomersPage);
   });
   document.addEventListener('fs:page:changed',event=>{
-    if(page==='app.html'&&event.detail?.page==='clientes')setupCustomersPage();
+    if(page==='app'&&event.detail?.page==='clientes')setupCustomersPage();
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initializePage,{once:true});

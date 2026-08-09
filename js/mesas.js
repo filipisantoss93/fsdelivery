@@ -39,7 +39,7 @@ function render(){
         <label class="switch" title="Ativar ou desativar mesa"><input type="checkbox" data-toggle="${table.id}" ${table.ativo?'checked':''}><span></span></label>
       </div>
       <div class="qr-plate" id="plate-${table.id}">
-        <div class="qr-table-title">MESA <span style="color:var(--primary)">${String(table.numero).padStart(2,'0')}</span></div>
+        <div class="qr-table-title">MESA <span class="qr-table-number">${String(table.numero).padStart(2,'0')}</span></div>
         <div class="qr-instruction">ESCANEIE PARA PEDIR</div>
         <div class="qr-box"><div class="qr-code" id="qr-${table.id}"></div><div class="qr-bell">${bellSvg}</div></div>
         <div class="qr-brand"><span>FS</span> DELIVERY</div>

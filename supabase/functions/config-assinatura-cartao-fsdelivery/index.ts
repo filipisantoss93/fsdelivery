@@ -35,10 +35,10 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await client.auth.getUser();
     if (error || !data.user) return json({ erro: "Não autenticado" }, 401);
 
-    const production = String(Deno.env.get("EFI_ENV") || "production").toLowerCase().startsWith("prod");
+    const production = String(Deno.env.get("EFI_ENV") || "homologacao").toLowerCase().startsWith("prod");
     const payee = production
-      ? first(["EFI_ACCOUNT_IDENTIFIER_PRODUCAO", "EFI_PAYEE_CODE_PRODUCAO", "EFI_ACCOUNT_IDENTIFIER", "EFI_PAYEE_CODE"])
-      : first(["EFI_ACCOUNT_IDENTIFIER_HOMOLOGACAO", "EFI_PAYEE_CODE_HOMOLOGACAO", "EFI_ACCOUNT_IDENTIFIER", "EFI_PAYEE_CODE"]);
+      ? first(["EFI_ACCOUNT_IDENTIFIER_PRODUCAO", "EFI_PAYEE_CODE_PRODUCAO"])
+      : first(["EFI_ACCOUNT_IDENTIFIER_HOMOLOGACAO", "EFI_PAYEE_CODE_HOMOLOGACAO"]);
     if (!payee) return json({ erro: "Identificador da conta Efí não configurado" }, 503);
     return json({ payee_code: payee, environment: production ? "production" : "sandbox" });
   } catch (error) {

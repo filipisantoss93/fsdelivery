@@ -1,5 +1,5 @@
-const CACHE='fsdelivery-operational-v4';
-const CORE=['/css/style.css','/css/app-polish.css','/css/operational.css','/css/app-orders-operational.css','/js/pedido-status.js','/js/app-orders-operational.js','/icons/icon-192x192.png'];
+const CACHE='fsdelivery-operational-v5';
+const CORE=['/css/style.css','/css/app-polish.css','/css/operational.css','/css/orders.css','/js/customer-order-access.js','/js/pedido-status.js','/js/app-orders-operational.js','/js/cliente.js','/icons/icon-192x192.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))));self.clients.claim()});
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy)).catch(()=>{});return response}).catch(()=>caches.match(event.request)))});

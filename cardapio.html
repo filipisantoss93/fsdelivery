@@ -111,21 +111,7 @@
     </div>
   </main>
 
-  <nav class="mobile-nav" aria-label="Navegação do garçom">
-    <button class="active" data-waiter-page="mesas" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span>Mesas</span>
-    </button>
-    <button data-waiter-page="cardapio" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M12 16v4M10 18h4"/></svg>
-      <span>Novo pedido</span>
-    </button>
-    <button data-waiter-page="pedidos" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10l2 3v14H5V7z"/><path d="M9 11h6M9 15h6"/></svg>
-      <span>Pedidos</span>
-      <b class="waiter-nav-badge" id="waiter-ready-nav-count" hidden>0</b>
-    </button>
-  </nav>
+  <nav class="mobile-nav" id="waiter-mobile-nav" aria-label="Navegação do garçom"></nav>
 
   <button id="waiter-cart-summary" class="mobile-cart btn btn-primary" type="button" hidden>
     <span><b id="waiter-cart-count">0 itens</b><small id="waiter-cart-summary-total">R$ 0,00</small></span>

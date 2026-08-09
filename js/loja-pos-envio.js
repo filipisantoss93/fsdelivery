@@ -5,70 +5,251 @@
   window.__fsLojaPosEnvio=true;
 
   const db=window.supabaseClient;
+  const Access=window.FSCustomerOrderAccess;
+  if(!db||!Access){console.error('Rastreamento de pedidos indisponível: dependência não carregada.');return}
+
   const byId=id=>document.getElementById(id);
   const params=new URLSearchParams(location.search);
   const slug=String(params.get('loja')||'').trim();
   const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
-  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
-  const normalizePhone=value=>String(value||'').replace(/\D/g,'');
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const extractCode=text=>String(text||'').match(/Pedido\s+#([^\s.,]+)/i)?.[1]||'';
-  const tokenKey=phone=>`fsdelivery_customer_token_${slug}_${normalizePhone(phone)}`;
-  const phoneKey=`fsdelivery_customer_phone_${slug}`;
-  const lastOrderKey=`fsdelivery_last_order_${slug||'public'}`;
-  let lastPhone='',processedCode='',cartSnapshot=[],checkoutSnapshot={},currentOrder=null,checkoutProof=null;
+  const lastOrderKey=Access.keys.lastOrder(slug);
+  const phoneKey=Access.keys.phone(slug);
+  const claimTasks=new Map();
+  let lastPhone='';
+  let cartSnapshot=[];
+  let checkoutSnapshot={};
+  let currentOrder=null;
+  let checkoutProof=null;
+  let trackingTimer=0;
+  let trackingStartedAt=0;
+  let trackerState={claim:'idle',message:'',recoveryCode:'',updatedAt:null};
 
-  const stages=[{key:'approval',label:'Aguardando aprovação'},{key:'progress',label:'Em andamento'},{key:'driver',label:'Aguardando entregador'},{key:'route',label:'Saiu para entrega'},{key:'delivered',label:'Pedido entregue'}];
-
-  function snapshotCheckout(){lastPhone=normalizePhone(byId('customer-phone')?.value);try{cartSnapshot=Array.isArray(window.cart)?window.cart.map(item=>({...item})):[]}catch{cartSnapshot=[]}const form=byId('checkout-form');if(form){const data=new FormData(form);checkoutSnapshot={nome:String(data.get('name')||'').trim(),pagamento:String(data.get('payment')||'').trim(),tipo:typeof window.type==='function'?window.type():'delivery',endereco:String(byId('customer-address')?.value||'').trim()}}}
-
-  async function bindCustomerDevice(proof){
-    const phone=normalizePhone(proof?.telefone||lastPhone);
-    if(!db||!slug||!proof?.checkoutToken||phone.length<10)throw new Error('Comprovante do pedido indisponível para vincular este dispositivo.');
-    const{data,error}=await db.rpc('vincular_dispositivo_cliente',{p_slug:slug,p_telefone:phone,p_checkout_token:proof.checkoutToken});
-    if(error)throw error;
-    if(!data)throw new Error('O dispositivo não recebeu autorização para consultar o histórico.');
-    localStorage.setItem(tokenKey(phone),String(data));
-    localStorage.setItem(phoneKey,phone);
-    return String(data);
+  function snapshotCheckout(){
+    lastPhone=Access.normalizePhone(byId('customer-phone')?.value);
+    try{cartSnapshot=Array.isArray(window.cart)?window.cart.map(item=>({...item})):[]}catch{cartSnapshot=[]}
+    const form=byId('checkout-form');
+    if(!form)return;
+    const data=new FormData(form);
+    checkoutSnapshot={
+      nome:String(data.get('name')||'').trim(),
+      pagamento:String(data.get('payment')||'').trim(),
+      tipo:typeof window.type==='function'?window.type():'delivery',
+      endereco:String(byId('customer-address')?.value||'').trim()
+    };
   }
 
-  function normalizedStage(order){const status=String(order?.status||'novo').toLowerCase();if(['cancelado','rejeitado'].includes(status))return{index:-1,label:status==='rejeitado'?'Pedido não aprovado':'Pedido cancelado',error:true};if(['entregue','finalizado'].includes(status))return{index:4,label:'Pedido entregue'};if(['saiu_entrega','em_entrega'].includes(status))return{index:3,label:'Saiu para entrega'};if(['pronto','aguardando_entregador','aguardando_retirada'].includes(status))return{index:2,label:order?.tipo==='entrega'?'Aguardando entregador':'Pronto para retirada'};if(['confirmado','aceito','preparo','em_preparo','andamento'].includes(status))return{index:1,label:'Em andamento'};return{index:0,label:'Aguardando aprovação do restaurante'}}
-  function orderItems(order){if(Array.isArray(order?.itens)&&order.itens.length)return order.itens.map(item=>({quantidade:item.quantidade||item.qty||1,nome:item.nome||item.nome_produto||item.name||'Item',observacoes:item.observacoes||item.note||'',total:item.total??((item.preco||item.price||0)*(item.quantidade||item.qty||1))}));return cartSnapshot.map(item=>({quantidade:item.qty||1,nome:item.name||item.nome||'Item',observacoes:item.note||'',total:(item.price||item.preco||0)*(item.qty||1)}))}
-  function addressLabel(order){const value=order?.endereco_entrega;if(typeof value==='string')return value;if(value?.texto)return value.texto;return checkoutSnapshot.endereco||''}
+  function orderItems(order){
+    if(Array.isArray(order?.itens)&&order.itens.length){
+      return order.itens.map(item=>({
+        quantidade:item.quantidade||item.qty||1,
+        nome:item.nome||item.nome_produto||item.name||'Item',
+        observacoes:item.observacoes||item.note||'',
+        total:item.total??((item.preco||item.price||0)*(item.quantidade||item.qty||1))
+      }));
+    }
+    return cartSnapshot.map(item=>({
+      quantidade:item.qty||1,
+      nome:item.name||item.nome||'Item',
+      observacoes:item.note||'',
+      total:(item.price||item.preco||0)*(item.qty||1)
+    }));
+  }
+
+  function addressLabel(order){
+    const value=order?.endereco_entrega;
+    if(typeof value==='string')return value;
+    if(value?.texto)return value.texto;
+    return checkoutSnapshot.endereco||'';
+  }
+
+  function trackingAccessMarkup(){
+    if(trackerState.claim==='active'){
+      return '<div class="fs-tracking-access success"><b>Acompanhamento ativado</b><span>Este pedido está protegido e vinculado a este aparelho.</span></div>';
+    }
+    if(trackerState.claim==='error'){
+      return `<div class="fs-tracking-access error" role="alert"><div><b>Acompanhamento ainda não ativado</b><span>${esc(trackerState.message||'Tente novamente para proteger o acesso ao pedido.')}</span></div><button type="button" id="fs-retry-order-claim">Tentar novamente</button></div>`;
+    }
+    return '<div class="fs-tracking-access pending" role="status"><span class="fs-tracking-spinner" aria-hidden="true"></span><div><b>Protegendo seu pedido</b><span>Vinculando o acompanhamento a este aparelho...</span></div></div>';
+  }
 
   function renderTracker(order,code){
-    currentOrder=order||currentOrder||{codigo:code,status:'novo',tipo:checkoutSnapshot.tipo,itens:orderItems(null)};
-    const modal=byId('success-modal'),host=modal?.querySelector('.modal-card')||modal;if(!host)return;
-    let tracker=byId('fs-order-tracker');if(!tracker){tracker=document.createElement('section');tracker.id='fs-order-tracker';tracker.className='fs-order-tracker';host.appendChild(tracker)}
-    const stage=normalizedStage(currentOrder),items=orderItems(currentOrder),total=currentOrder.total??items.reduce((sum,item)=>sum+Number(item.total||0),0),payment=currentOrder.forma_pagamento||checkoutSnapshot.pagamento||'Não informado',address=addressLabel(currentOrder);
-    tracker.innerHTML=`<div class="fs-order-tracker-head"><small>Pedido #${esc(currentOrder.codigo||code)}</small><h3>Acompanhe seu pedido</h3><p>O histórico fica disponível somente neste dispositivo autorizado após a compra.</p></div><div class="fs-public-order-current${stage.error?' is-error':''}">${esc(stage.label)}</div>${stage.error?'':`<div class="fs-public-order-timeline">${stages.map((item,index)=>`<div class="fs-public-order-step ${index<=stage.index?'done':''} ${index===stage.index?'current':''}">${esc(index===2&&currentOrder.tipo!=='entrega'?'Pronto para retirada':item.label)}</div>`).join('')}</div>`}<div class="fs-order-summary"><h4>Resumo do pedido</h4>${items.map(item=>`<div class="fs-order-item"><span>${Number(item.quantidade)||1}x ${esc(item.nome)}${item.observacoes?`<small>${esc(item.observacoes)}</small>`:''}</span><b>${money(item.total)}</b></div>`).join('')}<div class="fs-order-summary-row"><span>Pagamento</span><b>${esc(payment)}</b></div>${address?`<div class="fs-order-summary-row"><span>Entrega</span><b>${esc(address)}</b></div>`:''}<div class="fs-order-summary-row fs-order-total"><span>Total</span><b>${money(total)}</b></div></div><div class="fs-order-refresh"><span>Consulta protegida por dispositivo</span><button type="button" id="fs-refresh-order">Atualizar agora</button></div>`;
-    byId('fs-refresh-order').onclick=()=>refreshOrder(code,true);
+    currentOrder=order||currentOrder||{codigo:code,status:'aguardando_aprovacao',tipo:checkoutSnapshot.tipo,itens:orderItems(null)};
+    const modal=byId('success-modal');
+    const host=modal?.querySelector('.modal-card')||modal;
+    if(!host)return;
+    let tracker=byId('fs-order-tracker');
+    if(!tracker){
+      tracker=document.createElement('section');
+      tracker.id='fs-order-tracker';
+      tracker.className='fs-order-tracker';
+      host.appendChild(tracker);
+    }
+
+    const status=Access.statusFor(currentOrder);
+    const payment=Access.paymentFor(currentOrder);
+    const items=orderItems(currentOrder);
+    const total=currentOrder.total??items.reduce((sum,item)=>sum+Number(item.total||0),0);
+    const address=addressLabel(currentOrder);
+    const updated=trackerState.updatedAt?new Date(trackerState.updatedAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'aguardando primeira atualização';
+    const recovery=trackerState.claim==='active'&&trackerState.recoveryCode
+      ?`<div class="fs-order-recovery"><div><small>Código para recuperar este pedido em outro aparelho</small><strong>${esc(Access.formatRecoveryCode(trackerState.recoveryCode))}</strong><span>Guarde este código. Cada recuperação gera um novo.</span></div><button type="button" id="fs-copy-recovery-code">Copiar código</button></div>`
+      :'';
+    const timeline=status.terminal&&status.step<0
+      ?''
+      :`<div class="fs-public-order-timeline">${status.labels.map((label,index)=>`<div class="fs-public-order-step ${index<=status.step?'done':''} ${index===status.step?'current':''}">${esc(label)}</div>`).join('')}</div>`;
+
+    tracker.innerHTML=`<div class="fs-order-tracker-head"><small>Pedido #${esc(currentOrder.codigo||code)}</small><h3>Acompanhe seu pedido</h3><p>O andamento atualiza automaticamente enquanto você mantém esta tela aberta.</p></div>${trackingAccessMarkup()}<div class="fs-public-order-current${status.tone==='error'?' is-error':''}">${esc(status.label)}</div>${timeline}<div class="fs-order-summary"><h4>Resumo do pedido</h4>${items.map(item=>`<div class="fs-order-item"><span>${Number(item.quantidade)||1}x ${esc(item.nome)}${item.observacoes?`<small>${esc(item.observacoes)}</small>`:''}</span><b>${money(item.total)}</b></div>`).join('')}<div class="fs-order-summary-row"><span>Pagamento</span><b>${esc(payment.label)}</b></div>${address?`<div class="fs-order-summary-row"><span>Entrega</span><b>${esc(address)}</b></div>`:''}<div class="fs-order-summary-row fs-order-total"><span>Total</span><b>${money(total)}</b></div></div>${recovery}<div class="fs-order-refresh"><span>Atualizado: ${esc(updated)}</span><button type="button" id="fs-refresh-order" ${trackerState.claim==='active'?'':'disabled'}>Atualizar agora</button></div>`;
+
+    byId('fs-refresh-order')?.addEventListener('click',()=>refreshOrder(code,true));
+    byId('fs-retry-order-claim')?.addEventListener('click',()=>checkoutProof&&claimCompletedOrder(checkoutProof));
+    byId('fs-copy-recovery-code')?.addEventListener('click',async event=>{
+      try{
+        await navigator.clipboard.writeText(Access.formatRecoveryCode(trackerState.recoveryCode));
+        event.currentTarget.textContent='Código copiado';
+      }catch{event.currentTarget.textContent='Não foi possível copiar'}
+    });
   }
 
   async function refreshOrder(code,manual=false){
-    if(!db||!slug||!lastPhone||!code)return;
-    const token=localStorage.getItem(tokenKey(lastPhone));
-    if(!token){if(manual)console.warn('Este dispositivo ainda não foi autorizado para consultar o pedido.');return}
-    try{const{data,error}=await db.rpc('consultar_pedidos_cliente',{p_slug:slug,p_telefone:lastPhone,p_token:token});if(error)throw error;const order=(data||[]).find(item=>String(item.codigo||item.id).toLowerCase()===String(code).toLowerCase());if(order)renderTracker(order,code);else if(manual)console.warn('Pedido ainda não disponível para consulta.')}catch(error){console.warn('Falha ao atualizar acompanhamento:',error)}
+    if(!db||!slug||!lastPhone||!code||trackerState.claim!=='active')return null;
+    const token=Access.readText(Access.keys.token(slug,lastPhone));
+    if(!token)return null;
+    try{
+      const{data,error}=await db.rpc('consultar_pedidos_cliente',{p_slug:slug,p_telefone:lastPhone,p_token:token});
+      if(error)throw error;
+      const order=(Array.isArray(data)?data:[]).find(item=>String(item.codigo||item.id).toLowerCase()===String(code).toLowerCase());
+      if(order){
+        currentOrder=order;
+        trackerState.updatedAt=new Date().toISOString();
+        renderTracker(order,code);
+        return order;
+      }
+      if(manual)trackerState.message='O pedido ainda não está disponível para atualização.';
+    }catch(error){
+      console.warn('Falha ao atualizar acompanhamento:',error);
+      if(manual){trackerState.message='Não foi possível atualizar agora. Verifique sua conexão e tente novamente.';renderTracker(currentOrder,code)}
+    }
+    return null;
   }
-  function startTracking(code){refreshOrder(code);setTimeout(()=>refreshOrder(code),1500);setTimeout(()=>refreshOrder(code),5000)}
 
-  async function enhanceSuccess(){
-    const modal=byId('success-modal'),message=byId('success-message'),link=byId('track-order-link');if(!modal?.classList.contains('open')||!message)return;
-    const proof=checkoutProof||window.__fsLastPublicCheckout||null,code=String(proof?.codigo||extractCode(message.textContent)),phone=normalizePhone(proof?.telefone||lastPhone||byId('customer-phone')?.value);if(!code)return;
-    lastPhone=phone;message.textContent=`Pedido #${code} enviado com sucesso.`;
-    if(link){const query=new URLSearchParams({loja:slug,pedido:code});link.href=`cliente?${query.toString()}`;link.textContent='Abrir histórico de pedidos'}
-    try{localStorage.setItem(lastOrderKey,JSON.stringify({codigo:code,telefone:phone,criado_em:new Date().toISOString()}));localStorage.setItem(phoneKey,phone)}catch{}
+  function stopTracking(){
+    if(trackingTimer)clearTimeout(trackingTimer);
+    trackingTimer=0;
+  }
+
+  function scheduleTracking(code,delay=12000){
+    stopTracking();
+    if(document.visibilityState==='hidden'||Access.statusFor(currentOrder).terminal)return;
+    trackingTimer=setTimeout(async()=>{
+      const order=await refreshOrder(code);
+      if(order&&!Access.statusFor(order).terminal){
+        const elapsed=Date.now()-trackingStartedAt;
+        scheduleTracking(code,elapsed<60000?12000:20000);
+      }
+    },delay);
+  }
+
+  async function performClaim(proof){
+    const code=String(proof?.codigo||extractCode(byId('success-message')?.textContent));
+    const phone=Access.normalizePhone(proof?.telefone||lastPhone||byId('customer-phone')?.value);
+    if(!slug||!code||!Access.validPhone(phone)||!proof?.checkoutToken){
+      throw new Error('Comprovante do pedido incompleto. Atualize a página e tente novamente.');
+    }
+
+    lastPhone=phone;
+    checkoutProof={...proof,codigo:code,telefone:phone};
+    const token=Access.ensureDeviceToken(slug,phone);
+    const recoveryCode=Access.readRecoveryCode(slug,code)||Access.createRecoveryCode();
+    const createdAt=proof.criado_em||new Date().toISOString();
+    Access.write(lastOrderKey,{codigo:code,telefone:phone,criado_em:createdAt,checkoutToken:proof.checkoutToken,recoveryCode,vinculado:false});
+    Access.writeText(phoneKey,phone);
+    trackerState={claim:'pending',message:'',recoveryCode,updatedAt:null};
+
+    const message=byId('success-message');
+    if(message)message.textContent=`Pedido #${code} enviado com sucesso.`;
+    const link=byId('track-order-link');
+    if(link){
+      link.href=`cliente?${new URLSearchParams({loja:slug,pedido:code}).toString()}`;
+      link.textContent='Abrir meus pedidos';
+    }
     renderTracker(null,code);
-    if(code!==processedCode){
-      processedCode=code;
-      try{await bindCustomerDevice(proof)}catch(error){console.warn('Não foi possível vincular o dispositivo do cliente:',error);return}
-      startTracking(code);
-      document.dispatchEvent(new CustomEvent('fs:public-order-created',{detail:{slug,codigo:code,telefone:phone}}));
+
+    const{data,error}=await db.rpc('vincular_pedido_dispositivo',{
+      p_slug:slug,
+      p_telefone:phone,
+      p_checkout_token:proof.checkoutToken,
+      p_token:token,
+      p_codigo_recuperacao:recoveryCode
+    });
+    if(error)throw error;
+    if(!data?.vinculado)throw new Error('O pedido não recebeu autorização de acompanhamento.');
+
+    Access.saveRecoveryCode(slug,code,recoveryCode);
+    Access.write(lastOrderKey,{codigo:code,telefone:phone,criado_em:createdAt,recoveryCode,vinculado:true});
+    trackerState={claim:'active',message:'',recoveryCode,updatedAt:null};
+    renderTracker(null,code);
+    trackingStartedAt=Date.now();
+    await refreshOrder(code);
+    scheduleTracking(code);
+    document.dispatchEvent(new CustomEvent('fs:public-order-created',{detail:{slug,codigo:code,telefone:phone}}));
+    return data;
+  }
+
+  function claimCompletedOrder(proof){
+    const key=String(proof?.checkoutToken||proof?.codigo||'');
+    if(!key)return Promise.resolve(null);
+    if(claimTasks.has(key))return claimTasks.get(key);
+    const task=performClaim(proof).catch(error=>{
+      console.warn('Não foi possível vincular o acompanhamento do pedido:',error);
+      trackerState={...trackerState,claim:'error',message:error?.message||'Falha ao ativar o acompanhamento.'};
+      const code=String(proof?.codigo||extractCode(byId('success-message')?.textContent));
+      renderTracker(currentOrder,code);
+      return null;
+    }).finally(()=>claimTasks.delete(key));
+    claimTasks.set(key,task);
+    return task;
+  }
+
+  function restoreLastOrder(){
+    const saved=Access.read(lastOrderKey,null);
+    if(!saved?.codigo||!saved?.telefone)return;
+    const age=Date.now()-new Date(saved.criado_em).getTime();
+    if(!Number.isFinite(age)||age<0||age>24*60*60*1000)return;
+    lastPhone=Access.normalizePhone(saved.telefone);
+    if(saved.checkoutToken&&!saved.vinculado){
+      checkoutProof={...saved,checkoutToken:saved.checkoutToken};
+      const modal=byId('success-modal');
+      const message=byId('success-message');
+      if(message)message.textContent=`Pedido #${saved.codigo} já foi criado. Retomando o acompanhamento...`;
+      modal?.classList.add('open');
+      document.body.style.overflow='hidden';
+      claimCompletedOrder(checkoutProof);
     }
   }
 
-  function restoreLastOrder(){try{const saved=JSON.parse(localStorage.getItem(lastOrderKey)||'null');if(!saved?.codigo||!saved?.telefone)return;const age=Date.now()-new Date(saved.criado_em).getTime();if(age>24*60*60*1000)return;lastPhone=normalizePhone(saved.telefone)}catch{}}
-  function install(){const form=byId('checkout-form'),modal=byId('success-modal');if(!form||!modal)return false;restoreLastOrder();form.addEventListener('submit',snapshotCheckout,true);document.addEventListener('fs:public-order-completed',event=>{checkoutProof=event.detail||null});document.addEventListener('click',event=>{if(event.target.closest?.('#submit-order-btn,#checkout-form .btn-primary')){snapshotCheckout();setTimeout(enhanceSuccess,180)}},true);modal.addEventListener('transitionend',enhanceSuccess);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&processedCode)refreshOrder(processedCode)});return true}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+  function install(){
+    const form=byId('checkout-form');
+    if(!form||!byId('success-modal'))return false;
+    form.addEventListener('submit',snapshotCheckout,true);
+    document.addEventListener('fs:public-order-completed',event=>{
+      checkoutProof=event.detail||null;
+      claimCompletedOrder(checkoutProof);
+    });
+    document.addEventListener('click',event=>{
+      if(event.target.closest?.('#submit-order-btn,#checkout-form .btn-primary'))snapshotCheckout();
+    },true);
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible'&&currentOrder&&trackerState.claim==='active'){
+        refreshOrder(currentOrder.codigo).then(()=>scheduleTracking(currentOrder.codigo));
+      }else if(document.visibilityState==='hidden')stopTracking();
+    });
+    window.addEventListener('pagehide',stopTracking,{once:true});
+    restoreLastOrder();
+    return true;
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
+  else install();
 })();

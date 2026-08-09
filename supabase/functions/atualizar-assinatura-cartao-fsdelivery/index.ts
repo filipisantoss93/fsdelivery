@@ -28,19 +28,19 @@ function envFirst(names: string[]) {
 }
 
 function billingConfig(value: unknown) {
-  const production = String(value || Deno.env.get("EFI_ENV") || "production").toLowerCase().startsWith("prod");
+  const production = String(value || Deno.env.get("EFI_ENV") || "homologacao").toLowerCase().startsWith("prod");
   return production
     ? {
       ambiente: "producao",
       baseUrl: "https://cobrancas.api.efipay.com.br",
-      clientId: envFirst(["EFI_CLIENT_ID_PRODUCAO", "EFI_CLIENT_ID"]),
-      clientSecret: envFirst(["EFI_CLIENT_SECRET_PRODUCAO", "EFI_CLIENT_SECRET"]),
+      clientId: envFirst(["EFI_CLIENT_ID_PRODUCAO"]),
+      clientSecret: envFirst(["EFI_CLIENT_SECRET_PRODUCAO"]),
     }
     : {
       ambiente: "homologacao",
       baseUrl: "https://cobrancas-h.api.efipay.com.br",
-      clientId: envFirst(["EFI_CLIENT_ID_HOMOLOGACAO", "EFI_CLIENT_ID"]),
-      clientSecret: envFirst(["EFI_CLIENT_SECRET_HOMOLOGACAO", "EFI_CLIENT_SECRET"]),
+      clientId: envFirst(["EFI_CLIENT_ID_HOMOLOGACAO"]),
+      clientSecret: envFirst(["EFI_CLIENT_SECRET_HOMOLOGACAO"]),
     };
 }
 

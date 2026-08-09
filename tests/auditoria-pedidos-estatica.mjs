@@ -11,10 +11,13 @@ const requiredFiles=[
   'vercel.json','js/supabase.js','css/orders.css','js/pedido-status.js',
   'js/app-orders-operational.js','js/app-orders-type-filters.js',
   'js/loja-fluxos-pedido.js','js/loja-publica-consolidado.js','js/loja-pos-envio.js',
-  'js/cliente.js','cliente.html','js/balcao.js','js/garcom-salao.js','caixa.html',
+  'js/customer-order-access.js','js/cliente.js','cliente.html','js/balcao.js','js/garcom-salao.js','caixa.html',
   'supabase/migrations/20260805_auditoria_pedidos_unificada.sql',
   'supabase/migrations/20260805_corrigir_pagamento_pedido_mesa.sql',
-  'supabase/migrations/20260805_fase2_hardening_pedidos.sql'
+  'supabase/migrations/20260805_fase2_hardening_pedidos.sql',
+  'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql',
+  'supabase/migrations/20260809175445_preservar_limite_tentativas_rastreamento.sql',
+  'supabase/migrations/20260809180256_indexar_chaves_rastreamento.sql'
 ];
 for(const file of requiredFiles){try{await source(file);check(`Arquivo presente: ${file}`,true)}catch{check(`Arquivo presente: ${file}`,false,file)}}
 if(failures.length){console.error(`\nAuditoria interrompida: ${failures.length} arquivo(s) obrigatório(s) ausente(s).`);process.exit(1)}
@@ -36,7 +39,7 @@ check('Loja pública recebe fluxo consolidado',has(loader,/loja-publica-consolid
 check('Painel recebe módulo operacional de pedidos',has(loader,/app-orders-operational\.js/),'js/supabase.js');
 
 const orderCss=await source('css/orders.css');
-for(const selector of ['.fs-orders-shell','.customer-order-card','.fs-order-tracker','.fs-public-order-timeline'])check(`CSS consolidado contém ${selector}`,orderCss.includes(selector),'css/orders.css');
+for(const selector of ['.fs-orders-shell','.customer-order-card','.fs-order-tracker','.fs-public-order-timeline','.receipt-line'])check(`CSS consolidado contém ${selector}`,orderCss.includes(selector),'css/orders.css');
 check('Timeline pública possui namespace próprio',!has(orderCss,/\.fs-order-step\{/),'css/orders.css');
 
 const status=await source('js/pedido-status.js');
@@ -58,22 +61,34 @@ const consolidatedPublic=await source('js/loja-publica-consolidado.js');
 check('Checkout público usa RPC única',has(consolidatedPublic,/criar_pedido_publico/),'js/loja-publica-consolidado.js');
 check('Checkout público envia token idempotente',has(consolidatedPublic,/checkout_token:checkout\.token/),'js/loja-publica-consolidado.js');
 check('Checkout publica comprovante do dispositivo',has(consolidatedPublic,/fs:public-order-completed/)&&has(consolidatedPublic,/checkoutToken:checkout\.token/),'js/loja-publica-consolidado.js');
+check('Checkout normaliza WhatsApp antes de validar',has(consolidatedPublic,/phone=normalizePhone\(formData\.get\('phone'\)\)/)&&has(consolidatedPublic,/phone\.length>11/),'js/loja-publica-consolidado.js');
 
 const publicPost=await source('js/loja-pos-envio.js');
-check('Dispositivo é vinculado pelo checkout token',has(publicPost,/vincular_dispositivo_cliente/)&&has(publicPost,/p_checkout_token:proof\.checkoutToken/),'js/loja-pos-envio.js');
+check('Pedido é vinculado pelo checkout token',has(publicPost,/vincular_pedido_dispositivo/)&&has(publicPost,/p_checkout_token:proof\.checkoutToken/),'js/loja-pos-envio.js');
+check('Evento concluído inicia vínculo diretamente',has(publicPost,/fs:public-order-completed[\s\S]{0,180}claimCompletedOrder/),'js/loja-pos-envio.js');
+check('Vínculo não depende de transição ou atraso fixo',!has(publicPost,/transitionend|setTimeout\(enhanceSuccess|180\)/),'js/loja-pos-envio.js');
 check('Acompanhamento exige token do dispositivo',has(publicPost,/p_token:token/),'js/loja-pos-envio.js');
+check('Falha de vínculo pode ser retomada',has(publicPost,/checkoutToken:proof\.checkoutToken/)&&has(publicPost,/fs-retry-order-claim/),'js/loja-pos-envio.js');
 check('Acompanhamento não injeta CSS',!has(publicPost,/createElement\(['"]style['"]\)/),'js/loja-pos-envio.js');
 check('Acompanhamento não usa polling contínuo',!has(publicPost,/setInterval\s*\(/),'js/loja-pos-envio.js');
 check('Histórico não expõe telefone no link',has(publicPost,/new URLSearchParams\(\{loja:slug,pedido:code\}\)/),'js/loja-pos-envio.js');
 
+const customerAccess=await source('js/customer-order-access.js');
+check('WhatsApp brasileiro remove DDI +55',has(customerAccess,/raw\.length===12\|\|raw\.length===13[\s\S]{0,80}startsWith\('55'\)[\s\S]{0,40}slice\(2\)/),'js/customer-order-access.js');
+check('Token do aparelho possui 64 caracteres aleatórios',has(customerAccess,/createDeviceToken=.*64/),'js/customer-order-access.js');
+check('Código de recuperação usa alfabeto sem ambiguidades',has(customerAccess,/ABCDEFGHJKLMNPQRSTUVWXYZ23456789/),'js/customer-order-access.js');
 const customer=await source('js/cliente.js');
-check('Histórico lê token local do dispositivo',has(customer,/fsdelivery_customer_token_/),'js/cliente.js');
+check('Histórico lê token pelo contrato central',has(customer,/Access\.keys\.token\(slug,normalized\)/),'js/cliente.js');
 check('Histórico envia token ao banco',has(customer,/p_token:token/),'js/cliente.js');
-check('Histórico bloqueia dispositivo sem token',has(customer,/Dispositivo não autorizado/),'js/cliente.js');
+check('Histórico sem token oferece recuperação segura',has(customer,/Aparelho ainda não vinculado/)&&has(customer,/recuperar_pedido_dispositivo/),'js/cliente.js');
+check('Histórico recupera pedidos anteriores ao corte',has(customer,/vincular_pedido_legado_dispositivo/),'js/cliente.js');
+check('Histórico atualiza pedidos ativos automaticamente',has(customer,/setTimeout\(async\(\)=>[\s\S]{0,120}automatic:true/),'js/cliente.js');
 check('Histórico não injeta CSS',!has(customer,/createElement\(['"]style['"]\)/),'js/cliente.js');
 check('Histórico não usa polling contínuo',!has(customer,/setInterval\s*\(/),'js/cliente.js');
 const customerHtml=await source('cliente.html');
 check('Página do cliente não carrega correção legada',!has(customerHtml,/cliente-submit-fix\.js/),'cliente.html');
+check('Contrato de acesso carrega antes do Supabase',customerHtml.indexOf('customer-order-access.js')<customerHtml.indexOf('supabase.js'),'cliente.html');
+check('Página oferece formulário profissional de recuperação',has(customerHtml,/customer-recovery-form/)&&has(customerHtml,/recovery-code/),'cliente.html');
 
 const counter=await source('js/balcao.js');
 check('Balcão diferencia origem caixa e balcão',has(counter,/requestedOrigin.*caixa.*balcao/s),'js/balcao.js');
@@ -109,6 +124,23 @@ check('Funções internas deixam de ser públicas',has(hardening,/revoke all on 
 check('Políticas redundantes são removidas',has(hardening,/drop policy if exists "dono visualiza enderecos de clientes"/i)&&has(hardening,/drop policy if exists notificacoes_operacionais_owner_select/i),'supabase/migrations/20260805_fase2_hardening_pedidos.sql');
 check('RLS usa auth.uid inicializado uma vez',has(hardening,/\(select auth\.uid\(\)\)/),'supabase/migrations/20260805_fase2_hardening_pedidos.sql');
 check('Índice duplicado é removido',has(hardening,/drop index if exists public\.idx_notificacoes_operacionais_destino/i),'supabase/migrations/20260805_fase2_hardening_pedidos.sql');
+
+const tracking=await source('supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Rastreamento relaciona aparelhos a pedidos específicos',has(tracking,/create table if not exists public\.cliente_dispositivo_pedidos/i)&&has(tracking,/unique \(dispositivo_id, pedido_id\)/i),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Consulta retorna somente pedidos vinculados',has(tracking,/join public\.cliente_dispositivo_pedidos vinculo[\s\S]{0,180}vinculo\.dispositivo_id = v_dispositivo/i),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Credenciais de recuperação ficam somente em hash',has(tracking,/codigo_recuperacao_hash text not null/)&&has(tracking,/digest\(v_codigo, 'sha256'\)/),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Recuperação rotaciona o código antigo',has(tracking,/set codigo_recuperacao_hash = encode\(extensions\.digest\(v_novo_codigo/),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Recuperação bloqueia excesso de tentativas',has(tracking,/tentativas_invalidas[\s\S]*v_tentativas >= 5[\s\S]*interval '15 minutes'/),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Transição legada expira e se limita a um pedido',has(tracking,/corte_legado_em/)&&has(tracking,/p\.created_at >= v_corte - interval '24 hours'/),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Tabelas de rastreamento não expõem Data API',has(tracking,/revoke all on table public\.cliente_dispositivo_pedidos from public, anon, authenticated/)&&has(tracking,/revoke all on table public\.pedido_rastreamento_credenciais from public, anon, authenticated/),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+check('Normalização canônica trata DDI 55',has(tracking,/left\(limpo, 2\) = '55'[\s\S]{0,80}substring\(limpo from 3\)/),'supabase/migrations/20260809175202_profissionalizar_rastreamento_pedidos_cliente.sql');
+
+const trackingRateLimit=await source('supabase/migrations/20260809175445_preservar_limite_tentativas_rastreamento.sql');
+check('Tentativa inválida persiste antes da resposta',has(trackingRateLimit,/if v_hash <> v_hash_esperado then[\s\S]*update public\.pedido_rastreamento_credenciais[\s\S]*return jsonb_build_object/),'supabase/migrations/20260809175445_preservar_limite_tentativas_rastreamento.sql');
+check('Negativa de recuperação não aborta o contador',!has(trackingRateLimit,/update public\.pedido_rastreamento_credenciais[\s\S]{0,500}raise exception/),'supabase/migrations/20260809175445_preservar_limite_tentativas_rastreamento.sql');
+
+const trackingIndexes=await source('supabase/migrations/20260809180256_indexar_chaves_rastreamento.sql');
+check('Chaves estrangeiras do rastreamento possuem índices',has(trackingIndexes,/\(cliente_id\)/)&&has(trackingIndexes,/\(dispositivo_inicial_id\)/),'supabase/migrations/20260809180256_indexar_chaves_rastreamento.sql');
 
 const tablePaymentFix=await source('supabase/migrations/20260805_corrigir_pagamento_pedido_mesa.sql');
 check('Pedido de mesa não exige pagamento antecipado',has(tablePaymentFix,/v_tipo <> ''mesa'' and v_tem_cfg/),'supabase/migrations/20260805_corrigir_pagamento_pedido_mesa.sql');

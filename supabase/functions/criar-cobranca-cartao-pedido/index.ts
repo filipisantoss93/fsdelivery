@@ -70,8 +70,8 @@ function billingConfig(value: unknown): BillingConfig {
     return {
       ambiente,
       baseUrl: "https://cobrancas.api.efipay.com.br",
-      clientId: envFirst(["EFI_CLIENT_ID_PRODUCAO", "EFI_CLIENT_ID"]),
-      clientSecret: envFirst(["EFI_CLIENT_SECRET_PRODUCAO", "EFI_CLIENT_SECRET"]),
+      clientId: envFirst(["EFI_CLIENT_ID_PRODUCAO"]),
+      clientSecret: envFirst(["EFI_CLIENT_SECRET_PRODUCAO"]),
     };
   }
   return {

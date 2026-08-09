@@ -71,6 +71,9 @@ jobs:
       - name: Validar estabilidade do frontend
         run: node tests/auditoria-estabilidade-frontend.mjs
 
+      - name: Executar fluxo comportamental de rastreamento
+        run: node tests/rastreamento-pedido-fluxo.mjs
+
       - name: Auditar plataforma, assets e pagamentos
         run: node tests/auditoria-plataforma.mjs
 

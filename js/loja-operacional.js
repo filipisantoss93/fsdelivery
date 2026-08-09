@@ -159,7 +159,11 @@ function bind(){
   $('apply-coupon')?.addEventListener('click',()=>{appliedCoupon=$('coupon-code').value.trim().toUpperCase();setFeedback(appliedCoupon?'Cupom adicionado e será validado ao enviar o pedido.':'Informe um código de cupom.',appliedCoupon?'success':'error')});
   $('share-store').onclick=shareStore;
   $('new-order-after-success').onclick=()=>location.reload();
-  $('customer-phone').addEventListener('input',event=>{let digits=event.target.value.replace(/\D/g,'').slice(0,11);event.target.value=digits.length>10?digits.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3'):digits.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3').replace(/-$/,'')});
+  $('customer-phone').addEventListener('input',event=>{
+    const raw=event.target.value.replace(/\D/g,'').slice(0,13);
+    const normalized=(window.FSCustomerOrderAccess?.normalizePhone?.(raw)||raw).slice(0,11);
+    event.target.value=normalized.length>10?normalized.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3'):normalized.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3').replace(/-$/,'');
+  });
 }
 
 async function shareStore(){

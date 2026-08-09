@@ -106,6 +106,7 @@ const criticalRemoteDependency=/cdn\.jsdelivr\.net\/(?:npm\/@supabase|gh\/efipay
 for(const file of htmlFiles){
   const html=read(file);
   check(!/<style[\s>]/i.test(html),`${file}: CSS inline não permitido`);
+  check(!/\sstyle=["']/i.test(html),`${file}: atributo style não permitido; use folha de estilos`);
   const inlineScripts=[...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
     .filter(match=>match[1].trim());
   check(inlineScripts.length===0,`${file}: JavaScript inline não permitido`);
@@ -124,6 +125,7 @@ for(const file of htmlFiles){
 for(const file of jsFiles){
   const source=read(`js/${file}`);
   check(!/document\.createElement\(\s*["']style["']\s*\)/.test(source),`js/${file}: injeção dinâmica de CSS não permitida`);
+  if(!file.startsWith('vendor/'))check(!/<[^>]*\sstyle=["']/i.test(source),`js/${file}: HTML gerado não pode conter CSS inline`);
 }
 
 for(const file of cssFiles)auditCss(file);
@@ -143,6 +145,15 @@ for(const name of requiredFunctions){
   const source=read(`supabase/functions/${name}/index.ts`);
   check(source.includes('@supabase/supabase-js@2.112.2'),`Edge Function com cliente Supabase fora da versão homologada: ${name}`);
 }
+const requiredOperationalFunctions=['delete-account','operational-push'];
+for(const name of requiredOperationalFunctions){
+  check(fs.existsSync(path.join(root,`supabase/functions/${name}/index.ts`)),`Edge Function operacional sem fonte versionada: ${name}`);
+  const source=read(`supabase/functions/${name}/index.ts`);
+  check(source.includes('@supabase/supabase-js@2.112.2'),`Edge Function operacional com cliente Supabase fora da versão homologada: ${name}`);
+}
+for(const name of ['webhook-efi-pix','configurar-webhook-efi','criar-pix-basico','verificar-pix-basico']){
+  check(fs.existsSync(path.join(root,`supabase/functions/${name}/index.ts`)),`Edge Function PIX sem fonte versionada: ${name}`);
+}
 
 const appliedAuditMigrations=[
   '20260808190101_estabilizar_pagamentos_cartao.sql',
@@ -156,6 +167,7 @@ const appliedAuditMigrations=[
   '20260808201909_estabilizar_assinatura_cartao.sql',
   '20260808202000_backfill_autorizacao_cartao.sql',
   '20260808202411_isolar_webhooks_efi_ambiente.sql',
+  '20260808225755_harden_operational_push.sql',
 ];
 const localAuditMigrations=fs.readdirSync(path.join(root,'supabase/migrations'))
   .filter(file=>file.startsWith('20260808')&&file.endsWith('.sql')).sort();
@@ -167,6 +179,12 @@ const orderWebhook=read('supabase/functions/webhook-efi-pedidos/index.ts');
 const subscriptionWebhook=read('supabase/functions/webhook-efi-cobrancas/index.ts');
 const storeConfig=read('supabase/functions/config-pagamento-loja/index.ts');
 const subscriptionCreate=read('supabase/functions/criar-assinatura-cartao-fsdelivery/index.ts');
+const subscriptionConfig=read('supabase/functions/config-assinatura-cartao-fsdelivery/index.ts');
+const subscriptionCancel=read('supabase/functions/cancelar-assinatura-cartao-fsdelivery/index.ts');
+const subscriptionUpdate=read('supabase/functions/atualizar-assinatura-cartao-fsdelivery/index.ts');
+const pixCreate=read('supabase/functions/criar-pix-fsdelivery/index.ts');
+const pixCancel=read('supabase/functions/cancelar-pix-fsdelivery/index.ts');
+const pixWebhookConfig=read('supabase/functions/configurar-webhook-efi/index.ts');
 const cardFrontend=read('js/loja-cartao-online.js');
 const publicCheckout=read('js/loja-publica-consolidado.js');
 const migration=read('supabase/migrations/20260808190101_estabilizar_pagamentos_cartao.sql');
@@ -177,6 +195,11 @@ const environmentIsolationMigration=read('supabase/migrations/20260808202411_iso
 const authorizationMigration=read('supabase/migrations/20260808201744_autorizacao_cartao_libera_pedido.sql');
 const storeRuntime=read('js/loja-operacional.js');
 const adminFrontend=read('js/zxq-91m7-k4v2.js');
+const appFrontend=read('js/app.js');
+const operationalPush=read('supabase/functions/operational-push/index.ts');
+const deleteAccount=read('supabase/functions/delete-account/index.ts');
+const operationalPushFrontend=read('js/operational-notifications.js');
+const operationalPushMigration=read('supabase/migrations/20260808225755_harden_operational_push.sql');
 const finalPaymentApplyIndex=orderCharge.lastIndexOf('admin.rpc("fsdelivery_aplicar_evento_pagamento_pedido"');
 const finalCardMetadataIndex=orderCharge.indexOf('cartao_mascara: cardMask',finalPaymentApplyIndex);
 
@@ -202,6 +225,29 @@ check(orderWebhook.includes('event?.id'),'Webhook de pedido deve usar o id incre
 check(orderWebhook.includes('fsdelivery_aplicar_evento_pagamento_pedido'),'Webhook de pedido deve aplicar eventos de forma atômica');
 check(subscriptionWebhook.includes('${token}:${providerEventId}'),'Webhook de assinatura deve deduplicar cada evento, não o token inteiro');
 check(!/sha256\(`cobrancas:\$\{token\}`\)/.test(subscriptionWebhook),'Webhook de assinatura não pode bloquear o ciclo inteiro pelo token');
+for(const [name,source] of Object.entries({
+  orderCharge,
+  orderWebhook,
+  subscriptionCreate,
+  subscriptionConfig,
+  subscriptionCancel,
+  subscriptionUpdate,
+  subscriptionWebhook,
+  storeConfig,
+  pixCreate,
+  pixCancel,
+  pixWebhookConfig,
+})){
+  check(!/\|\|\s*["']production["']/.test(source),`${name}: ausência de EFI_ENV deve permanecer em homologação`);
+  check(!source.includes('"EFI_CLIENT_ID_PRODUCAO", "EFI_CLIENT_ID"'),`${name}: produção não pode reutilizar client_id genérico`);
+  check(!source.includes('"EFI_CLIENT_SECRET_PRODUCAO", "EFI_CLIENT_SECRET"'),`${name}: produção não pode reutilizar client_secret genérico`);
+  check(!source.includes('"EFI_CLIENT_ID_HOMOLOGACAO", "EFI_CLIENT_ID"'),`${name}: homologação não pode reutilizar client_id genérico`);
+  check(!source.includes('"EFI_CLIENT_SECRET_HOMOLOGACAO", "EFI_CLIENT_SECRET"'),`${name}: homologação não pode reutilizar client_secret genérico`);
+  check(!source.includes('"EFI_ACCOUNT_IDENTIFIER_PRODUCAO", "EFI_PAYEE_CODE_PRODUCAO", "EFI_ACCOUNT_IDENTIFIER"'),`${name}: produção não pode reutilizar identificador genérico`);
+  check(!source.includes('"EFI_ACCOUNT_IDENTIFIER_HOMOLOGACAO", "EFI_PAYEE_CODE_HOMOLOGACAO", "EFI_ACCOUNT_IDENTIFIER"'),`${name}: homologação não pode reutilizar identificador genérico`);
+}
+check(pixWebhookConfig.includes('EFI_CERT_KEY_PEM_BASE64'),'Configuração do webhook PIX deve separar o certificado por ambiente');
+check(pixWebhookConfig.includes('EFI_PIX_KEY'),'Configuração do webhook PIX deve separar a chave PIX por ambiente');
 check(storeConfig.includes('environment: ambiente === "producao" ? "production" : "sandbox"'),'Configuração pública deve expor o ambiente de tokenização correto');
 check(cardFrontend.includes('.setEnvironment(config.tokenizacao.environment)'),'Frontend externo deve respeitar o ambiente retornado pelo backend');
 check(!cardFrontend.includes(".setEnvironment('sandbox')"),'Frontend externo não pode fixar sandbox');
@@ -231,6 +277,15 @@ check(storeRuntime.includes("db.rpc('contexto_publico_loja'"),'Cardápio deve co
 check(!storeRuntime.includes("db.from('configuracoes_operacionais')"),'Cardápio não pode consultar configuração administrativa diretamente');
 check(!storeRuntime.includes("db.from('taxas_entrega_regioes')"),'Cardápio não pode contornar RLS das regiões de entrega');
 check(storeRuntime.includes('if(regionField)regionField.style.display'),'Atualização do total deve tolerar a remoção do seletor legado');
+check(appFrontend.includes('const escapeHtml='),'Painel deve escapar conteúdo dinâmico antes de usar innerHTML');
+check(appFrontend.includes('${escapeHtml(p.name)}'),'Painel deve escapar nomes de produtos renderizados');
+check(appFrontend.includes('${escapeHtml(selectedOrder.customer)}'),'Painel deve escapar dados do cliente no detalhe do pedido');
+check(operationalPush.includes('Deno.env.get("VAPID_PRIVATE_KEY")'),'Chave privada VAPID deve vir de segredo de ambiente');
+check(!/VAPID_PRIVATE_KEY\s*=\s*["'][A-Za-z0-9_-]{20,}/.test(operationalPush),'Chave privada VAPID não pode ficar embutida no código');
+check(operationalPush.includes('x-operational-push-token'),'Push operacional deve exigir token interno');
+check(operationalPushMigration.includes("'x-operational-push-token', v_token"),'Trigger deve enviar token interno ao push operacional');
+check(deleteAccount.includes('body?.confirm !== true'),'Exclusão de conta deve exigir confirmação explícita');
+check(operationalPushFrontend.includes('encodedKey(currentKey)!==VAPID_PUBLIC_KEY'),'Frontend deve renovar automaticamente assinatura após rotação VAPID');
 check(subscriptionStateMigration.includes("v_rank_recebido >= v_rank_anterior"),'Cobrança recorrente não pode regredir por webhook atrasado');
 check(subscriptionStateMigration.includes("v_status in ('paid', 'settled')"),'Cobrança recorrente deve aceitar os estados finais de confirmação');
 check(subscriptionStateMigration.includes("v_status in ('refunded', 'contested')"),'Reembolso e contestação devem ajustar o acesso concedido');
