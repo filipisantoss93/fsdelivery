@@ -15,6 +15,7 @@ const postOrder=read('js/loja-pos-envio.js');
 const appHtml=read('app.html');
 const appUi=read('js/app-ui-sync.js');
 const orderCss=read('css/orders.css');
+const mobileNavCss=read('css/mobile-nav.css');
 
 assert(!/maximum-scale\s*=\s*1|user-scalable\s*=\s*no/i.test(supabase),'supabase.js não pode bloquear zoom do navegador.');
 assert(/const cleanInternalUrl=/.test(supabase),'O carregador central deve possuir normalização de URLs internas.');
@@ -49,6 +50,11 @@ assert(/js\/app-ui-sync\.js/.test(appHtml),'app.html deve carregar o módulo ext
 assert(!/MutationObserver/.test(appUi),'app-ui-sync.js deve usar sincronização explícita, sem observers.');
 assert(!/setInterval\s*\(/.test(appUi),'app-ui-sync.js não pode usar polling contínuo.');
 assert(/pagehide/.test(appUi),'app-ui-sync.js deve limpar listeners e timers ao sair da página.');
+assert(/--fs-mobile-nav-height:calc\(65px \+ env\(safe-area-inset-bottom\)\)/.test(mobileNavCss),'Menu móvel deve expor sua altura total incluindo borda e área segura do aparelho.');
+assert(/\.fs-mobile-nav\{[^}]*min-height:var\(--fs-mobile-nav-height\)!important/.test(mobileNavCss),'Altura visual e espaço reservado do menu móvel devem usar o mesmo token.');
+assert(/body\[data-fs-mobile-nav-profile\]>\.modal\{inset:0 0 var\(--fs-mobile-nav-height\)/.test(mobileNavCss),'Modais operacionais devem terminar antes do menu móvel.');
+assert(/\.modal \.modal-card\{max-height:calc\(100dvh - var\(--fs-mobile-nav-height\)/.test(mobileNavCss),'Conteúdo dos modais deve rolar dentro da área útil acima do menu.');
+assert(/body\[data-fs-mobile-nav-profile\]>\.config-modal\{inset:[^}]*var\(--fs-mobile-nav-height\)/.test(mobileNavCss),'Diálogos de configuração devem respeitar a área reservada ao menu.');
 
 if(failures.length){console.error('\nFalhas na auditoria de estabilidade:');failures.forEach(item=>console.error(`- ${item}`));process.exit(1)}
 console.log('Auditoria de estabilidade frontend aprovada.');
