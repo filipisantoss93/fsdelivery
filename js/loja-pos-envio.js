@@ -1,5 +1,6 @@
 (()=>{
   'use strict';
+  if(new URLSearchParams(location.search).get('demo')==='1')return;
   if(!(window.FSDeliveryRoute?.matchesPage?.('loja')||/(^|\/)loja(?:\.html)?$/i.test(location.pathname)))return;
   if(window.__fsLojaPosEnvio)return;
   window.__fsLojaPosEnvio=true;
