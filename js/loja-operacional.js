@@ -2,6 +2,7 @@ const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL
 const db=window.supabaseClient;
 const params=new URLSearchParams(location.search);
 const slug=params.get('loja');
+const demoMode=params.get('demo')==='1';
 const tableToken=params.get('mesa');
 let settings;
 let operational={};
@@ -16,8 +17,8 @@ let appliedCoupon='';
 let activeCategory='';
 let submitting=false;
 const $=id=>document.getElementById(id);
-const cartKey=()=>`fsdelivery_cart_${slug||'public'}_${tableToken||'online'}`;
-const customerKey=()=>`fsdelivery_customer_${slug||'public'}`;
+const cartKey=()=>demoMode?'fsdelivery_cart_demo_online':`fsdelivery_cart_${slug||'public'}_${tableToken||'online'}`;
+const customerKey=()=>demoMode?'fsdelivery_customer_demo':`fsdelivery_customer_${slug||'public'}`;
 const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const safeImage=value=>{try{const url=new URL(value,location.origin);return ['http:','https:'].includes(url.protocol)?url.href:''}catch{return ''}};
 const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -38,7 +39,49 @@ function loadCart(){try{cart=JSON.parse(localStorage.getItem(cartKey())||'[]');i
 function saveCustomer(form){localStorage.setItem(customerKey(),JSON.stringify({name:String(form.get('name')||''),phone:String(form.get('phone')||''),address:String(form.get('address')||'')}))}
 function loadCustomer(){try{const data=JSON.parse(localStorage.getItem(customerKey())||'{}');$('customer-name').value=data.name||'';$('customer-phone').value=data.phone||'';$('customer-address').value=data.address||''}catch{}}
 
+function initDemo(){
+  settings={
+    id:null,
+    nome:'Burger da Vila',
+    categoria:'Hamburgueria • Demonstração',
+    descricao:'Cardápio demonstrativo do FS Delivery',
+    aberto:true,
+    tempo_entrega_min:30,
+    tempo_entrega_max:45,
+    pedido_minimo:20,
+    taxa_entrega:5.5,
+    telefone:''
+  };
+  operational={
+    formas_pagamento:['PIX','Cartão na entrega','Dinheiro'],
+    taxa_servico_percentual:0,
+    cupons_ativos:false
+  };
+  regions=[
+    {id:'demo-centro',nome:'Centro',taxa:5.5},
+    {id:'demo-bairro',nome:'Jardim Primavera',taxa:7}
+  ];
+  products=[
+    {id:'demo-xbacon',name:'X-Bacon Artesanal',category:'Lanches',price:32.9,description:'Hambúrguer, queijo, bacon, salada e molho da casa.',image:'',featured:true},
+    {id:'demo-duplo',name:'Combo Duplo',category:'Lanches',price:39.9,description:'Dois hambúrgueres, queijo, fritas e molho especial.',image:'',featured:true},
+    {id:'demo-frango',name:'X-Frango',category:'Lanches',price:27.9,description:'Frango grelhado, queijo, salada e maionese.',image:'',featured:false},
+    {id:'demo-fritas',name:'Batata Frita',category:'Porções',price:18.5,description:'Porção individual crocante.',image:'',featured:false},
+    {id:'demo-coca',name:'Coca-Cola lata',category:'Bebidas',price:6.5,description:'350 ml gelada.',image:'',featured:false},
+    {id:'demo-brownie',name:'Brownie com chocolate',category:'Sobremesas',price:12.9,description:'Brownie macio com cobertura de chocolate.',image:'',featured:false}
+  ];
+  document.body.dataset.demo='true';
+  loadCart();
+  decorateStore();
+  configureContext();
+  bind();
+  loadCustomer();
+  renderMenu();
+  renderCart();
+  setFeedback('Modo demonstração: você pode navegar, montar o pedido e testar o checkout. Nenhum pedido ou cobrança real será criado.','success',0);
+}
+
 async function init(){
+  if(demoMode){initDemo();return}
   if(!slug)return showFatal('Loja não informada.');
   try{
     const {data:est,error:storeError}=await db.from('estabelecimentos').select('*').eq('slug',slug).maybeSingle();
@@ -112,8 +155,13 @@ function decorateStore(){
   $('store-delivery-fee').textContent=regions.length?'Conforme região':money(settings.taxa_entrega);
   $('store-contact').textContent=settings.telefone||'Consulte no pedido';
   $('closed-notice').hidden=settings.aberto;
-  $('customer-orders-link').href=`cliente.html?loja=${encodeURIComponent(slug)}`;
-  $('track-order-link').href=`cliente.html?loja=${encodeURIComponent(slug)}`;
+  if(demoMode){
+    $('customer-orders-link').hidden=true;
+    $('track-order-link').hidden=true;
+  }else{
+    $('customer-orders-link').href=`cliente.html?loja=${encodeURIComponent(slug)}`;
+    $('track-order-link').href=`cliente.html?loja=${encodeURIComponent(slug)}`;
+  }
   const phone=String(settings.telefone||'').replace(/\D/g,'');
   if(phone){$('store-whatsapp').href=`https://wa.me/${phone.startsWith('55')?phone:`55${phone}`}`;$('store-whatsapp').hidden=false}
 }
@@ -287,6 +335,16 @@ $('checkout-form').onsubmit=async event=>{
   const original=button.textContent;
   button.textContent='Enviando pedido...';
   try{
+    if(demoMode){
+      saveCustomer(data);
+      close();
+      $('success-message').textContent='Demonstração concluída. O checkout foi validado, mas nenhum pedido ou pagamento real foi criado.';
+      cart=[];
+      saveCart();
+      renderCart();
+      open('success-modal');
+      return;
+    }
     const {data:orderCode,error}=await db.rpc('criar_pedido_publico',{payload});
     if(error)throw error;
     saveCustomer(data);
