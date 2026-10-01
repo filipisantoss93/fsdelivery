@@ -1,4 +1,16 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/meus-pedidos",
+      "destination": "/cliente",
+      "permanent": true
+    },
+    {
+      "source": "/meus-pedidos.html",
+      "destination": "/cliente",
+      "permanent": true
+    }
+  ]
 }
