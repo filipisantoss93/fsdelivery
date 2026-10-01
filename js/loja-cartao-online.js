@@ -1,5 +1,6 @@
 (()=>{
   'use strict';
+  if(new URLSearchParams(location.search).get('demo')==='1')return;
   if(window.__fsLojaCartaoOnline)return;
   window.__fsLojaCartaoOnline=true;
   const db=window.supabaseClient;
