@@ -1,4 +1,5 @@
 (()=>{
+  if(new URLSearchParams(location.search).get('demo')==='1')return;
   if(!(window.FSDeliveryRoute?.matchesPage?.('loja')||/(^|\/)loja(?:\.html)?$/i.test(location.pathname)))return;
   const byId=id=>document.getElementById(id);
   const params=new URLSearchParams(location.search);
