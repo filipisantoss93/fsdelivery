@@ -1,5 +1,6 @@
 (()=>{
   'use strict';
+  if(new URLSearchParams(location.search).get('demo')==='1')return;
   if(window.__fsLojaPublicaConsolidada)return;
   window.__fsLojaPublicaConsolidada=true;
 
