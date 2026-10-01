@@ -285,6 +285,10 @@ check(!/VAPID_PRIVATE_KEY\s*=\s*["'][A-Za-z0-9_-]{20,}/.test(operationalPush),'C
 check(operationalPush.includes('x-operational-push-token'),'Push operacional deve exigir token interno');
 check(operationalPushMigration.includes("'x-operational-push-token', v_token"),'Trigger deve enviar token interno ao push operacional');
 check(deleteAccount.includes('body?.confirm !== true'),'Exclusão de conta deve exigir confirmação explícita');
+check(deleteAccount.includes('.eq("renovacao_automatica", true)'),'Exclusão de conta deve localizar recorrências ativas antes de apagar o usuário');
+check(deleteAccount.includes('/cancel'),'Exclusão de conta deve cancelar a assinatura no provedor antes de apagar o usuário');
+check(deleteAccount.indexOf('cancelRemoteSubscription')<deleteAccount.indexOf('admin.auth.admin.deleteUser'),'Cancelamento remoto deve ocorrer antes da exclusão do usuário');
+check(deleteAccount.includes('assinatura em processamento'),'Exclusão deve ser bloqueada durante criação de assinatura ainda sem vínculo no provedor');
 check(operationalPushFrontend.includes('encodedKey(currentKey)!==VAPID_PUBLIC_KEY'),'Frontend deve renovar automaticamente assinatura após rotação VAPID');
 check(subscriptionStateMigration.includes("v_rank_recebido >= v_rank_anterior"),'Cobrança recorrente não pode regredir por webhook atrasado');
 check(subscriptionStateMigration.includes("v_status in ('paid', 'settled')"),'Cobrança recorrente deve aceitar os estados finais de confirmação');
