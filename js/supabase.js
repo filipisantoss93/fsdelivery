@@ -199,6 +199,7 @@ if(matchesPage('loja')){
   appendScript('js/loja-fluxos-pedido.js','fsLojaFluxos');
   appendScript('js/loja-pos-envio.js','fsLojaPosEnvio');
   appendScript('js/loja-cartao-online.js','fsLojaCartaoOnline');
+  appendScript('js/loja-pix-online.js','fsLojaPixOnline');
   appendScript('js/loja-publica-consolidado.js','fsLojaPublicaConsolidada');
 }
 

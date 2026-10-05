@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
       ambiente,
       status: data?.status || "ativo",
       cartao_online: cardEnabled,
-      pix_online: Boolean(data?.pix_online_ativo),
+      pix_online: Boolean(data?.pix_online_ativo && splitEnabled),
       split: splitEnabled,
       tokenizacao: cardEnabled
         ? { account_identifier: account, environment: ambiente === "producao" ? "production" : "sandbox" }
