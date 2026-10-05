@@ -7,8 +7,6 @@ create table if not exists public.equipe_sessoes_operacionais (
 );
 create index if not exists equipe_sessoes_operacionais_expira_idx
   on public.equipe_sessoes_operacionais (expira_em);
-create index if not exists equipe_limite_login_janela_idx
-  on public.equipe_limite_login (janela_inicio);
 alter table public.equipe_sessoes_operacionais enable row level security;
 revoke all on table public.equipe_sessoes_operacionais from public, anon, authenticated;
 
@@ -18,6 +16,8 @@ create table if not exists public.equipe_limite_login (
   janela_inicio timestamptz not null default now(),
   bloqueado_ate timestamptz
 );
+create index if not exists equipe_limite_login_janela_idx
+  on public.equipe_limite_login (janela_inicio);
 alter table public.equipe_limite_login enable row level security;
 revoke all on table public.equipe_limite_login from public, anon, authenticated;
 
