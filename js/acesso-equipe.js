@@ -44,12 +44,14 @@ form.addEventListener('submit',async event=>{
    p_funcao:role
   });
   if(error)throw error;
-  if(!member?.estabelecimento_id||member.funcao!==role)throw new Error('Cadastro da equipe inválido.');
+  if(member?.error)throw new Error(member.error);
+  if(!member?.estabelecimento_id||member.funcao!==role||!member.session_token)throw new Error('Cadastro da equipe inválido.');
 
+  const {session_token,...profile}=member;
   sessionStorage.setItem(TEAM_SESSION_KEY,JSON.stringify({
-   ...member,
+   ...profile,
    phone,
-   pin,
+   pin:session_token,
    authenticated_at:Date.now()
   }));
   feedback.textContent=`Restaurante encontrado: ${member.restaurante}`;
