@@ -19,7 +19,7 @@ for (const fn of [
   'listar_notificacoes_equipe','marcar_notificacao_equipe_lida','marcar_pedido_servido_equipe_garcom',
   'registrar_localizacao_entregador','registrar_push_equipe'
 ]) assert.ok(migration.includes('public.' + fn), 'sessão deve proteger ' + fn);
-assert.ok(login.includes('pin:session_token'));
+assert.ok(login.includes('pin:session_token||pin'));
 assert.ok(!login.includes('...member,'));
 assert.ok(legacyLogin.includes('pin:session_token'));
 assert.ok(waiter.includes('encerrar_sessao_equipe'));

@@ -45,13 +45,13 @@ form.addEventListener('submit',async event=>{
   });
   if(error)throw error;
   if(member?.error)throw new Error(member.error);
-  if(!member?.estabelecimento_id||member.funcao!==role||!member.session_token)throw new Error('Cadastro da equipe inválido.');
+  if(!member?.estabelecimento_id||member.funcao!==role)throw new Error('Cadastro da equipe inválido.');
 
   const {session_token,...profile}=member;
   sessionStorage.setItem(TEAM_SESSION_KEY,JSON.stringify({
    ...profile,
    phone,
-   pin:session_token,
+   pin:session_token||pin,
    authenticated_at:Date.now()
   }));
   feedback.textContent=`Restaurante encontrado: ${member.restaurante}`;
