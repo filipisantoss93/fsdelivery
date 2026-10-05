@@ -255,7 +255,7 @@ function showProduct(id){
 
 function selectedAddons(){return [...document.querySelectorAll('[data-store-addon]:checked')].map(input=>current.addons.find(item=>String(item.id)===input.value)).filter(Boolean)}
 function addonTotal(){return selectedAddons().reduce((sum,addon)=>sum+addon.price,0)}
-function renderProductAddons(){const note=$('item-note').parentElement;let root=$('store-product-addons');if(!root){root=document.createElement('div');root.id='store-product-addons';root.className='field full';note.before(root)}root.innerHTML=current.addons?.length?'<strong>Adicionais</strong>'+current.addons.map(a=>'<label style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="checkbox" data-store-addon value="'+escapeHtml(a.id)+'"><span>'+escapeHtml(a.name)+(a.price?' • '+money(a.price):'')+'</span></label>').join(''):'';root.querySelectorAll('[data-store-addon]').forEach(input=>input.onchange=updateAdd)}
+function renderProductAddons(){const note=$('item-note').parentElement;let root=$('store-product-addons');if(!root){root=document.createElement('div');root.id='store-product-addons';root.className='field full';note.before(root)}root.innerHTML=current.addons?.length?'<strong>Adicionais</strong>'+current.addons.map(a=>'<label class="addon-choice"><input type="checkbox" data-store-addon value="'+escapeHtml(a.id)+'"><span>'+escapeHtml(a.name)+(a.price?' • '+money(a.price):'')+'</span></label>').join(''):'';root.querySelectorAll('[data-store-addon]').forEach(input=>input.onchange=updateAdd)}
 function updateAdd(){
   $('add-cart-btn').textContent=`Adicionar • ${money((current.price+addonTotal())*qty)}`;
   $('qty-minus').onclick=()=>{qty=Math.max(1,qty-1);$('qty-value').textContent=qty;updateAdd()};

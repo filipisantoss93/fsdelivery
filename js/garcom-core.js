@@ -320,7 +320,7 @@ function showProduct(id) {
 
 function closeModal() { el('waiter-product-modal').classList.remove('open'); document.body.style.overflow = ''; }
 function selectedWaiterAddons(){return [...document.querySelectorAll('[data-waiter-addon]:checked')].map(input=>current.addons.find(a=>String(a.id)===input.value)).filter(Boolean)}
-function renderWaiterAddons(){const root=el('waiter-product-addons');root.innerHTML=current.addons?.length?'<b>Adicionais</b>'+current.addons.map(a=>'<label style="display:flex;gap:10px;padding:8px 0"><input type="checkbox" data-waiter-addon value="'+escapeHtml(a.id)+'">'+escapeHtml(a.name)+(a.price?' • '+money(a.price):'')+'</label>').join(''):'';root.querySelectorAll('[data-waiter-addon]').forEach(i=>i.onchange=updateAddButton)}
+function renderWaiterAddons(){const root=el('waiter-product-addons');root.innerHTML=current.addons?.length?'<b>Adicionais</b>'+current.addons.map(a=>'<label class="addon-choice"><input type="checkbox" data-waiter-addon value="'+escapeHtml(a.id)+'">'+escapeHtml(a.name)+(a.price?' • '+money(a.price):'')+'</label>').join(''):'';root.querySelectorAll('[data-waiter-addon]').forEach(i=>i.onchange=updateAddButton)}
 function updateAddButton() { const extra=selectedWaiterAddons().reduce((s,a)=>s+a.price,0);el('waiter-add').textContent = `Adicionar • ${money(((current?.price || 0)+extra) * qty)}`; }
 function addCurrentProduct() { if (!current) return; cart.push({ cartId: crypto.randomUUID(), productId: current.id, name: current.name, price: current.price, qty, note: el('waiter-item-note').value.trim(),addons:selectedWaiterAddons() }); closeModal(); renderCart(); }
 function subtotal() { return cart.reduce((sum, item) => sum + (item.price+(item.addons||[]).reduce((s,a)=>s+a.price,0)) * item.qty, 0); }
