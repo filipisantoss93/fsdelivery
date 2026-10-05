@@ -36,7 +36,7 @@ function normalizeProduct(product, category) {
     price: Number(product.preco),
     category: category || product.categoria || product.categorias?.nome || 'Sem categoria',
     imageUrl: product.imagem_url || product.imagem || product.foto_url || '',
-    featured: Boolean(product.destaque)
+    featured: Boolean(product.destaque), addons:(product.grupos_adicionais||[]).flatMap(group=>(group.adicionais||[]).filter(addon=>addon.ativo).map(addon=>({id:addon.id,name:addon.nome,price:Number(addon.preco)||0})))
   };
 }
 
@@ -84,7 +84,7 @@ async function loadOwnerData() {
   if (storeError || !store) throw storeError || new Error('Estabelecimento não encontrado.');
   establishment = store;
   const [productResult, tableResult, orderResult] = await Promise.all([
-    db.from('produtos').select('id,nome,descricao,preco,ativo,categoria_id,categorias(nome)').eq('estabelecimento_id', store.id).eq('ativo', true).order('nome'),
+    db.from('produtos').select('id,nome,descricao,preco,ativo,categoria_id,categorias(nome),grupos_adicionais(id,minimo,maximo,obrigatorio,adicionais(id,nome,preco,ativo))').eq('estabelecimento_id', store.id).eq('ativo', true).order('nome'),
     db.from('mesas').select('id,numero,nome,codigo_qr,token_publico,identificacao,ativo').eq('estabelecimento_id', store.id).eq('ativo', true).order('numero'),
     db.from('pedidos').select('id,codigo,status,tipo,total,created_at,mesa_id,clientes(nome,telefone),mesas(numero,nome),itens_pedido(quantidade,nome_produto)').eq('estabelecimento_id', store.id).order('created_at', { ascending: false }).limit(100)
   ]);
@@ -312,19 +312,23 @@ function showProduct(id) {
   el('waiter-product-description').textContent = current.description || 'Sem descrição.';
   el('waiter-qty').textContent = qty;
   el('waiter-item-note').value = '';
+  renderWaiterAddons();
   updateAddButton();
   el('waiter-product-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
 function closeModal() { el('waiter-product-modal').classList.remove('open'); document.body.style.overflow = ''; }
-function updateAddButton() { el('waiter-add').textContent = `Adicionar • ${money((current?.price || 0) * qty)}`; }
-function addCurrentProduct() { if (!current) return; cart.push({ cartId: crypto.randomUUID(), productId: current.id, name: current.name, price: current.price, qty, note: el('waiter-item-note').value.trim() }); closeModal(); renderCart(); }
-function subtotal() { return cart.reduce((sum, item) => sum + item.price * item.qty, 0); }
+function selectedWaiterAddons(){return [...document.querySelectorAll('[data-waiter-addon]:checked')].map(input=>current.addons.find(a=>String(a.id)===input.value)).filter(Boolean)}
+function renderWaiterAddons(){const root=el('waiter-product-addons');root.innerHTML=current.addons?.length?'<b>Adicionais</b>'+current.addons.map(a=>'<label style="display:flex;gap:10px;padding:8px 0"><input type="checkbox" data-waiter-addon value="'+escapeHtml(a.id)+'">'+escapeHtml(a.name)+(a.price?' • '+money(a.price):'')+'</label>').join(''):'';root.querySelectorAll('[data-waiter-addon]').forEach(i=>i.onchange=updateAddButton)}
+function updateAddButton() { const extra=selectedWaiterAddons().reduce((s,a)=>s+a.price,0);el('waiter-add').textContent = `Adicionar • ${money(((current?.price || 0)+extra) * qty)}`; }
+function addCurrentProduct() { if (!current) return; cart.push({ cartId: crypto.randomUUID(), productId: current.id, name: current.name, price: current.price, qty, note: el('waiter-item-note').value.trim(),addons:selectedWaiterAddons() }); closeModal(); renderCart(); }
+function subtotal() { return cart.reduce((sum, item) => sum + (item.price+(item.addons||[]).reduce((s,a)=>s+a.price,0)) * item.qty, 0); }
+
 function total() { return subtotal() + (el('waiter-type').value === 'entrega' ? Number(establishment?.taxa_entrega || 0) : 0); }
 
 function renderCart() {
-  el('waiter-cart').innerHTML = cart.length ? cart.map(item => `<div class="row-card"><div class="order-main"><b>${Number(item.qty)}x ${escapeHtml(item.name)}</b><small>${item.note ? escapeHtml(item.note) : money(item.price)}</small></div><div><b>${money(item.price * item.qty)}</b><button class="link-button" data-remove="${escapeHtml(item.cartId)}">Remover</button></div></div>`).join('') : '<div class="empty-state">Nenhum item adicionado.</div>';
+  el('waiter-cart').innerHTML = cart.length ? cart.map(item => `<div class="row-card"><div class="order-main"><b>${Number(item.qty)}x ${escapeHtml(item.name)}</b><small>${[item.note,...(item.addons||[]).map(a=>`Adicional: ${a.name}`)].filter(Boolean).map(escapeHtml).join(' • ')||money(item.price)}</small></div><div><b>${money((item.price+(item.addons||[]).reduce((s,a)=>s+a.price,0)) * item.qty)}</b><button class="link-button" data-remove="${escapeHtml(item.cartId)}">Remover</button></div></div>`).join('') : '<div class="empty-state">Nenhum item adicionado.</div>';
   const itemCount = cart.reduce((sum, item) => sum + Number(item.qty), 0);
   const orderTotal = total();
   el('waiter-total').textContent = money(orderTotal);
@@ -353,7 +357,7 @@ async function submitOrder() {
   if (type === 'entrega' && address.length < 8) return alert('Informe o endereço completo.');
   if ((type === 'entrega' || type === 'retirada') && (name.length < 2 || phone.length < 10)) return alert('Informe nome e WhatsApp válidos do cliente.');
   const selectedTable = el('waiter-table').selectedOptions[0];
-  const payload = { tipo: type, mesa_id: type === 'mesa' ? el('waiter-table').value : null, mesa_token: type === 'mesa' ? selectedTable?.dataset.token : null, nome: name || 'Atendimento local', telefone: phone || `mesa${Date.now()}`, endereco: address, pagamento: el('waiter-payment').value, observacoes: el('waiter-notes').value.trim(), itens: cart.map(item => ({ produto_id: item.productId, quantidade: item.qty, observacoes: item.note })) };
+  const payload = { tipo: type, mesa_id: type === 'mesa' ? el('waiter-table').value : null, mesa_token: type === 'mesa' ? selectedTable?.dataset.token : null, nome: name || 'Atendimento local', telefone: phone || `mesa${Date.now()}`, endereco: address, pagamento: el('waiter-payment').value, observacoes: el('waiter-notes').value.trim(), itens: cart.map(item => ({ produto_id: item.productId, quantidade: item.qty, observacoes: item.note, adicionais:(item.addons||[]).map(a=>a.id) })) };
   const button = el('waiter-submit');
   const original = button.textContent;
   button.disabled = true;

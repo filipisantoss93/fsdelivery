@@ -62,7 +62,7 @@ function initDemo(){
     {id:'demo-bairro',nome:'Jardim Primavera',taxa:7}
   ];
   products=[
-    {id:'demo-xbacon',name:'X-Bacon Artesanal',category:'Lanches',price:32.9,description:'Hambúrguer, queijo, bacon, salada e molho da casa.',image:'',featured:true},
+    {id:'demo-xbacon',name:'X-Bacon Artesanal',category:'Lanches',price:32.9,description:'Hambúrguer, queijo, bacon, salada e molho da casa.',image:'',featured:true,addons:[{id:'demo-bacon',name:'Bacon extra',price:4},{id:'demo-calabresa',name:'Calabresa',price:3.5},{id:'demo-ovo',name:'Ovo',price:2},{id:'demo-catupiry',name:'Catupiry',price:4.5}]},
     {id:'demo-duplo',name:'Combo Duplo',category:'Lanches',price:39.9,description:'Dois hambúrgueres, queijo, fritas e molho especial.',image:'',featured:true},
     {id:'demo-frango',name:'X-Frango',category:'Lanches',price:27.9,description:'Frango grelhado, queijo, salada e maionese.',image:'',featured:false},
     {id:'demo-fritas',name:'Batata Frita',category:'Porções',price:18.5,description:'Porção individual crocante.',image:'',featured:false},
@@ -106,7 +106,7 @@ async function init(){
       table=mesa;
     }
 
-    const {data,error:productsError}=await db.from('produtos').select('*,categorias(nome)').eq('estabelecimento_id',est.id).eq('ativo',true).order('created_at');
+    const {data,error:productsError}=await db.from('produtos').select('*,categorias(nome),grupos_adicionais(id,nome,minimo,maximo,obrigatorio,ordem,adicionais(id,nome,preco,ativo,ordem))').eq('estabelecimento_id',est.id).eq('ativo',true).order('created_at');
     if(productsError)throw productsError;
     products=(data||[]).map(product=>({
       id:product.id,
@@ -115,7 +115,7 @@ async function init(){
       price:Number(product.preco),
       description:product.descricao||'',
       image:safeImage(product.imagem_url),
-      featured:Boolean(product.destaque)
+      featured:Boolean(product.destaque),addons:(product.grupos_adicionais||[]).flatMap(group=>(group.adicionais||[]).filter(addon=>addon.ativo).map(addon=>({id:addon.id,name:addon.nome,price:Number(addon.preco)||0})))
     }));
 
     loadCart();
@@ -248,16 +248,20 @@ function showProduct(id){
   $('store-product-title').textContent=current.name;
   $('store-product-description').textContent=current.description||'Escolha a quantidade e adicione uma observação, se necessário.';
   $('item-note').value='';
+  renderProductAddons();
   updateAdd();
   open('product-store-modal');
 }
 
+function selectedAddons(){return [...document.querySelectorAll('[data-store-addon]:checked')].map(input=>current.addons.find(item=>String(item.id)===input.value)).filter(Boolean)}
+function addonTotal(){return selectedAddons().reduce((sum,addon)=>sum+addon.price,0)}
+function renderProductAddons(){const note=$('item-note').parentElement;let root=$('store-product-addons');if(!root){root=document.createElement('div');root.id='store-product-addons';root.className='field full';note.before(root)}root.innerHTML=current.addons?.length?'<strong>Adicionais</strong>'+current.addons.map(a=>'<label style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="checkbox" data-store-addon value="'+escapeHtml(a.id)+'"><span>'+escapeHtml(a.name)+(a.price?' • '+money(a.price):'')+'</span></label>').join(''):'';root.querySelectorAll('[data-store-addon]').forEach(input=>input.onchange=updateAdd)}
 function updateAdd(){
-  $('add-cart-btn').textContent=`Adicionar • ${money(current.price*qty)}`;
+  $('add-cart-btn').textContent=`Adicionar • ${money((current.price+addonTotal())*qty)}`;
   $('qty-minus').onclick=()=>{qty=Math.max(1,qty-1);$('qty-value').textContent=qty;updateAdd()};
   $('qty-plus').onclick=()=>{qty++;$('qty-value').textContent=qty;updateAdd()};
   $('add-cart-btn').onclick=()=>{
-    cart.push({cartId:crypto.randomUUID(),productId:current.id,name:current.name,price:current.price,qty,note:$('item-note').value.trim()});
+    cart.push({cartId:crypto.randomUUID(),productId:current.id,name:current.name,price:current.price,qty,note:$('item-note').value.trim(),addons:selectedAddons()});
     saveCart();
     close();
     renderCart();
@@ -265,14 +269,14 @@ function updateAdd(){
   };
 }
 
-const subtotal=()=>cart.reduce((sum,item)=>sum+item.price*item.qty,0);
+const subtotal=()=>cart.reduce((sum,item)=>sum+(item.price+(item.addons||[]).reduce((s,a)=>s+Number(a.price||0),0))*item.qty,0);
 const type=()=>table?'mesa':$('delivery-type').value;
 const fee=()=>type()==='delivery'?Number(selectedRegion?.taxa??settings.taxa_entrega??0):0;
 const service=()=>['mesa','local'].includes(type())?subtotal()*Number(operational.taxa_servico_percentual||0)/100:0;
 const total=()=>subtotal()+fee()+service();
 
 function renderCart(){
-  $('cart-items').innerHTML=cart.length?cart.map(item=>`<div class="cart-item"><div class="cart-item-line"><b>${item.qty}x ${escapeHtml(item.name)}</b><b>${money(item.qty*item.price)}</b></div>${item.note?`<small>${escapeHtml(item.note)}</small>`:''}<div class="inline-actions"><button class="btn btn-secondary" data-minus="${escapeHtml(item.cartId)}" type="button">−</button><button class="btn btn-secondary" data-plus="${escapeHtml(item.cartId)}" type="button">+</button><button class="link-button" data-remove="${escapeHtml(item.cartId)}" type="button">Remover</button></div></div>`).join(''):'<div class="cart-empty">Seu carrinho está vazio.</div>';
+  $('cart-items').innerHTML=cart.length?cart.map(item=>`<div class="cart-item"><div class="cart-item-line"><b>${item.qty}x ${escapeHtml(item.name)}</b><b>${money(item.qty*(item.price+(item.addons||[]).reduce((sum,a)=>sum+Number(a.price||0),0)))}</b>${item.addons?.length?`<small>Adicionais: ${item.addons.map(a=>escapeHtml(a.name)).join(', ')}</small>`:''}</div>${item.note?`<small>${escapeHtml(item.note)}</small>`:''}<div class="inline-actions"><button class="btn btn-secondary" data-minus="${escapeHtml(item.cartId)}" type="button">−</button><button class="btn btn-secondary" data-plus="${escapeHtml(item.cartId)}" type="button">+</button><button class="link-button" data-remove="${escapeHtml(item.cartId)}" type="button">Remover</button></div></div>`).join(''):'<div class="cart-empty">Seu carrinho está vazio.</div>';
   document.querySelectorAll('[data-minus]').forEach(button=>button.onclick=()=>change(button.dataset.minus,-1));
   document.querySelectorAll('[data-plus]').forEach(button=>button.onclick=()=>change(button.dataset.plus,1));
   document.querySelectorAll('[data-remove]').forEach(button=>button.onclick=()=>{cart=cart.filter(item=>item.cartId!==button.dataset.remove);saveCart();renderCart()});
@@ -328,7 +332,7 @@ $('checkout-form').onsubmit=async event=>{
   if(phone.length<10)return setFeedback('Informe um WhatsApp válido.','error');
   if(orderType==='delivery'&&!address)return setFeedback('Informe o endereço completo.','error');
   if(orderType==='delivery'&&regions.length&&!selectedRegion)return setFeedback('Selecione o bairro ou região.','error');
-  const payload={slug,nome:name,telefone:phone,tipo:orderType,endereco:orderType==='delivery'?address:null,bairro:selectedRegion?.nome||'',pagamento:data.get('payment'),troco_para:data.get('payment')==='Dinheiro'?data.get('change')||null:null,observacoes:String(data.get('notes')||'').trim(),mesa_token:tableToken||null,cupom:appliedCoupon,itens:cart.map(item=>({produto_id:item.productId,quantidade:item.qty,observacoes:item.note}))};
+  const payload={slug,nome:name,telefone:phone,tipo:orderType,endereco:orderType==='delivery'?address:null,bairro:selectedRegion?.nome||'',pagamento:data.get('payment'),troco_para:data.get('payment')==='Dinheiro'?data.get('change')||null:null,observacoes:String(data.get('notes')||'').trim(),mesa_token:tableToken||null,cupom:appliedCoupon,itens:cart.map(item=>({produto_id:item.productId,quantidade:item.qty,observacoes:item.note,adicionais:(item.addons||[]).map(a=>a.id)}))};
   const button=$('submit-order-btn');
   submitting=true;
   button.disabled=true;
