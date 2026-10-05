@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
 const root = new URL('../', import.meta.url);
-const migration = await readFile(new URL('supabase/migrations/20261004211500_sessoes_seguras_e_limitar_pin_equipe.sql', root), 'utf8');
+const migration = await readFile(new URL('supabase/migrations/20261005005214_20261004211500_sessoes_seguras_e_limitar_pin_equipe.sql', root), 'utf8');
 const login = await readFile(new URL('js/acesso-equipe.js', root), 'utf8');
 const legacyLogin = await readFile(new URL('js/equipe-acesso.js', root), 'utf8');
 const waiter = await readFile(new URL('js/garcom-core.js', root), 'utf8');
