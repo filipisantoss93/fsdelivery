@@ -7,3 +7,5 @@
   .waiter-menu-body .mobile-nav{grid-template-columns:repeat(3,minmax(0,1fr))}
   .waiter-menu-body .mobile-nav button{position:relative}
 }
+
+.addon-choice{display:flex;gap:10px;align-items:center;padding:8px 0}

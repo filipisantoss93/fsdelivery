@@ -106,3 +106,5 @@
   .store-body .store-summary-item .store-summary-icon{width:36px;height:36px;flex-basis:36px;border-radius:10px}
   .store-body .store-summary-item .store-summary-icon svg{width:20px;height:20px}
 }
+
+.addon-choice{display:flex;gap:10px;align-items:center;padding:8px 0}
