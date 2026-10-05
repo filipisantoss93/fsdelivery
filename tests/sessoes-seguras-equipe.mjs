@@ -10,7 +10,7 @@ const courier = await readFile(new URL('js/entregador-core.js', root), 'utf8');
 
 assert.ok(migration.includes("v_tentativas >= 8"));
 assert.ok(migration.includes("now()+interval '15 minutes'"));
-assert.ok(migration.includes("extensions.digest(v_token, 'sha256')"));
+assert.ok(migration.includes("extensions.digest(v_token,'sha256')"));
 assert.ok(migration.includes("create table if not exists public.equipe_sessoes_operacionais"));
 assert.ok(migration.includes("create table if not exists public.equipe_limite_login"));
 for (const fn of [
