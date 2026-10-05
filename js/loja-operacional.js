@@ -177,7 +177,7 @@ function configureContext(){
     $('address-field').style.display='none';
     $('customer-orders-link').style.display='none';
   }else{
-    select.innerHTML='<option value="delivery">Entrega</option><option value="pickup">Retirada</option><option value="local">Comer no local</option>';
+    select.innerHTML='<option value="delivery">Entrega</option><option value="pickup">Retirada</option>';
     $('order-context-label').textContent='Pedido on-line';
   }
   const payments=Array.isArray(operational.formas_pagamento)&&operational.formas_pagamento.length?operational.formas_pagamento:['PIX','Cartão de crédito','Cartão de débito','Dinheiro'];

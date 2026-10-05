@@ -6,7 +6,7 @@ const REFRESH_INTERVAL=20000;
 const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
 const readSession=()=>{try{return JSON.parse(sessionStorage.getItem(TEAM_SESSION_KEY)||'null')}catch(error){console.error('Sessão inválida',error);return null}};
 const validSession=value=>value?.funcao==='entregador'&&value.estabelecimento_id&&value.slug&&value.phone&&value.pin&&Date.now()-Number(value.authenticated_at||0)<=SESSION_MAX_AGE;
-const logout=()=>{sessionStorage.removeItem(TEAM_SESSION_KEY);location.replace(LOGIN_PAGE)};
+const logout=()=>{const token=readSession()?.pin;if(token)void db.rpc('encerrar_sessao_equipe',{p_token:token});sessionStorage.removeItem(TEAM_SESSION_KEY);location.replace(LOGIN_PAGE)};
 const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 const normalizePhone=value=>String(value||'').replace(/\D/g,'');
 function addressOf(order){const value=order?.endereco_entrega;if(!value)return'Endereço não informado';if(typeof value==='string')return value;return[value.endereco,value.numero,value.complemento,value.bairro,value.cidade,value.referencia].filter(Boolean).join(', ')||'Endereço não informado'}

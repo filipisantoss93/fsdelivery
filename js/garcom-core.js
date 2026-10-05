@@ -51,6 +51,8 @@ function readTeamSession() {
 }
 
 function redirectToAccess() {
+  const token=teamSession?.pin||readTeamSession()?.pin;
+  if(token)void db.rpc('encerrar_sessao_equipe',{p_token:token});
   sessionStorage.removeItem(TEAM_SESSION_KEY);
   location.replace('garcom.html');
 }
