@@ -62,10 +62,13 @@
         if(address.bairro.length<2)return fail('Informe o bairro da entrega.',f.neighborhood);
         if(typeof regions!=='undefined'&&regions.length&&!resolveRegion())return fail('Este bairro não está cadastrado na área de entrega da loja.',f.neighborhood);
       }
-      const onlineCard=payment==='Cartão on-line';
+      const onlineCard=payment==='Cartão on-line',onlinePix=payment==='Pix on-line';
       if(onlineCard)setCheckoutBusy(true,'Validando cartão...');
       const cardPayment=onlineCard?await window.FSDeliveryOnlineCard?.prepare?.({name,phone}):null;
       if(onlineCard&&!cardPayment)throw new Error('Não foi possível preparar o pagamento com cartão. Nenhum pedido foi realizado.');
+      if(onlinePix)await window.FSDeliveryOnlinePix?.ensureReady?.();
+      const pixCustomer=onlinePix?window.FSDeliveryOnlinePix?.prepare?.({name,phone}):null;
+      if(onlinePix&&!pixCustomer)throw new Error('Pix on-line indisponível para esta loja. Nenhum pedido foi realizado.');
       const checkout=checkoutToken();
       const payload={slug:typeof slug!=='undefined'?slug:params.get('loja'),nome:name,telefone:phone,tipo:orderType,endereco:orderType==='delivery'?address.texto:null,endereco_dados:orderType==='delivery'?address:null,cep:address.cep,pagamento:payment,troco_para:payment==='Dinheiro'?String(formData.get('change')||'').replace(',','.').trim()||null:null,observacoes:String(formData.get('notes')||'').trim(),mesa_token:typeof tableToken!=='undefined'?tableToken:null,cupom:typeof appliedCoupon!=='undefined'?appliedCoupon:'',checkout_token:checkout.token,itens:cart.map(item=>({produto_id:item.productId,quantidade:item.qty,observacoes:item.note}))};
       setCheckoutBusy(true,onlineCard?'Criando pedido seguro...':'Enviando pedido...');
@@ -75,6 +78,9 @@
       if(onlineCard){
         setCheckoutBusy(true,'Processando pagamento...');
         paymentResult=await window.FSDeliveryOnlineCard.charge({checkoutToken:checkout.token,payment:cardPayment});
+      }else if(onlinePix){
+        setCheckoutBusy(true,'Gerando QR Pix...');
+        paymentResult=await window.FSDeliveryOnlinePix.charge({checkoutToken:checkout.token,customer:pixCustomer});
       }
       const paymentStatus=paymentResult?.cobranca?.pagamento_status||null;
       const proof={slug:String(payload.slug||''),telefone:phone,checkoutToken:checkout.token,codigo:String(orderCode),pagamento_status:paymentStatus};
@@ -83,9 +89,18 @@
       if(typeof saveCustomer==='function')saveCustomer(formData);
       if(typeof close==='function')close();
       if(byId('success-message')){
+        const pixResult=paymentResult?.cobranca;
+        const pixSection=byId('online-pix-result'),pixImage=byId('online-pix-qr'),pixCopy=byId('online-pix-copy'),bolixLink=byId('open-bolix-link');
+        if(onlinePix&&pixResult?.pix_copia_cola){
+          if(pixSection)pixSection.hidden=false;
+          if(pixCopy)pixCopy.value=pixResult.pix_copia_cola;
+          if(pixImage&&String(pixResult.pix_qrcode_image||'').startsWith('data:image/svg+xml;base64,')){pixImage.src=pixResult.pix_qrcode_image;pixImage.hidden=false}else if(pixImage)pixImage.hidden=true;
+          if(bolixLink&&pixResult.link_bolix){bolixLink.href=pixResult.link_bolix;bolixLink.hidden=false}else if(bolixLink)bolixLink.hidden=true;
+        }else if(pixSection)pixSection.hidden=true;
         if(onlineCard&&paymentStatus==='pago')byId('success-message').textContent=`Pedido #${orderCode} realizado. Pagamento confirmado e liquidado. Aguarde a confirmação do estabelecimento.`;
         else if(onlineCard&&paymentStatus==='autorizado')byId('success-message').textContent=`Pedido #${orderCode} realizado. Pagamento autorizado e pedido liberado para o estabelecimento.`;
         else if(onlineCard)byId('success-message').textContent=`Pedido #${orderCode} criado. Pagamento ${paymentStatus==='em_analise'?'em análise':'em processamento'}. O pedido será liberado após a autorização.`;
+        else if(onlinePix)byId('success-message').textContent=`Pedido #${orderCode} criado. Pague pelo QR Code Pix; a confirmação será automática e liberará o pedido.`;
         else byId('success-message').textContent=`Pedido #${orderCode} enviado com sucesso. Aguarde a confirmação do estabelecimento.`;
       }
       cart=[];if(typeof saveCart==='function')saveCart();
@@ -95,12 +110,12 @@
     }catch(error){
       console.error('Falha ao enviar pedido público:',error);
       const raw=error?.message||'Não foi possível enviar o pedido.';
-      const message=createdOrderCode&&selectedPayment==='Cartão on-line'?`Pagamento não aprovado. O pedido #${createdOrderCode} não foi confirmado e permanecerá bloqueado/cancelado. ${raw}`:raw;
+      const message=createdOrderCode&&selectedPayment==='Cartão on-line'?`Pagamento não aprovado. O pedido #${createdOrderCode} não foi confirmado e permanecerá bloqueado/cancelado. ${raw}`:createdOrderCode&&selectedPayment==='Pix on-line'?`Não foi possível gerar o QR Pix para o pedido #${createdOrderCode}. O pedido ficará aguardando pagamento e não será liberado. ${raw}`:raw;
       inlineFeedback(message);
     }
     finally{sending=false;if(typeof submitting!=='undefined')submitting=false;setCheckoutBusy(false)}
   }
 
-  function bind(){removeLegacyRegion();const form=byId('checkout-form'),button=byId('submit-order-btn');if(!form||!button)return false;form.noValidate=true;form.onsubmit=null;form.addEventListener('submit',submit,true);button.type='button';button.onclick=null;button.addEventListener('click',submit,true);form.dataset.fsConsolidated='true';fields().neighborhood?.addEventListener('change',resolveRegion);fields().neighborhood?.addEventListener('input',resolveRegion);available();return true}
+  function bind(){removeLegacyRegion();const form=byId('checkout-form'),button=byId('submit-order-btn');if(!form||!button)return false;form.noValidate=true;form.onsubmit=null;form.addEventListener('submit',submit,true);button.type='button';button.onclick=null;button.addEventListener('click',submit,true);form.dataset.fsConsolidated='true';fields().neighborhood?.addEventListener('change',resolveRegion);fields().neighborhood?.addEventListener('input',resolveRegion);byId('copy-online-pix')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(byId('online-pix-copy')?.value||'');byId('copy-online-pix').textContent='Código copiado'}catch{byId('online-pix-copy')?.select();document.execCommand('copy')}});available();return true}
   let attempts=0;const timer=setInterval(()=>{attempts++;if(bind()||attempts>50)clearInterval(timer)},100);window.addEventListener('pageshow',()=>{removeLegacyRegion();available()});
 })();

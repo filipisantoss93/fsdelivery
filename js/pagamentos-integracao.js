@@ -6,8 +6,6 @@
   const digits=value=>String(value||'').replace(/\D/g,'');
   const feedback=byId('payment-settings-feedback');
   const statusCard=document.querySelector('.payment-status-card');
-  const feeModeMap={estabelecimento:1,proporcional:2};
-  const feeModeReverse={1:'estabelecimento',2:'proporcional'};
   let store=null;
   let integration=null;
   let busy=false;
@@ -50,7 +48,7 @@
     statusCard.classList.toggle('is-error',error);
     byId('payment-status-title').textContent=active?'Conta homologada':status==='em_analise'?'Validando conta Efí':integration?'Solicitação aguardando validação':'Conta Efí ainda não configurada';
     byId('payment-status-description').textContent=active
-      ?`Recebedor validado. Cartão ${integration.cartao_online_ativo?'ativo':'inativo'}, split ${integration.split_ativo?'ativo':'inativo'}${integration.pix_online_solicitado&&!integration.pix_online_ativo?'. Pix on-line segue pendente de homologação específica.':''}`
+      ?`Recebedor validado. Cartão ${integration.cartao_online_ativo?'ativo':'inativo'}, Pix ${integration.pix_online_ativo?'ativo':'inativo'}, split ${integration.split_ativo?'ativo':'inativo'}. A taxa de serviço é configurada pelo FS Delivery.`
       :integration?.erro_ultima_validacao||'Salve os dados para validar automaticamente a conta recebedora na Efí.';
     byId('payment-status-badge').textContent=status.replaceAll('_',' ');
   }
@@ -59,8 +57,6 @@
     if(!integration){updateStatus();return}
     byId('account-type').value=integration.tipo_pessoa||'pj';
     byId('payee-code').value=integration.payee_code||'';
-    byId('commission-percent').value=(Number(integration.percentual_comissao_bps||0)/100).toFixed(2);
-    byId('fee-mode').value=feeModeReverse[Number(integration.modo_tarifa)]||'proporcional';
     byId('online-card').checked=Boolean(integration.cartao_online_solicitado);
     byId('online-pix').checked=Boolean(integration.pix_online_solicitado);
     byId('split-enabled').checked=Boolean(integration.split_solicitado);
@@ -71,16 +67,14 @@
     const type=byId('account-type').value;
     const documentValue=byId('document-number').value;
     const payeeCode=byId('payee-code').value.trim();
-    const commission=Number(byId('commission-percent').value||0);
     if(requireDocument){
       const validDocument=type==='pf'?validCpf(documentValue):validCnpj(documentValue);
       if(!validDocument)throw new Error(`Informe um ${type==='pf'?'CPF':'CNPJ'} válido para conferência local.`);
       if(!byId('security-confirmation').checked)throw new Error('Confirme a origem segura do payee code.');
     }
     if(!/^[A-Za-z0-9_-]{8,160}$/.test(payeeCode))throw new Error('Informe um payee code em formato válido.');
-    if(!Number.isFinite(commission)||commission<0||commission>30)throw new Error('A comissão deve ficar entre 0% e 30%.');
     if(!byId('split-enabled').checked)throw new Error('Ative a solicitação de Split automático para validar o recebedor.');
-    return {payeeCode,commission};
+    return {payeeCode};
   }
 
   async function reloadIntegration(){
@@ -128,7 +122,7 @@
     if(busy)return;
     setBusy(true);
     try{
-      const {payeeCode,commission}=validateForm();
+      const {payeeCode}=validateForm();
       const payload={
         estabelecimento_id:store.id,
         provedor:'efi',
@@ -137,8 +131,6 @@
         cartao_online_solicitado:byId('online-card').checked,
         pix_online_solicitado:byId('online-pix').checked,
         split_solicitado:byId('split-enabled').checked,
-        percentual_comissao_bps:Math.round(commission*100),
-        modo_tarifa:feeModeMap[byId('fee-mode').value]||2,
         updated_at:new Date().toISOString()
       };
       const {data,error}=await db.from('integracoes_pagamento_estabelecimento').upsert(payload,{onConflict:'estabelecimento_id'}).select().single();

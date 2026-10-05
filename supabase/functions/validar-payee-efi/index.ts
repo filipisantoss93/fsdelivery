@@ -128,7 +128,7 @@ Deno.serve(async(req:Request)=>{
       status:"ativo",
       cartao_online_ativo:Boolean(integration.cartao_online_solicitado),
       split_ativo:true,
-      pix_online_ativo:false,
+      pix_online_ativo:Boolean(integration.pix_online_solicitado),
       validado_em:now,
       erro_ultima_validacao:warning,
       updated_at:now
@@ -144,7 +144,7 @@ Deno.serve(async(req:Request)=>{
       sucesso:true,
       mensagem:cancelado?"Conta Efí validada automaticamente em homologação.":"Conta Efí validada; revise o aviso sobre a cobrança sandbox de validação.",
       integracao:updated,
-      validacao:{charge_id:chargeId,cancelado,pix_online:"pendente_validacao_especifica"}
+      validacao:{charge_id:chargeId,cancelado,pix_online:Boolean(integration.pix_online_solicitado)?"ativo":"nao_solicitado"}
     });
   }catch(error){
     const message=error instanceof Error?error.message:"Falha na validação automática";
